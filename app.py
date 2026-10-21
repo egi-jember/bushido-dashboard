@@ -59,6 +59,19 @@ TARGET_DEALER_FILE, TARGET_KOOR_FILE, AI_CONFIG_FILE, UPLOAD_DIR = 'dealer_targe
 DB_Multi_DIR, RAW_META_FILE = os.path.join(UPLOAD_DIR, 'database_files'), os.path.join(UPLOAD_DIR, 'metadata.json')
 os.makedirs(DB_Multi_DIR, exist_ok=True)
 
+def clean_str(val): return '' if pd.isna(val) else ' '.join(str(val).split()).upper()
+def nospace_str(val): return '' if pd.isna(val) else ''.join(str(val).split()).upper()
+def alnum_str(val): return '' if pd.isna(val) else ''.join(c for c in str(val).upper() if c.isalnum())
+FIXED_COUNTER_TARGETS_NS = {alnum_str(k): v for k, v in FIXED_COUNTER_TARGETS.items()}
+
+def normalize_dealer_name(val):
+    s = clean_str(val)
+    if not s or s in ['NAN', 'NONE'] or s in daftar_dealer: return s
+    if any(k in s for k in ['A YANI', 'A. YANI', 'AYANI', 'A.YANI']): return 'SIP A. YANI'
+    for k, v in [('BESUKI', 'SIP BESUKI'), ('PANJI', 'SIP PANJI'), ('SRONO', 'SIP SRONO'), ('SIAGA', 'SIP SIAGA'), ('SOBO', 'SIP SOBO'), ('GIRI', 'SIP GIRI')]:
+        if k in s: return v
+    return s
+
 def safe_int(val, default=0):
     try: return default if pd.isna(val) else int(float(str(val).replace(',', '').replace('%', '').strip()))
     except Exception: return default
@@ -259,17 +272,28 @@ def save_raw_file(up_file, prefix):
     save_json(meta, RAW_META_FILE)
 
 def save_database_files(up_files):
-    for old in glob.glob(os.path.join(DB_Multi_DIR, "*")):
-        try: os.remove(old)
-        except Exception: pass
-    names, paths = [], []
+    meta = load_json(RAW_META_FILE)
+    now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
+    file_times = meta.get('database_multi', {}).get('file_times', {})
+    updated_dealers = []
     for uf in up_files:
+        new_dlr = normalize_dealer_name(os.path.splitext(uf.name)[0])
+        for old_p in glob.glob(os.path.join(DB_Multi_DIR, "*.*")):
+            old_bname = os.path.basename(old_p)
+            old_dlr = normalize_dealer_name(os.path.splitext(old_bname)[0])
+            if (new_dlr in daftar_dealer and old_dlr == new_dlr) or (old_bname.upper() == uf.name.upper()):
+                try: os.remove(old_p)
+                except Exception: pass
         p = os.path.join(DB_Multi_DIR, uf.name)
         with open(p, 'wb') as f: f.write(uf.getbuffer())
-        names.append(uf.name); paths.append(p)
-    meta = load_json(RAW_META_FILE)
-    meta['database_multi'] = {'file_names': names, 'saved_paths': paths, 'count': len(names), 'updated_at': datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')}
+        file_times[uf.name] = now_str
+        updated_dealers.append(f"{uf.name} ({new_dlr})")
+    all_saved_paths = sorted(glob.glob(os.path.join(DB_Multi_DIR, "*.*")))
+    all_names = [os.path.basename(p) for p in all_saved_paths]
+    file_times = {k: file_times.get(k, now_str) for k in all_names}
+    meta['database_multi'] = {'file_names': all_names, 'saved_paths': all_saved_paths, 'file_times': file_times, 'count': len(all_names), 'updated_at': now_str}
     save_json(meta, RAW_META_FILE)
+    return updated_dealers, len(all_names)
 
 def get_saved_file_path(prefix):
     meta = load_json(RAW_META_FILE)
@@ -278,10 +302,6 @@ def get_saved_file_path(prefix):
     return m[0] if m else None
 
 def get_saved_database_paths():
-    meta = load_json(RAW_META_FILE)
-    if 'database_multi' in meta:
-        v = [p for p in meta['database_multi'].get('saved_paths', []) if os.path.exists(p)]
-        if v: return v
     return sorted(glob.glob(os.path.join(DB_Multi_DIR, "*.*")))
 
 def get_azura_logo_path():
@@ -389,11 +409,6 @@ st.sidebar.radio('Menu Upload File:', [UPLOAD_TAB], index=0 if st.session_state[
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
 menu_pilihan = st.session_state['active_menu_tab']
 
-def clean_str(val): return '' if pd.isna(val) else ' '.join(str(val).split()).upper()
-def nospace_str(val): return '' if pd.isna(val) else ''.join(str(val).split()).upper()
-def alnum_str(val): return '' if pd.isna(val) else ''.join(c for c in str(val).upper() if c.isalnum())
-FIXED_COUNTER_TARGETS_NS = {alnum_str(k): v for k, v in FIXED_COUNTER_TARGETS.items()}
-
 def smart_parse_datetime(s):
     if s is None or len(s) == 0 or pd.api.types.is_datetime64_any_dtype(s): return pd.to_datetime(s, errors='coerce')
     s_str = s.dropna().astype(str).str.strip()
@@ -418,14 +433,6 @@ def parse_date_cols(df):
         df['Tanggal_Parsed'] = smart_parse_datetime(df.iloc[:, idx])
         df['bulan'], df['hari'], df['tahun'] = df['Tanggal_Parsed'].dt.month, df['Tanggal_Parsed'].dt.day, df['Tanggal_Parsed'].dt.year
     return df
-
-def normalize_dealer_name(val):
-    s = clean_str(val)
-    if not s or s in ['NAN', 'NONE'] or s in daftar_dealer: return s
-    if any(k in s for k in ['A YANI', 'A. YANI', 'AYANI', 'A.YANI']): return 'SIP A. YANI'
-    for k, v in [('BESUKI', 'SIP BESUKI'), ('PANJI', 'SIP PANJI'), ('SRONO', 'SIP SRONO'), ('SIAGA', 'SIP SIAGA'), ('SOBO', 'SIP SOBO'), ('GIRI', 'SIP GIRI')]:
-        if k in s: return v
-    return s
 
 def normalize_leasing_val(val):
     s = clean_str(val)
@@ -521,6 +528,42 @@ def load_employee_targets(fpath):
                 if tv is not None: t_exact[nm], t_ns[alnum_str(nm)] = tv, tv
     except Exception as e: st.error(f'Error File Employee: {e}')
     return t_exact, t_ns
+
+if menu_pilihan == '📁 UPLOAD FILE':
+    st.markdown('<div class="main-title">UPLOAD FILE MENTAH</div><div class="sub-title">Silakan unggah ke-6 kategori sumber data serta logo di bawah ini (tersimpan otomatis & permanen)</div>', unsafe_allow_html=True)
+    meta_info = load_json(RAW_META_FILE)
+    logo_uf = st.file_uploader('🐺 Upload Logo AZURA Pojok Kiri Atas (.jpg / .png)', type=['jpg', 'jpeg', 'png'], key='azura_logo_up')
+    if logo_uf: save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
+    st.divider()
+    for lbl_up, lbl, kp, exts in [('1. Upload Faktur (.xls / .xlsx)', 'Faktur', 'faktur', ['xls', 'xlsx']), ('2. Upload Nota (.xls / .xlsx)', 'Nota', 'nota', ['xls', 'xlsx']), ('3. Upload Data Lookup (.xls / .xlsx)', 'Data Lookup', 'lookup', ['xls', 'xlsx'])]:
+        uf = st.file_uploader(lbl_up, type=exts, key=f'{kp}_up')
+        if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**")
+        elif kp in meta_info and os.path.exists(meta_info[kp].get('saved_path', '')): st.info(f"📌 **{lbl} Aktif:** `{meta_info[kp]['original_name']}` ({meta_info[kp]['updated_at']})")
+        else: st.warning(f"⚠️ Belum ada file {lbl}.")
+
+    db_ups = st.file_uploader('4. Upload File Database — Bisa Pilih 1 File Saja (Parsial) atau 6 File Sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_up')
+    if db_ups:
+        upd_list, total_active = save_database_files(db_ups)
+        st.success(f"✅ **Update Parsial Berhasil!** File diperbarui: `{', '.join(upd_list)}`. File dealer lainnya tetap aman (Total **{total_active} File Database** aktif).")
+    saved_db_paths_now = get_saved_database_paths()
+    if saved_db_paths_now:
+        ftimes = load_json(RAW_META_FILE).get('database_multi', {}).get('file_times', {})
+        badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_db_paths_now]
+        c_db_info, c_db_rst = st.columns([4, 1])
+        with c_db_info: st.info(f"📌 **Database Aktif ({len(saved_db_paths_now)} File):** " + " | ".join(badge_items))
+        with c_db_rst:
+            if st.button('🗑️ Reset Semua DB', key='btn_rst_all_db', help='Hapus seluruh file database jika ingin mulai dari 0'):
+                for old_p in saved_db_paths_now:
+                    try: os.remove(old_p)
+                    except Exception: pass
+                meta_info.pop('database_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
+    else: st.warning("⚠️ Belum ada file Database.")
+
+    for lbl_up, lbl, kp in [('5. Upload File SPK (.xls / .xlsx / .csv)', 'SPK', 'spk'), ('6. Upload File Master Employee (.xls / .xlsx / .csv) — Target Otomatis Salesman (Kolom C: Nama, Kolom F: Posisi)', 'Master Employee', 'employee')]:
+        uf = st.file_uploader(lbl_up, type=['xls', 'xlsx', 'csv'], key=f'{kp}_up')
+        if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**")
+        elif kp in meta_info and os.path.exists(meta_info[kp].get('saved_path', '')): st.info(f"📌 **{lbl} Aktif:** `{meta_info[kp]['original_name']}` ({meta_info[kp]['updated_at']})")
+        else: st.warning(f"⚠️ Belum ada file {lbl}.")
 
 path_faktur, path_nota, path_lookup = get_saved_file_path('faktur'), get_saved_file_path('nota'), get_saved_file_path('lookup')
 paths_database, path_spk = get_saved_database_paths(), get_saved_file_path('spk')
@@ -669,27 +712,6 @@ persen_desimal = target_persen_harian / 100.0
 col_name_pct = f'{target_persen_harian:.0f}%' if target_persen_harian.is_integer() else f'{target_persen_harian}%'
 hari_aktif = max(1, int(tanggal_akhir))
 st.sidebar.markdown(f'<div class="target-ideal-caption">🎯 Target Ideal Tgl {tanggal_akhir}: {col_name_pct}</div>', unsafe_allow_html=True)
-
-if menu_pilihan == '📁 UPLOAD FILE':
-    st.markdown('<div class="main-title">UPLOAD FILE MENTAH</div><div class="sub-title">Silakan unggah ke-6 kategori sumber data serta logo di bawah ini (tersimpan otomatis & permanen)</div>', unsafe_allow_html=True)
-    meta_info = load_json(RAW_META_FILE)
-    logo_uf = st.file_uploader('🐺 Upload Logo AZURA Pojok Kiri Atas (.jpg / .png)', type=['jpg', 'jpeg', 'png'], key='azura_logo_up')
-    if logo_uf: save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
-    st.divider()
-    for lbl_up, lbl, kp, exts in [('1. Upload Faktur (.xls / .xlsx)', 'Faktur', 'faktur', ['xls', 'xlsx']), ('2. Upload Nota (.xls / .xlsx)', 'Nota', 'nota', ['xls', 'xlsx']), ('3. Upload Data Lookup (.xls / .xlsx)', 'Data Lookup', 'lookup', ['xls', 'xlsx'])]:
-        uf = st.file_uploader(lbl_up, type=exts, key=f'{kp}_up')
-        if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**")
-        elif kp in meta_info and os.path.exists(meta_info[kp].get('saved_path', '')): st.info(f"📌 **{lbl} Aktif:** `{meta_info[kp]['original_name']}` ({meta_info[kp]['updated_at']})")
-        else: st.warning(f"⚠️ Belum ada file {lbl}.")
-    db_ups = st.file_uploader('4. Upload File Database — Bisa Pilih 6 File Sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_up')
-    if db_ups: save_database_files(db_ups); st.success(f"✅ **{len(db_ups)} File Database** disimpan.")
-    elif 'database_multi' in meta_info and get_saved_database_paths(): st.info(f"📌 **Database Aktif ({meta_info['database_multi'].get('count',0)} File):** `{', '.join(meta_info['database_multi'].get('file_names',[]))}`")
-    else: st.warning("⚠️ Belum ada file Database.")
-    for lbl_up, lbl, kp in [('5. Upload File SPK (.xls / .xlsx / .csv)', 'SPK', 'spk'), ('6. Upload File Master Employee (.xls / .xlsx / .csv) — Target Otomatis Salesman (Kolom C: Nama, Kolom F: Posisi)', 'Master Employee', 'employee')]:
-        uf = st.file_uploader(lbl_up, type=['xls', 'xlsx', 'csv'], key=f'{kp}_up')
-        if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**")
-        elif kp in meta_info and os.path.exists(meta_info[kp].get('saved_path', '')): st.info(f"📌 **{lbl} Aktif:** `{meta_info[kp]['original_name']}` ({meta_info[kp]['updated_at']})")
-        else: st.warning(f"⚠️ Belum ada file {lbl}.")
 
 def calc_sales_row(name_label, name_col, targ, df_f_c, df_f_l, df_n_c, df_n_t):
     ideal, stu, stulm, nota, today = round(targ * persen_desimal), len(df_f_c), len(df_f_l), len(df_n_c), len(df_n_t)
