@@ -49,7 +49,7 @@ p.nar-p:last-of-type { margin-bottom: 4px; }
 </style>""", unsafe_allow_html=True)
 
 IDEAL_DBQ_PCT, IDEAL_STU_PCT, IDEAL_ACC_PCT, MAX_NARRATIVE_WORDS = 30.0, 10.0, 50.0, 35
-SUBTOTAL_ROW_LABELS = {'SUB SITUBONDO', 'SUB BANYUWANGI', 'JEMBER', 'BONDOWOSO', 'SITUBONDO', 'SITUBONDO', 'BANYUWANGI'}
+SUBTOTAL_ROW_LABELS = {'SUB SITUBONDO', 'SUB BANYUWANGI', 'JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI'}
 tabel_target_harian = {1:0.0, 2:1.0, 3:2.0, 4:5.0, 5:8.0, 6:12.0, 7:18.0, 8:21.0, 9:24.0, 10:29.0, 11:34.0, 12:36.0, 13:40.0, 14:44.0, 15:48.0, 16:51.0, 17:54.0, 18:57.0, 19:60.0, 20:63.0, 21:67.0, 22:70.0, 23:73.0, 24:77.0, 25:79.0, 26:82.0, 27:84.0, 28:88.0, 29:92.0, 30:100.0, 31:100.0}
 FIXED_COUNTER_TARGETS = {'IIN BARIROH': 25, 'SITI NURJANAH': 25, 'TRIA DAMAYANTI': 25, 'MUHAMMAD HAMDAN WAHDI': 15, 'DESVIN NURUL PRISTANTINI': 15, 'RIKA DWI ASTUTI': 15, 'NURUL FADILAH': 15}
 FOKUS_KATEGORI_TYPE = ['AT PREMIUM', 'AT CLASSY', 'AT LPM']
@@ -1128,7 +1128,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     focus_sm_html = "Tidak ada Salesman aktif (Non-Counter dengan DB >= 2)"
     if r_sm:
         df_sm_all = pd.DataFrame(r_sm)
-        df_sm_valid = df_sm_all[(~df_sm_all['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_valid['_db_val'] >= 2)].copy() if 'df_sm_valid' in locals() else df_sm_all[(~df_sm_all['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_all['_db_val'] >= 2)].copy()
+        df_sm_valid = df_sm_all[(~df_sm_all['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_all['_db_val'] >= 2)].copy()
         if not df_sm_valid.empty:
             df_sm_valid['has_t'] = df_sm_valid['TARGET'].apply(lambda x: 0 if x > 0 else 1)
             df_sm_valid = df_sm_valid.sort_values(by=['has_t', '_pct_val', '_stu_val', '_stup_val', '_dbq_val', '_acc_val', '_db_val'], ascending=[True, True, True, True, True, True, True]).reset_index(drop=True)
@@ -1277,7 +1277,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         wc = df_cnt_only.iloc[0]
         wc_nm, wc_t, wc_i, wc_s, wc_pct = str(wc[kol_nm]), safe_int(wc['TARGET']), safe_int(wc['IDEAL']), safe_int(wc['STU']), safe_float(wc['_pct'])
         wc_pr = df_pr_it[df_pr_it[kol_nm] == wc_nm].iloc[0] if (not df_pr_it.empty and wc_nm in df_pr_it[kol_nm].values) else {}
-        wc_sp = df_s_it[df_s_it[kol_nm] == wc_nm].iloc[0] if (not df_sp_it.empty and wc_nm in df_sp_it[kol_nm].values) else {}
+        wc_sp = df_s_it[df_s_it[kol_nm] == wc_nm].iloc[0] if (not df_s_it.empty and wc_nm in df_s_it[kol_nm].values) else {}
         default_cond_counter = limit_words(f"Counter terendah {wc_nm}: STU {wc_s}/{wc_t} unit ({wc_pct:.1f}%, gap ideal {wc_s - wc_i:+d}). Prospek {wc_pr.get('DB', 0)} DB, DB Q {wc_pr.get('DB Q', '0%')} (ideal 30%), STU% {wc_pr.get('STU%', '0%')}, ACC% {wc_sp.get('ACC%', '0%')} .")
         wc_add, wc_goal_rasional = calc_rational_7d_addition(wc_s, wc_t, tanggal_akhir, tgl_sasaran, persen_desimal, pct_sasaran, active_mp=1)
         wc_spk_need, wc_db_hari = max(wc_add + 1, round(wc_add / 0.5)), min(6, max(4, round((wc_add / 0.10) / sisa_hari)))
