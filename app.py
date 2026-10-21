@@ -1047,7 +1047,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     n_c = df_nota_curr_g[df_nota_curr_g[cd_nota] == dlr_pil] if not df_nota_curr_g.empty else pd.DataFrame()
     n_t = df_nota_tod_g[df_nota_tod_g[cd_nota] == dlr_pil] if not df_nota_tod_g.empty else pd.DataFrame()
     db_all = df_database[df_database['Nama_Dealer_Clean'] == dlr_pil] if (df_database is not None and 'Nama_Dealer_Clean' in df_database.columns) else pd.DataFrame()
-    db_c = df_db_curr_g[df_db_curr_g['Nama_Dealer_Clean'] == dlr_pil] if not db_c.empty else pd.DataFrame()
+    db_c = df_db_curr_g[df_db_curr_g['Nama_Dealer_Clean'] == dlr_pil] if not df_db_curr_g.empty else pd.DataFrame()
     s_all = df_spk[df_spk['Nama_Dealer_SPK'] == dlr_pil] if (df_spk is not None and 'Nama_Dealer_SPK' in df_spk.columns) else pd.DataFrame()
     s_c = df_spk_curr_g[df_spk_curr_g['Nama_Dealer_SPK'] == dlr_pil] if not df_spk_curr_g.empty else pd.DataFrame()
     s_l = df_spk_lm_g[df_spk_lm_g['Nama_Dealer_SPK'] == dlr_pil] if not df_spk_lm_g.empty else pd.DataFrame()
@@ -1086,7 +1086,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         sdb = db_c[db_c['Salesman_Clean'] == sm] if (not db_c.empty and 'Salesman_Clean' in db_c.columns) else pd.DataFrame()
         db_v, hot_v = len(sdb), (len(sdb[sdb['Data_Type_Clean'] == 'DEAL PROSPECT']) if (not sdb.empty and 'Data_Type_Clean' in sdb.columns) else 0)
         sspk = s_c[s_c['Salesman_Clean'] == sm] if (not s_c.empty and 'Salesman_Clean' in s_c.columns) else pd.DataFrame()
-        spk_v, acc_v, rej_v = len(sspk), (len(sspk[sspk['Status_SPK_Clean'] == 'DISETUJUI']) if (not sspk.empty and 'Status_SPK_Clean' in sspk.columns) else 0), (len(sspk[sspk['Status_SPK_Clean'] == 'DITOLAK']) if not sspk.empty and 'Status_SPK_Clean' in sspk.columns) else 0
+        spk_v, acc_v, rej_v = len(sspk), (len(sspk[sspk['Status_SPK_Clean'] == 'DISETUJUI']) if (not sspk.empty and 'Status_SPK_Clean' in sspk.columns) else 0), (len(sspk[sspk['Status_SPK_Clean'] == 'DITOLAK']) if (not sspk.empty and 'Status_SPK_Clean' in sspk.columns) else 0)
         t_sa += acc_v; t_sr += rej_v
         dbq_v, stup_v, acc_p_v = (hot_v / db_v * 100.0 if db_v > 0 else 0.0), (stu / db_v * 100.0 if db_v > 0 else 0.0), (acc_v / (acc_v + rej_v) * 100.0 if (acc_v + rej_v) > 0 else 0.0)
         r_sm.append({'NAMA SALESMAN': sm, 'TARGET': targ, 'STU': stu, col_name_pct: f'{pct_sm:.2f}%', 'AVG DB': f'{(db_v/hari_aktif):.2f}', 'DB': db_v, 'HOT': hot_v, 'DB Q': f'{dbq_v:.2f}%', 'SPK': spk_v, 'ACC%': f'{acc_p_v:.2f}%', 'STU%': f'{stup_v:.2f}%', '_stu_val': stu, '_db_val': db_v, '_pct_val': pct_sm, '_dbq_val': dbq_v, '_stup_val': stup_v, '_acc_val': acc_p_v})
@@ -1148,6 +1148,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     kol_pj = [kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
     df_p_full = pd.concat([df_p_it, pd.DataFrame([r_tot_p])], ignore_index=True)
 
+    # Buat paket HTML khusus untuk Capture Tabel 1 (Judul Sheet + KPI 6 Kolom + Focus Box + Tabel 1)
     tbl1_only_html = build_compact_html_string(df_p_it, df_p_full, kol_pj, kol_nm, '_pct', f'cap_tbl1_inner_{dlr_pil}', title_text=None)
     kpi_grid_cells = ''.join(f'<div style="flex:1;min-width:160px;font-size:13.5px;line-height:1.45;color:#FFFFFF;">{item}</div>' for item in kpi_items_html)
     custom_cap_tbl1 = f"""<div style="width:1320px;background-color:#0E1117;padding:20px 24px;font-family:'Source Sans Pro',sans-serif;color:#FFFFFF;box-sizing:border-box;">
@@ -1309,30 +1310,38 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
             default_cond_mp = limit_words(f"{len(top_bad)} Salesman aktif zona kritis: {names_kritis}. Rata-rata DB Quality dan konversi STU% masih di bawah standar ideal 30% dan 10%.")
             default_plan_mp = limit_words(f"Kawal joint canvassing {len(top_bad)} MP kritis untuk kejar target rasional +1 s.d +2 STU dan +3 SPK/orang. Wajib input 4 DB/hari/MP TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%).")
 
-    active_api_key = "AQ.Ab8RN6LAV5JudlB8Ht6CnFRdJWnvX-be0Jn8zb4NHQ8CNjyHUg"
+    ai_cfg = load_json(AI_CONFIG_FILE)
+    active_api_key = ai_cfg.get('gemini_api_key', os.environ.get('GEMINI_API_KEY', ''))
     cache_key = f"ai_tbl6_v8_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
 
     col_btn1, col_btn2 = st.columns([1, 2])
     with col_btn1: gen_ai_clicked = st.button('✨ Generate Narasi Dinamis dengan AI (Gemini)', type='primary', use_container_width=True)
+    with col_btn2:
+        with st.expander('🤖 Pengaturan Gemini API Key (Opsional — Klik untuk buka)'):
+            inp_api_key = st.text_input('Masukkan Gemini API Key:', value=active_api_key, type='password')
+            if st.button('💾 Simpan API Key'):
+                save_json({'gemini_api_key': inp_api_key.strip()}, AI_CONFIG_FILE); active_api_key = inp_api_key.strip(); st.success('API Key berhasil disimpan!')
 
     if gen_ai_clicked:
-        with st.spinner(f'🤖 AI sedang membedah data mentah & menyusun Target Rasional 7 Hari ke depan untuk {dlr_pil} (Maks 35 kata/sel)...'):
-            raw_t1 = df_p_it[[kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', col_name_pct, 'STU LM', '% LM']].to_string(index=False) if not df_p_it.empty else "Kosong"
-            raw_t2 = df_pr_it[[kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']].to_string(index=False) if not df_pr_it.empty else "Kosong"
-            raw_t3 = df_s_it[[kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']].to_string(index=False) if not df_s_it.empty else "Kosong"
-            raw_t4 = df_td_i[['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']].to_string(index=False) if not df_td_i.empty else "Kosong"
-            raw_context_for_ai = (
-                f"Dealer: {dlr_pil} | Periode: 1 s.d {tanggal_akhir} Oktober 2026 | Horizon Action Plan: {horizon_lbl}.\n"
-                f"ACUAN TARGET RASIONAL 7 HARI KE DEPAN (WAJIB DIPAKAI AI AGAR TARGET MASUK AKAL & MENANTANG):\n"
-                f"- Dealer {dlr_pil} (STU saat ini {dlr_stu} dari target bulanan {dlr_targ}, Ideal tgl {tanggal_akhir}={dlr_ideal}): Target Rasional s.d tgl {tgl_sasaran} adalah tambahan +{tambahan_stu_wajib} STU (sehingga total mencapai {stu_sasaran_rasional} unit, atau {target_stu_per_hari:.1f} STU/hari), input {target_db_per_mp_hari:.1f} DB/MP/hari.\n"
-                f"- {wt_rational_str}\n- {wk_rational_str}\n- {wc_rational_str}\n"
-                f"TOTAL LEASING & FAKTUR KREDIT: Total SPK={cur_spk} (LM={cur_spk_lm}), ACC%={cur_acc_pct:.1f}%, SPK Terbuka={cur_open_spk} (target cair rasional +{potensi_stu_open} STU, tambah +{kebutuhan_spk_baru} SPK baru). Faktur Kredit Cair={tot_fak_kredit_curr} unit (BAF={fak_kredit_curr['BAF']}, ADIRA={fak_kredit_curr['ADIRA']}, SOF={fak_kredit_curr['SOF']}). Alasan Reject SPK Tertinggi: {top_rej_reasons_str}.\n"
-                f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
-            )
-            try:
-                st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
-                st.success('✅ Analisa mendalam AI dengan Target Rasional (Maks 35 kata per kotak) berhasil dibuat!')
-            except Exception as e: st.error(f'Gagal memanggil AI Gemini: {e}. Menampilkan hasil ringkas bawaan.')
+        if not active_api_key: st.warning('⚠️ Silakan masukkan Gemini API Key terlebih dahulu pada kotak Pengaturan Gemini API Key di sebelah kanan tombol.')
+        else:
+            with st.spinner(f'🤖 AI sedang membedah data mentah & menyusun Target Rasional 7 Hari ke depan untuk {dlr_pil} (Maks 35 kata/sel)...'):
+                raw_t1 = df_p_it[[kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', col_name_pct, 'STU LM', '% LM']].to_string(index=False) if not df_p_it.empty else "Kosong"
+                raw_t2 = df_pr_it[[kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']].to_string(index=False) if not df_pr_it.empty else "Kosong"
+                raw_t3 = df_s_it[[kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']].to_string(index=False) if not df_s_it.empty else "Kosong"
+                raw_t4 = df_td_i[['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']].to_string(index=False) if not df_td_i.empty else "Kosong"
+                raw_context_for_ai = (
+                    f"Dealer: {dlr_pil} | Periode: 1 s.d {tanggal_akhir} Oktober 2026 | Horizon Action Plan: {horizon_lbl}.\n"
+                    f"ACUAN TARGET RASIONAL 7 HARI KE DEPAN (WAJIB DIPAKAI AI AGAR TARGET MASUK AKAL & MENANTANG):\n"
+                    f"- Dealer {dlr_pil} (STU saat ini {dlr_stu} dari target bulanan {dlr_targ}, Ideal tgl {tanggal_akhir}={dlr_ideal}): Target Rasional s.d tgl {tgl_sasaran} adalah tambahan +{tambahan_stu_wajib} STU (sehingga total mencapai {stu_sasaran_rasional} unit, atau {target_stu_per_hari:.1f} STU/hari), input {target_db_per_mp_hari:.1f} DB/MP/hari.\n"
+                    f"- {wt_rational_str}\n- {wk_rational_str}\n- {wc_rational_str}\n"
+                    f"TOTAL LEASING & FAKTUR KREDIT: Total SPK={cur_spk} (LM={cur_spk_lm}), ACC%={cur_acc_pct:.1f}%, SPK Terbuka={cur_open_spk} (target cair rasional +{potensi_stu_open} STU, tambah +{kebutuhan_spk_baru} SPK baru). Faktur Kredit Cair={tot_fak_kredit_curr} unit (BAF={fak_kredit_curr['BAF']}, ADIRA={fak_kredit_curr['ADIRA']}, SOF={fak_kredit_curr['SOF']}). Alasan Reject SPK Tertinggi: {top_rej_reasons_str}.\n"
+                    f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
+                )
+                try:
+                    st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
+                    st.success('✅ Analisa mendalam AI dengan Target Rasional (Maks 35 kata per kotak) berhasil dibuat!')
+                except Exception as e: st.error(f'Gagal memanggil AI Gemini: {e}. Menampilkan hasil ringkas bawaan.')
 
     ai_res = st.session_state.get(cache_key, {})
     analisa_rows_data = [
@@ -1450,7 +1459,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
                 table.narrative-tbl td {{ padding: 8px 10px; border: 1px solid #374151; vertical-align: top; text-align: left; line-height: 1.5; color: #111827; }}
                 table.narrative-tbl td.item-col {{ font-weight: bold; width: 14%; background-color: #F3F4F6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; white-space: nowrap; }}
                 p.nar-p {{ margin: 0; }}
-                .no-print-bar {{ margin-bottom: 12px; padding: 8px 12px; background: #EEF2FF; border: 1px solid #4318FF; border-radius: 6px; display: flex; justify-content: space-image; align-items: center; }}
+                .no-print-bar {{ margin-bottom: 12px; padding: 8px 12px; background: #EEF2FF; border: 1px solid #4318FF; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }}
                 .no-print-bar button {{ background: #4318FF; color: #fff; border: none; padding: 6px 14px; border-radius: 5px; font-weight: bold; cursor: pointer; }}
                 @media print {{ .no-print-bar {{ display: none !important; }} }}
             </style></head><body>
