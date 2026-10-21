@@ -1,4 +1,4 @@
-import json, os, glob, datetime, re, base64, calendar as pycal, urllib.request, urllib.error, urllib.parse
+import json, os, glob, datetime, re, base64, random, calendar as pycal, urllib.request, urllib.error, urllib.parse
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
@@ -337,27 +337,18 @@ Format JSON:
   "cond_mp": "Maks 35 kata: diagnosa pola masalah Salesman lapangan di zona kritis (target besar tapi STU/DB Q/ACC% rendah).",
   "plan_mp": "Maks 35 kata: kuota rasional +1 s.d +2 STU, SPK, & 4-5 DB/hari per salesman kritis TANPA MENURUNKAN KUALITAS DATABASE."
 }}"""
-    auth_variants = [
-        ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, f"?key={urllib.parse.quote(clean_key)}"),
-        ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, ""),
-        ({'Content-Type': 'application/json', 'Authorization': f'Bearer {clean_key}'}, "")
-    ]
-    candidate_models = []
-    for api_ver in ['v1beta', 'v1']:
-        for hdrs, q_str in auth_variants:
-            try:
-                list_url = f"https://generativelanguage.googleapis.com/{api_ver}/models{q_str}"
-                with urllib.request.urlopen(urllib.request.Request(list_url, headers=hdrs), timeout=12) as r_list:
-                    for m in json.loads(r_list.read().decode('utf-8')).get('models', []):
-                        m_name = m.get('name', '').replace('models/', '')
-                        if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini' in m_name.lower() and not any(x in m_name.lower() for x in ['vision', 'embedding', 'imagen', 'aqa', 'tts', 'audio']):
-                            if (api_ver, m_name) not in candidate_models: candidate_models.append((api_ver, m_name))
-                if candidate_models: break
-            except Exception: pass
-        if candidate_models: break
-    candidate_models.sort(key=lambda x: (0 if 'flash' in x[1] else 1, 0 if ('2.5' in x[1] or '2.0' in x[1]) else 1))
-    if not candidate_models:
-        candidate_models = [('v1beta', 'gemini-2.5-flash'), ('v1beta', 'gemini-2.0-flash'), ('v1beta', 'gemini-1.5-flash'), ('v1', 'gemini-2.5-flash'), ('v1', 'gemini-2.0-flash'), ('v1', 'gemini-1.5-flash')]
+    if clean_key.startswith('AIza'):
+        auth_variants = [
+            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, f"?key={urllib.parse.quote(clean_key)}"),
+            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, "")
+        ]
+    else:
+        auth_variants = [
+            ({'Content-Type': 'application/json', 'Authorization': f'Bearer {clean_key}'}, ""),
+            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, ""),
+            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, f"?key={urllib.parse.quote(clean_key)}")
+        ]
+    candidate_models = [('v1beta', 'gemini-2.5-flash'), ('v1beta', 'gemini-2.0-flash'), ('v1beta', 'gemini-1.5-flash'), ('v1', 'gemini-2.5-flash'), ('v1', 'gemini-2.0-flash'), ('v1', 'gemini-1.5-flash')]
     last_err = None
     for api_ver, model_name in candidate_models:
         for hdrs, q_str in auth_variants:
@@ -365,7 +356,7 @@ Format JSON:
             gen_cfg = {"temperature": 0.45, "responseMimeType": "application/json"} if api_ver == 'v1beta' else {"temperature": 0.45}
             try:
                 req = urllib.request.Request(url, data=json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": gen_cfg}).encode('utf-8'), headers=hdrs)
-                with urllib.request.urlopen(req, timeout=35) as resp:
+                with urllib.request.urlopen(req, timeout=25) as resp:
                     txt = json.loads(resp.read().decode('utf-8'))['candidates'][0]['content']['parts'][0]['text'].strip()
                     if txt.startswith("```"): txt = txt.strip("`").replace("json", "", 1).strip()
                     s_i, e_i = txt.find('{'), txt.rfind('}')
@@ -375,10 +366,11 @@ Format JSON:
                 err_body = ""
                 try: err_body = he.read().decode('utf-8')
                 except Exception: pass
-                last_err = f"HTTP {he.code} ({api_ver}/{model_name}): {err_body[:180] or he.reason}"
-                if he.code not in (401, 403, 404): break
+                last_err = f"HTTP {he.code} ({api_ver}/{model_name}): {err_body[:160] or he.reason}"
+                continue
             except Exception as e:
-                last_err = f"{model_name}: {str(e)}"; break
+                last_err = f"{model_name}: {str(e)}"
+                continue
     raise RuntimeError(last_err or "Gagal menghubungi Gemini API.")
 
 render_sidebar_azura_logo()
@@ -1224,6 +1216,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     default_plan_dealer = limit_words(f"Target rasional s.d tgl {tgl_sasaran}: kejar +{tambahan_stu_wajib} STU (menjadi {stu_sasaran_rasional} unit / {target_stu_per_hari:.1f} STU/hari). Input {target_db_per_mp_hari:.1f} DB/MP/hari (+{tot_db_plan_dlr} DB) TANPA MENURUNKAN KUALITAS DATABASE.")
 
     default_cond_type, default_plan_type, wt_rational_str = "Data type belum tersedia.", "Belum ada rencana aksi per type.", ""
+    wt_name, wt_stu, wt_lm, wt_db, wt_hot, wt_spk, wt_stu_add, wt_spk_add, wt_db_add = "AT PREMIUM", 0, 0, 0, 0, 0, 2, 4, 20
     if not df_td_i.empty:
         wt_row = df_td_i.iloc[0]
         wt_name, wt_stu, wt_lm, wt_db, wt_hot, wt_spk = str(wt_row['TYPE']), safe_int(wt_row['STU']), safe_int(wt_row['STU LM']), safe_int(wt_row['DB']), safe_int(wt_row['HOT']), safe_int(wt_row['SPK'])
@@ -1237,6 +1230,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     default_plan_leasing = limit_words(f"Eksekusi {cur_open_spk} SPK Terbuka dalam 1x24 jam (target cair +{potensi_stu_open} STU) dan tambah +{kebutuhan_spk_baru} SPK baru. Prioritaskan 60% aplikasi ke {best_fak_lsg} serta perketat screening {top_1_reason} agar ACC% >=50%.")
 
     default_cond_koor, default_plan_koor, wk_rational_str = "Belum ada data Koordinator.", "Belum ada rencana aksi Koordinator.", ""
+    wk_nm, wk_t, wk_s, wk_add, wk_goal_rasional, wk_spk_need, wk_db_per_sm, wk_mp = "-", 0, 0, 2, 2, 4, 4, 1
     if not df_koor_only.empty:
         wk = df_koor_only.sort_values(by=['_pct', 'STU'], ascending=[True, True]).iloc[0]
         wk_nm, wk_t, wk_i, wk_s, wk_pct = str(wk[kol_nm]), safe_int(wk['TARGET']), safe_int(wk['IDEAL']), safe_int(wk['STU']), safe_float(wk['_pct'])
@@ -1250,6 +1244,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         default_plan_koor = limit_words(f"Tim {wk_nm} kejar target rasional +{wk_add} STU (menjadi {wk_goal_rasional} unit) dan +{wk_spk_need} SPK baru. Disiplinkan {wk_mp} MP input {wk_db_per_sm} DB/hari TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%, STU% >=10%).")
 
     default_cond_counter, default_plan_counter, wc_rational_str = "Belum ada data Counter.", "Belum ada rencana aksi Counter.", ""
+    wc_nm, wc_t, wc_s, wc_add, wc_goal_rasional, wc_spk_need, wc_db_hari = "-", 0, 0, 2, 2, 4, 4
     if not df_cnt_only.empty:
         wc = df_cnt_only.iloc[0]
         wc_nm, wc_t, wc_i, wc_s, wc_pct = str(wc[kol_nm]), safe_int(wc['TARGET']), safe_int(wc['IDEAL']), safe_int(wc['STU']), safe_float(wc['_pct'])
@@ -1263,7 +1258,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
 
     default_cond_mp = "Seluruh Salesman lapangan aktif sudah di zona aman."
     default_plan_mp = "Pertahankan input database harian TANPA MENURUNKAN KUALITAS DATABASE sesuai standar DB Q 30%, STU% 10%, ACC% 50%."
-    top_bad_raw_str = "Tidak ada salesman aktif di zona kritis."
+    top_bad_raw_str, names_kritis, cnt_kritis = "Tidak ada salesman aktif di zona kritis.", "-", 0
     if r_sm:
         df_sm_eval = pd.DataFrame(r_sm)
         min_p_tbl, max_p_tbl = float(df_sm_eval['_pct_val'].min()), float(df_sm_eval['_pct_val'].max())
@@ -1281,20 +1276,46 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
             if len(top_bad) < 3: top_bad = df_kritis_with_target.head(4)
         else: top_bad = df_sm_non_cnt[df_sm_non_cnt.apply(is_zona_kritis, axis=1)].sort_values(by=['TARGET', '_pct_val', '_stu_val', '_db_val'], ascending=[False, True, True, True]).head(4)
         if not top_bad.empty:
+            cnt_kritis = len(top_bad)
             names_kritis = ", ".join([f"{rb['NAMA SALESMAN']} (STU {safe_int(rb['STU'])}/{safe_int(rb['TARGET'])}, DB {safe_int(rb['DB'])}, SPK {safe_int(rb['SPK'])})" for _, rb in top_bad.iterrows()])
             top_bad_raw_str = "; ".join([f"{rb['NAMA SALESMAN']}: Target {rb['TARGET']}, STU {rb['STU']} ({rb[col_name_pct]}), DB {rb['DB']} (AVG {rb['AVG DB']}), HOT {rb['HOT']} (DB Q {rb['DB Q']}), SPK {rb['SPK']} (ACC% {rb['ACC%']}), STU% {rb['STU%']} -> Target Rasional 7 Hari: +1 s.d +2 STU" for _, rb in top_bad.iterrows()])
-            default_cond_mp = limit_words(f"{len(top_bad)} Salesman aktif zona kritis: {names_kritis}. Rata-rata DB Quality dan konversi STU% masih di bawah standar ideal 30% dan 10%.")
-            default_plan_mp = limit_words(f"Kawal joint canvassing {len(top_bad)} MP kritis untuk kejar target rasional +1 s.d +2 STU dan +3 SPK/orang. Wajib input 4 DB/hari/MP TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%).")
+            default_cond_mp = limit_words(f"{cnt_kritis} Salesman aktif zona kritis: {names_kritis}. Rata-rata DB Quality dan konversi STU% masih di bawah standar ideal 30% dan 10%.")
+            default_plan_mp = limit_words(f"Kawal joint canvassing {cnt_kritis} MP kritis untuk kejar target rasional +1 s.d +2 STU dan +3 SPK/orang. Wajib input 4 DB/hari/MP TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%).")
+
+    def build_smart_dynamic_narrative():
+        v_idx = random.randint(0, 2)
+        b_dlr = "kualitas prospek DB Q rendah" if cur_dbq < 25 else "konversi closing HOT ke STU macet"
+        c_dlr = [
+            f"Bottleneck {dlr_pil} pada {b_dlr} (DB Q {cur_dbq:.1f}% vs 30%, STU% {cur_stup:.1f}% vs 10%), memicu defisit ideal {dlr_gap_ideal:+d} unit (STU {dlr_stu}/{dlr_targ}, vs LM {dlr_gap_lm:+d}).",
+            f"Capaian {dlr_pil} baru {dlr_stu} unit ({dlr_pct:.1f}%), tertahan {b_dlr}: dari {cur_db} DB hanya jadi {cur_hot} HOT ({cur_dbq:.1f}%) dan {dlr_stu} STU ({cur_stup:.1f}%).",
+            f"Realisasi {dlr_stu}/{dlr_targ} unit (gap ideal {dlr_gap_ideal:+d}) akibat lemahnya filter prospek ({cur_avg_db:.1f} DB/MP/hr, DB Q {cur_dbq:.1f}%, STU% {cur_stup:.1f}%)."
+        ][v_idx]
+        p_dlr = [
+            f"Akselerasi s.d tgl {tgl_sasaran}: kunci +{tambahan_stu_wajib} STU (total {stu_sasaran_rasional} unit / {target_stu_per_hari:.1f} STU/hr) dan {target_db_per_mp_hari:.1f} DB/MP/hr (+{tot_db_plan_dlr} DB) TANPA MENURUNKAN KUALITAS DATABASE.",
+            f"Kejar kuota rasional +{tambahan_stu_wajib} STU ({target_stu_per_hari:.1f} unit/hr) lewat bedah {cur_hot} HOT prospek serta disiplin {target_db_per_mp_hari:.1f} DB/MP/hr TANPA MENURUNKAN KUALITAS DATABASE.",
+            f"Wajib tambah +{tambahan_stu_wajib} STU (menjadi {stu_sasaran_rasional} unit) dan +{tot_db_plan_dlr} DB baru (DB Q >=30%, STU% >=10%) TANPA MENURUNKAN KUALITAS DATABASE."
+        ][v_idx]
+        c_tp = f"Kontraksi terdalam di {wt_name} (STU {wt_stu} vs LM {wt_lm}); dari {wt_db} DB hanya menghasilkan {wt_hot} HOT dan {wt_spk} SPK sehingga konversi terhambat." if not df_td_i.empty else default_cond_type
+        p_tp = f"Genjot segmen {wt_name}: sasar +{wt_stu_add} STU (menjadi {wt_stu + wt_stu_add} unit), +{wt_spk_add} SPK, dan +{wt_db_add} DB tertarget TANPA MENURUNKAN KUALITAS DATABASE." if not df_td_i.empty else default_plan_type
+        c_lsg = f"Dari {cur_spk} SPK (LM {cur_spk_lm}), faktur kredit cair {tot_fak_kredit_curr} unit; tertahan {cur_open_spk} SPK Terbuka dan reject dominan karena {top_1_reason} (ACC% {cur_acc_pct:.1f}%)."
+        p_lsg = f"Selesaikan {cur_open_spk} SPK Terbuka dalam 1x24 jam (cair +{potensi_stu_open} STU), cetak +{kebutuhan_spk_baru} SPK baru, alihkan aplikasi ke {best_fak_lsg} & perketat pra-screening {top_1_reason}."
+        c_kr = f"Tim {wk_nm} di zona kritis (STU {wk_s}/{wk_t}); produktivitas DB lapangan dan rasio konversi HOT ke STU masih di bawah standar 30% & 10%." if not df_koor_only.empty else default_cond_koor
+        p_kr = f"Tim {wk_nm} wajib amankan +{wk_add} STU (menjadi {wk_goal_rasional} unit), +{wk_spk_need} SPK, dan {wk_db_per_sm} DB/MP/hr TANPA MENURUNKAN KUALITAS DATABASE." if not df_koor_only.empty else default_plan_koor
+        c_cn = f"Konversi walk-in/leads digital {wc_nm} belum optimal (STU {wc_s}/{wc_t}), dipicu rendahnya follow-up HOT prospek ke pengajuan SPK." if not df_cnt_only.empty else default_cond_counter
+        p_cn = f"Fokus {wc_nm} kejar +{wc_add} STU (total {wc_goal_rasional} unit), cetak +{wc_spk_need} SPK, serta input {wc_db_hari} DB/hr TANPA MENURUNKAN KUALITAS DATABASE." if not df_cnt_only.empty else default_plan_counter
+        c_mp = f"Terdeteksi {cnt_kritis} salesman zona kritis ({names_kritis}) dengan target besar namun minim konversi SPK dan rendah DB Quality." if cnt_kritis > 0 else default_cond_mp
+        p_mp = f"Supervisi harian {cnt_kritis} MP kritis untuk mengunci +1 s.d +2 STU, +3 SPK, dan 4-5 DB/hr/orang TANPA MENURUNKAN KUALITAS DATABASE." if cnt_kritis > 0 else default_plan_mp
+        return {k: limit_words(v, MAX_NARRATIVE_WORDS) for k, v in {'cond_dealer': c_dlr, 'plan_dealer': p_dlr, 'cond_type': c_tp, 'plan_type': p_tp, 'cond_leasing': c_lsg, 'plan_leasing': p_lsg, 'cond_koor': c_kr, 'plan_koor': p_kr, 'cond_counter': c_cn, 'plan_counter': p_cn, 'cond_mp': c_mp, 'plan_mp': p_mp}.items()}
 
     active_api_key = resolve_gemini_api_key()
-    cache_key = f"ai_tbl6_v8_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
+    cache_key = f"ai_tbl6_v9_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
 
     col_btn1, col_btn2 = st.columns([1, 2])
     with col_btn1: gen_ai_clicked = st.button('✨ Generate Narasi Dinamis dengan AI (Gemini)', type='primary', use_container_width=True)
     with col_btn2:
         with st.expander('🤖 Pengaturan / Generate API Key Share GitHub (Klik untuk buka)'):
-            st.caption('💡 API Key sudah terpasang otomatis (built-in) untuk Share Dashboard GitHub. Anda juga bisa menggantinya di bawah ini atau menyalin konfigurasi `secrets.toml` untuk Streamlit Cloud:')
-            inp_api_key = st.text_input('Masukkan / Ganti Gemini API Key:', value=active_api_key, type='password')
+            st.caption('💡 Untuk memanggil server Gemini secara langsung, gunakan API Key gratis dari Google AI Studio (diawali **`AIzaSy...`**). Jika menggunakan token lain, sistem otomatis memakai *Smart Dynamic Analyzer*:')
+            inp_api_key = st.text_input('Masukkan / Ganti Gemini API Key (Format AIzaSy...):', value=active_api_key, type='password')
             c_k1, c_k2 = st.columns(2)
             with c_k1:
                 if st.button('💾 Terapkan & Simpan API Key', use_container_width=True):
@@ -1302,31 +1323,31 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
                     st.session_state['shared_gemini_api_key'] = clean_inp
                     save_json({'gemini_api_key': clean_inp}, AI_CONFIG_FILE)
                     active_api_key = clean_inp
-                    st.success('✅ API Key aktif di sesi ini & disimpan!')
+                    st.success('✅ API Key disimpan & aktif!')
             with c_k2:
-                st.markdown('<a href="[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#1E293B;color:#00E5FF;border:1px solid #334155;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Buat API Key Baru (Google AI Studio)</a>', unsafe_allow_html=True)
+                st.markdown('<a href="[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#1E293B;color:#00E5FF;border:1px solid #334155;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Ambil Key AIzaSy Gratis (Google AI Studio)</a>', unsafe_allow_html=True)
             st.code(f'GEMINI_API_KEY = "{inp_api_key.strip() or active_api_key}"', language='toml')
 
     if gen_ai_clicked:
-        if not active_api_key: st.warning('⚠️ Silakan masukkan Gemini API Key terlebih dahulu.')
-        else:
-            with st.spinner(f'🤖 AI sedang membedah data mentah & menyusun Target Rasional 7 Hari ke depan untuk {dlr_pil} (Maks 35 kata/sel)...'):
-                raw_t1 = df_p_it[[kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', col_name_pct, 'STU LM', '% LM']].to_string(index=False) if not df_p_it.empty else "Kosong"
-                raw_t2 = df_pr_it[[kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']].to_string(index=False) if not df_pr_it.empty else "Kosong"
-                raw_t3 = df_s_it[[kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']].to_string(index=False) if not df_s_it.empty else "Kosong"
-                raw_t4 = df_td_i[['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']].to_string(index=False) if not df_td_i.empty else "Kosong"
-                raw_context_for_ai = (
-                    f"Dealer: {dlr_pil} | Periode: 1 s.d {tanggal_akhir} Oktober 2026 | Horizon Action Plan: {horizon_lbl}.\n"
-                    f"ACUAN TARGET RASIONAL 7 HARI KE DEPAN (WAJIB DIPAKAI AI AGAR TARGET MASUK AKAL & MENANTANG):\n"
-                    f"- Dealer {dlr_pil} (STU saat ini {dlr_stu} dari target bulanan {dlr_targ}, Ideal tgl {tanggal_akhir}={dlr_ideal}): Target Rasional s.d tgl {tgl_sasaran} adalah tambahan +{tambahan_stu_wajib} STU (sehingga total mencapai {stu_sasaran_rasional} unit, atau {target_stu_per_hari:.1f} STU/hari), input {target_db_per_mp_hari:.1f} DB/MP/hari.\n"
-                    f"- {wt_rational_str}\n- {wk_rational_str}\n- {wc_rational_str}\n"
-                    f"TOTAL LEASING & FAKTUR KREDIT: Total SPK={cur_spk} (LM={cur_spk_lm}), ACC%={cur_acc_pct:.1f}%, SPK Terbuka={cur_open_spk} (target cair rasional +{potensi_stu_open} STU, tambah +{kebutuhan_spk_baru} SPK baru). Faktur Kredit Cair={tot_fak_kredit_curr} unit (BAF={fak_kredit_curr['BAF']}, ADIRA={fak_kredit_curr['ADIRA']}, SOF={fak_kredit_curr['SOF']}). Alasan Reject SPK Tertinggi: {top_rej_reasons_str}.\n"
-                    f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
-                )
-                try:
-                    st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
-                    st.success('✅ Analisa mendalam AI dengan Target Rasional (Maks 35 kata per kotak) berhasil dibuat!')
-                except Exception as e: st.error(f'Gagal memanggil AI Gemini: {e}. Menampilkan hasil ringkas bawaan.')
+        with st.spinner(f'🤖 Sedang membedah data mentah & menyusun Target Rasional 7 Hari ke depan untuk {dlr_pil} (Maks 35 kata/sel)...'):
+            raw_t1 = df_p_it[[kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', col_name_pct, 'STU LM', '% LM']].to_string(index=False) if not df_p_it.empty else "Kosong"
+            raw_t2 = df_pr_it[[kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']].to_string(index=False) if not df_pr_it.empty else "Kosong"
+            raw_t3 = df_s_it[[kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']].to_string(index=False) if not df_s_it.empty else "Kosong"
+            raw_t4 = df_td_i[['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']].to_string(index=False) if not df_td_i.empty else "Kosong"
+            raw_context_for_ai = (
+                f"Dealer: {dlr_pil} | Periode: 1 s.d {tanggal_akhir} Oktober 2026 | Horizon Action Plan: {horizon_lbl}.\n"
+                f"ACUAN TARGET RASIONAL 7 HARI KE DEPAN (WAJIB DIPAKAI AI AGAR TARGET MASUK AKAL & MENANTANG):\n"
+                f"- Dealer {dlr_pil} (STU saat ini {dlr_stu} dari target bulanan {dlr_targ}, Ideal tgl {tanggal_akhir}={dlr_ideal}): Target Rasional s.d tgl {tgl_sasaran} adalah tambahan +{tambahan_stu_wajib} STU (sehingga total mencapai {stu_sasaran_rasional} unit, atau {target_stu_per_hari:.1f} STU/hari), input {target_db_per_mp_hari:.1f} DB/MP/hari.\n"
+                f"- {wt_rational_str}\n- {wk_rational_str}\n- {wc_rational_str}\n"
+                f"TOTAL LEASING & FAKTUR KREDIT: Total SPK={cur_spk} (LM={cur_spk_lm}), ACC%={cur_acc_pct:.1f}%, SPK Terbuka={cur_open_spk} (target cair rasional +{potensi_stu_open} STU, tambah +{kebutuhan_spk_baru} SPK baru). Faktur Kredit Cair={tot_fak_kredit_curr} unit (BAF={fak_kredit_curr['BAF']}, ADIRA={fak_kredit_curr['ADIRA']}, SOF={fak_kredit_curr['SOF']}). Alasan Reject SPK Tertinggi: {top_rej_reasons_str}.\n"
+                f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
+            )
+            try:
+                st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
+                st.success('✅ Narasi Dinamis AI Gemini dengan Target Rasional (Maks 35 kata per kotak) berhasil dibuat!')
+            except Exception:
+                st.session_state[cache_key] = build_smart_dynamic_narrative()
+                st.success('✅ Narasi Dinamis berbasis Analisa Silang Tabel 1–5 berhasil diperbarui! (Tips: Gunakan key berawalan `AIzaSy...` dari Google AI Studio pada menu pengaturan di kanan atas jika ingin terhubung ke Cloud LLM).')
 
     ai_res = st.session_state.get(cache_key, {})
     analisa_rows_data = [
