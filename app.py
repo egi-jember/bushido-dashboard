@@ -694,7 +694,8 @@ if path_spk:
             df_spk = assign_type_from_lookup(assign_koor_and_sales(df_spk, col_idx_override=25, tracker=sales_tanpa_koor_spk, koor_col_name='Koor_SPK'), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all)
     except Exception as e: st.error(f'Error SPK: {e}')
 
-current_month, current_year = 10, 2026
+today_wib = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=7)).date()
+current_month, current_year = today_wib.month, today_wib.year
 for dc in [df_faktur_all, df_faktur, df_nota, df_spk, df_database]:
     if dc is not None and not dc.empty and 'bulan' in dc.columns and dc['bulan'].notna().any():
         current_year = int(dc['tahun'].dropna().max())
@@ -703,9 +704,10 @@ for dc in [df_faktur_all, df_faktur, df_nota, df_spk, df_database]:
 last_month, last_month_year = (current_month - 1, current_year) if current_month > 1 else (12, current_year - 1)
 
 max_day_in_month = pycal.monthrange(current_year, current_month)[1]
+default_day_today = min(today_wib.day, max_day_in_month)
 st.sidebar.markdown('### 📅 Periode Analisa')
-tgl_kal_pilihan = st.sidebar.date_input('Pilih Tanggal Akhir Periode (Kalender):', value=datetime.date(current_year, current_month, min(14, max_day_in_month)), min_value=datetime.date(current_year, current_month, 1), max_value=datetime.date(current_year, current_month, max_day_in_month), format='DD/MM/YYYY')
-tanggal_akhir = int(tgl_kal_pilihan[-1].day) if isinstance(tgl_kal_pilihan, (tuple, list)) and len(tgl_kal_pilihan) > 0 else (int(tgl_kal_pilihan.day) if hasattr(tgl_kal_pilihan, 'day') else 14)
+tgl_kal_pilihan = st.sidebar.date_input('Pilih Tanggal Akhir Periode (Kalender):', value=datetime.date(current_year, current_month, default_day_today), min_value=datetime.date(current_year, current_month, 1), max_value=datetime.date(current_year, current_month, max_day_in_month), format='DD/MM/YYYY')
+tanggal_akhir = int(tgl_kal_pilihan[-1].day) if isinstance(tgl_kal_pilihan, (tuple, list)) and len(tgl_kal_pilihan) > 0 else (int(tgl_kal_pilihan.day) if hasattr(tgl_kal_pilihan, 'day') else default_day_today)
 
 target_persen_harian = tabel_target_harian.get(tanggal_akhir, 0.0)
 persen_desimal = target_persen_harian / 100.0
