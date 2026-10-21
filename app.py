@@ -48,6 +48,7 @@ p.nar-p:last-of-type { margin-bottom: 4px; }
 .focus-alert-box { margin-top: 14px; padding: 11px 16px; background: linear-gradient(90deg, rgba(255,0,127,0.14) 0%, rgba(14,17,23,0.95) 100%); border-left: 4px solid #FF007F; border-top: 1px solid #2D3748; border-right: 1px solid #2D3748; border-bottom: 1px solid #2D3748; border-radius: 6px; font-size: 13.5px; line-height: 1.65; color: #E2E8F0; }
 </style>""", unsafe_allow_html=True)
 
+DEFAULT_SHARED_API_KEY = "AQ.Ab8RN6LAV5JudlB8Ht6CnFRdJWnvX-be0Jn8zb4NHQ8CNjyHUg"
 IDEAL_DBQ_PCT, IDEAL_STU_PCT, IDEAL_ACC_PCT, MAX_NARRATIVE_WORDS = 30.0, 10.0, 50.0, 35
 SUBTOTAL_ROW_LABELS = {'SUB SITUBONDO', 'SUB BANYUWANGI', 'JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI'}
 tabel_target_harian = {1:0.0, 2:1.0, 3:2.0, 4:5.0, 5:8.0, 6:12.0, 7:18.0, 8:21.0, 9:24.0, 10:29.0, 11:34.0, 12:36.0, 13:40.0, 14:44.0, 15:48.0, 16:51.0, 17:54.0, 18:57.0, 19:60.0, 20:63.0, 21:67.0, 22:70.0, 23:73.0, 24:77.0, 25:79.0, 26:82.0, 27:84.0, 28:88.0, 29:92.0, 30:100.0, 31:100.0}
@@ -67,8 +68,7 @@ def safe_float(val, default=0.0):
     except Exception: return default
 
 def strip_formatting_tags(text):
-    if not text: return ''
-    return ' '.join(re.sub(r'<[^>]+>', '', str(text).replace('<br>', ' ').replace('<br/>', ' ').replace('</p>', ' ')).split())
+    return ' '.join(re.sub(r'<[^>]+>', '', str(text).replace('<br>', ' ').replace('<br/>', ' ').replace('</p>', ' ')).split()) if text else ''
 
 def limit_words(text, max_words=MAX_NARRATIVE_WORDS):
     clean_txt = strip_formatting_tags(text)
@@ -88,10 +88,8 @@ def calc_rational_7d_addition(curr_stu, monthly_targ, curr_day, next_day, pct_cu
     stretch_from_rate = ((curr_stu / hr_jalan) * sisa_hr * 1.8) + max(1.0, active_mp * 0.6)
     ideal_now = monthly_targ * pct_curr_dec
     if ideal_now > 0 and curr_stu < (ideal_now * 0.5):
-        raw_add = (normal_period_quota * 0.65) + (stretch_from_rate * 0.35)
-        add_stu = min(round(raw_add), max(curr_stu + 4, round(normal_period_quota * 1.15), round(active_mp * 1.5)))
-    else:
-        add_stu = round(normal_period_quota + (max(0.0, ideal_now - curr_stu) * 0.30))
+        add_stu = min(round((normal_period_quota * 0.65) + (stretch_from_rate * 0.35)), max(curr_stu + 4, round(normal_period_quota * 1.15), round(active_mp * 1.5)))
+    else: add_stu = round(normal_period_quota + (max(0.0, ideal_now - curr_stu) * 0.30))
     add_stu = max(max(2, round(active_mp * 0.8)) if monthly_targ >= 10 else 1, add_stu)
     return int(add_stu), int(curr_stu + add_stu)
 
@@ -121,12 +119,11 @@ def build_compact_html_string(df_items, df_full, columns, name_col, metric_col, 
                 v = float(df_items.loc[m_idx[0], metric_col])
                 style = f'color: {get_neon_gradient_hex(((v - min_v) / (max_v - min_v)) if max_v > min_v else (m_idx[0] / max(1, n_items - 1)))};'
         html.append(f'<tr style="{style}">' + ''.join(f'<td>{row[c]}</td>' for c in columns) + '</tr>')
-    html.append('</tbody></table></div>')
-    return ''.join(html)
+    return ''.join(html + ['</tbody></table></div>'])
 
 def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
     safe_fname, hidden_payload = re.sub(r'[^a-zA-Z0-9_-]', '_', file_label), json.dumps(standalone_html or '')
-    btn_code = f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
+    components.html(f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
         body {{ margin: 0; padding: 2px 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; display: flex; align-items: center; gap: 8px; }}
         .act-btn {{ background-color: #1E293B; color: #E2E8F0; border: 1px solid #334155; border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }}
         .act-btn:hover {{ background-color: #4318FF; color: #FFFFFF; border-color: #4318FF; }}
@@ -148,9 +145,7 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
         const msg = document.getElementById('status_msg'); msg.style.color = '#FFEA00'; msg.innerText = 'Memproses gambar...';
         try {{
             const holder = document.getElementById('offscreen_holder');
-            let targetEl = null;
-            if (fallbackHtml) {{ holder.innerHTML = fallbackHtml; targetEl = holder.firstElementChild; }}
-            else {{ targetEl = window.parent.document.getElementById('{table_dom_id}'); }}
+            let targetEl = fallbackHtml ? (holder.innerHTML = fallbackHtml, holder.firstElementChild) : window.parent.document.getElementById('{table_dom_id}');
             if (!targetEl) {{ msg.style.color = '#FF007F'; msg.innerText = 'Tabel tidak ditemukan.'; return; }}
             const canvas = await html2canvas(targetEl, {{ backgroundColor: '#0E1117', scale: 2, useCORS: true, logging: false }});
             if (mode === 'copy') {{
@@ -172,8 +167,7 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
             holder.innerHTML = '';
         }} catch (e) {{ msg.style.color = '#FF007F'; msg.innerText = 'Gagal membuat gambar: ' + e.message; }}
     }}
-    </script></body></html>"""
-    components.html(btn_code, height=36)
+    </script></body></html>""", height=36)
 
 def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, key_suffix='tbl', header_labels=None, ultra_compact=False, title_text=None, custom_capture_html=None):
     if df_full is None or df_full.empty: return
@@ -183,7 +177,7 @@ def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, 
     html_capture_str = custom_capture_html if custom_capture_html is not None else build_compact_html_string(df_items, df_full, columns, name_col, metric_col, f"{dom_id}_cap", header_labels=header_labels, ultra_compact=ultra_compact, title_text=cap_title)
     if ultra_compact:
         safe_fname, comp_height, hidden_uc_payload = re.sub(r'[^a-zA-Z0-9_-]', '_', key_suffix), (len(df_full) * 29) + 100, json.dumps(html_capture_str)
-        uc_html = f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
+        components.html(f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
             body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #E2E8F0; }}
             .ultra-compact-wrap {{ width: 100%; overflow-x: hidden; margin-bottom: 6px; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }}
             .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
@@ -226,8 +220,7 @@ def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, 
                 }}
             }} catch (e) {{ msg.style.color = '#FF007F'; msg.innerText = 'Gagal membuat gambar: ' + e.message; }}
         }}
-        </script></body></html>"""
-        components.html(uc_html, height=comp_height, scrolling=False)
+        </script></body></html>""", height=comp_height, scrolling=False)
     else:
         st.markdown(html_display_str, unsafe_allow_html=True)
         render_table_image_buttons(dom_id, key_suffix, standalone_html=html_capture_str)
@@ -240,7 +233,19 @@ def load_json(f):
     return {}
 
 def save_json(data, f):
-    with open(f, 'w') as fp: json.dump(data, fp)
+    try:
+        with open(f, 'w') as fp: json.dump(data, fp)
+    except Exception: pass
+
+def resolve_gemini_api_key():
+    if st.session_state.get('shared_gemini_api_key'): return st.session_state['shared_gemini_api_key'].strip()
+    cfg_k = load_json(AI_CONFIG_FILE).get('gemini_api_key', '').strip()
+    if cfg_k: return cfg_k
+    try:
+        for k_sec in ['GEMINI_API_KEY', 'gemini_api_key', 'GOOGLE_API_KEY']:
+            if k_sec in st.secrets and str(st.secrets[k_sec]).strip(): return str(st.secrets[k_sec]).strip()
+    except Exception: pass
+    return os.environ.get('GEMINI_API_KEY', DEFAULT_SHARED_API_KEY).strip()
 
 def save_raw_file(up_file, prefix):
     ext = os.path.splitext(up_file.name)[1].lower()
@@ -332,12 +337,17 @@ Format JSON:
   "cond_mp": "Maks 35 kata: diagnosa pola masalah Salesman lapangan di zona kritis (target besar tapi STU/DB Q/ACC% rendah).",
   "plan_mp": "Maks 35 kata: kuota rasional +1 s.d +2 STU, SPK, & 4-5 DB/hari per salesman kritis TANPA MENURUNKAN KUALITAS DATABASE."
 }}"""
-    headers_req, candidate_models = {'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, []
+    auth_variants = [
+        ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, f"?key={urllib.parse.quote(clean_key)}"),
+        ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, ""),
+        ({'Content-Type': 'application/json', 'Authorization': f'Bearer {clean_key}'}, "")
+    ]
+    candidate_models = []
     for api_ver in ['v1beta', 'v1']:
-        for use_query_key in [False, True]:
+        for hdrs, q_str in auth_variants:
             try:
-                list_url = f"https://generativelanguage.googleapis.com/{api_ver}/models" + (f"?key={urllib.parse.quote(clean_key)}" if use_query_key else "")
-                with urllib.request.urlopen(urllib.request.Request(list_url, headers={'x-goog-api-key': clean_key}), timeout=15) as r_list:
+                list_url = f"https://generativelanguage.googleapis.com/{api_ver}/models{q_str}"
+                with urllib.request.urlopen(urllib.request.Request(list_url, headers=hdrs), timeout=12) as r_list:
                     for m in json.loads(r_list.read().decode('utf-8')).get('models', []):
                         m_name = m.get('name', '').replace('models/', '')
                         if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini' in m_name.lower() and not any(x in m_name.lower() for x in ['vision', 'embedding', 'imagen', 'aqa', 'tts', 'audio']):
@@ -350,12 +360,12 @@ Format JSON:
         candidate_models = [('v1beta', 'gemini-2.5-flash'), ('v1beta', 'gemini-2.0-flash'), ('v1beta', 'gemini-1.5-flash'), ('v1', 'gemini-2.5-flash'), ('v1', 'gemini-2.0-flash'), ('v1', 'gemini-1.5-flash')]
     last_err = None
     for api_ver, model_name in candidate_models:
-        for use_query_key in [False, True]:
-            url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model_name}:generateContent" + (f"?key={urllib.parse.quote(clean_key)}" if use_query_key else "")
+        for hdrs, q_str in auth_variants:
+            url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model_name}:generateContent{q_str}"
             gen_cfg = {"temperature": 0.45, "responseMimeType": "application/json"} if api_ver == 'v1beta' else {"temperature": 0.45}
             try:
-                req = urllib.request.Request(url, data=json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": gen_cfg}).encode('utf-8'), headers=headers_req)
-                with urllib.request.urlopen(req, timeout=40) as resp:
+                req = urllib.request.Request(url, data=json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": gen_cfg}).encode('utf-8'), headers=hdrs)
+                with urllib.request.urlopen(req, timeout=35) as resp:
                     txt = json.loads(resp.read().decode('utf-8'))['candidates'][0]['content']['parts'][0]['text'].strip()
                     if txt.startswith("```"): txt = txt.strip("`").replace("json", "", 1).strip()
                     s_i, e_i = txt.find('{'), txt.rfind('}')
@@ -365,8 +375,8 @@ Format JSON:
                 err_body = ""
                 try: err_body = he.read().decode('utf-8')
                 except Exception: pass
-                last_err = f"HTTP {he.code} ({api_ver}/{model_name}): {err_body[:200] or he.reason}"
-                if he.code != 404: break
+                last_err = f"HTTP {he.code} ({api_ver}/{model_name}): {err_body[:180] or he.reason}"
+                if he.code not in (401, 403, 404): break
             except Exception as e:
                 last_err = f"{model_name}: {str(e)}"; break
     raise RuntimeError(last_err or "Gagal menghubungi Gemini API.")
@@ -377,12 +387,9 @@ MAIN_TABS, UPLOAD_TAB = ['📈 SALES', '🏍️ BY TYPE', '⚙️ PROCESS', '�
 if 'active_menu_tab' not in st.session_state: st.session_state['active_menu_tab'] = '📈 SALES'
 
 def on_main_nav_change():
-    if st.session_state.get('nav_main_radio') is not None:
-        st.session_state['active_menu_tab'], st.session_state['nav_upload_radio'] = st.session_state['nav_main_radio'], None
-
+    if st.session_state.get('nav_main_radio') is not None: st.session_state['active_menu_tab'], st.session_state['nav_upload_radio'] = st.session_state['nav_main_radio'], None
 def on_upload_nav_change():
-    if st.session_state.get('nav_upload_radio') is not None:
-        st.session_state['active_menu_tab'], st.session_state['nav_main_radio'] = st.session_state['nav_upload_radio'], None
+    if st.session_state.get('nav_upload_radio') is not None: st.session_state['active_menu_tab'], st.session_state['nav_main_radio'] = st.session_state['nav_upload_radio'], None
 
 st.sidebar.radio('Menu Bushido Analysis:', MAIN_TABS, index=MAIN_TABS.index(st.session_state['active_menu_tab']) if st.session_state['active_menu_tab'] in MAIN_TABS else None, key='nav_main_radio', on_change=on_main_nav_change, label_visibility='collapsed')
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
@@ -537,14 +544,11 @@ def get_fixed_counter_target(name_val):
 
 def is_counter_personnel(name_val):
     s = clean_str(name_val)
-    if not s: return False
-    return True if (s.startswith('COUNTER') or get_fixed_counter_target(s) is not None) else clean_str(mapping_salesman_koor.get(s, '')).startswith('COUNTER')
+    return False if not s else (True if (s.startswith('COUNTER') or get_fixed_counter_target(s) is not None) else clean_str(mapping_salesman_koor.get(s, '')).startswith('COUNTER'))
 
 def get_auto_sales_target(sm):
     fix_c = get_fixed_counter_target(sm)
-    if fix_c is not None: return fix_c
-    s = clean_str(sm)
-    return mapping_emp_target.get(s, mapping_emp_target_ns.get(alnum_str(s), 0))
+    return fix_c if fix_c is not None else mapping_emp_target.get(clean_str(sm), mapping_emp_target_ns.get(alnum_str(clean_str(sm)), 0))
 
 def get_koor_or_counter_target(ent_name, saved_tk_dict):
     fix_c = get_fixed_counter_target(ent_name)
@@ -678,20 +682,17 @@ if menu_pilihan == '📁 UPLOAD FILE':
     st.markdown('<div class="main-title">UPLOAD FILE MENTAH</div><div class="sub-title">Silakan unggah ke-6 kategori sumber data serta logo di bawah ini (tersimpan otomatis & permanen)</div>', unsafe_allow_html=True)
     meta_info = load_json(RAW_META_FILE)
     logo_uf = st.file_uploader('🐺 Upload Logo AZURA Pojok Kiri Atas (.jpg / .png)', type=['jpg', 'jpeg', 'png'], key='azura_logo_up')
-    if logo_uf:
-        save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
+    if logo_uf: save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
     st.divider()
     for lbl_up, lbl, kp, exts in [('1. Upload Faktur (.xls / .xlsx)', 'Faktur', 'faktur', ['xls', 'xlsx']), ('2. Upload Nota (.xls / .xlsx)', 'Nota', 'nota', ['xls', 'xlsx']), ('3. Upload Data Lookup (.xls / .xlsx)', 'Data Lookup', 'lookup', ['xls', 'xlsx'])]:
         uf = st.file_uploader(lbl_up, type=exts, key=f'{kp}_up')
         if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**")
         elif kp in meta_info and os.path.exists(meta_info[kp].get('saved_path', '')): st.info(f"📌 **{lbl} Aktif:** `{meta_info[kp]['original_name']}` ({meta_info[kp]['updated_at']})")
         else: st.warning(f"⚠️ Belum ada file {lbl}.")
-
     db_ups = st.file_uploader('4. Upload File Database — Bisa Pilih 6 File Sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_up')
     if db_ups: save_database_files(db_ups); st.success(f"✅ **{len(db_ups)} File Database** disimpan.")
     elif 'database_multi' in meta_info and get_saved_database_paths(): st.info(f"📌 **Database Aktif ({meta_info['database_multi'].get('count',0)} File):** `{', '.join(meta_info['database_multi'].get('file_names',[]))}`")
     else: st.warning("⚠️ Belum ada file Database.")
-
     for lbl_up, lbl, kp in [('5. Upload File SPK (.xls / .xlsx / .csv)', 'SPK', 'spk'), ('6. Upload File Master Employee (.xls / .xlsx / .csv) — Target Otomatis Salesman (Kolom C: Nama, Kolom F: Posisi)', 'Master Employee', 'employee')]:
         uf = st.file_uploader(lbl_up, type=['xls', 'xlsx', 'csv'], key=f'{kp}_up')
         if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**")
@@ -751,8 +752,7 @@ def build_type_table(df_fc, df_fl, df_dbc, df_spkc, filter_col_vals, col_headers
     ts, tsl, tdb, thot, tspk = int(df_it['STU'].sum()), int(df_it['STU LM'].sum()), int(df_it['DB'].sum()), int(df_it['HOT'].sum()), int(df_it['SPK'].sum())
     tgrw, tdbq, taccp, tstup = ((ts / tsl * 100.0) if tsl > 0 else 0.0), ((thot / tdb * 100.0) if tdb > 0 else 0.0), ((t_acc / (t_acc + t_rej) * 100.0) if (t_acc + t_rej) > 0 else 0.0), ((ts / tdb * 100.0) if tdb > 0 else 0.0)
     tot_r = {col_headers_name: tot_label, 'STU': ts, 'STU LM': tsl, 'GROWTH': f'{tgrw:.2f}%', 'DB': tdb, 'HOT': thot, 'DB Q': f'{tdbq:.2f}%', 'SPK': tspk, 'ACC%': f'{taccp:.2f}%', 'STU%': f'{tstup:.2f}%', '_stu_val': ts, '_growth_val': tgrw}
-    for l in lsg_list:
-        tot_r[l], tot_r[f'%{l}'] = t_lf[l], f'{(t_la[l] / (t_la[l] + t_lr[l]) * 100.0):.2f}%' if (t_la[l] + t_lr[l]) > 0 else '0.00%'
+    for l in lsg_list: tot_r[l], tot_r[f'%{l}'] = t_lf[l], f'{(t_la[l] / (t_la[l] + t_lr[l]) * 100.0):.2f}%' if (t_la[l] + t_lr[l]) > 0 else '0.00%'
     return df_it, pd.concat([df_it, pd.DataFrame([tot_r])], ignore_index=True), tot_r
 
 df_fak_curr_g = df_faktur[(df_faktur['bulan'] == current_month) & (df_faktur['tahun'] == current_year) & (df_faktur['hari'] <= tanggal_akhir)] if (df_faktur is not None and 'bulan' in df_faktur.columns) else pd.DataFrame()
@@ -809,7 +809,6 @@ if menu_pilihan == '📈 SALES':
     ent_all = set(clean_str(v) for v in mapping_salesman_koor.values() if clean_str(v)) | set(k for k in saved_tk.keys() if k != 'TOTAL')
     for d_s in [df_faktur, df_nota]:
         if d_s is not None and 'Koor' in d_s.columns: ent_all.update(str(k) for k in d_s['Koor'].dropna().unique() if str(k) != 'LAIN-LAIN')
-
     k_list, c_list = [], []
     for ent in sorted(list(ent_all)):
         r_e = calc_sales_row(ent, 'NAMA', get_koor_or_counter_target(ent, saved_tk), df_fak_curr_g[df_fak_curr_g['Koor'] == ent] if not df_fak_curr_g.empty else pd.DataFrame(), df_fak_lm_g[df_fak_lm_g['Koor'] == ent] if not df_fak_lm_g.empty else pd.DataFrame(), df_nota_curr_g[df_nota_curr_g['Koor'] == ent] if not df_nota_curr_g.empty else pd.DataFrame(), df_nota_tod_g[df_nota_tod_g['Koor'] == ent] if not df_nota_tod_g.empty else pd.DataFrame())
@@ -1054,10 +1053,8 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
 
     ent_dlr = set()
     for ds, ck in [(f_all, 'Koor'), (n_all, 'Koor'), (db_all, 'Koor'), (s_all, 'Koor_SPK')]:
-        if not ds.empty and ck in ds.columns:
-            ent_dlr.update(clean_str(v) for v in ds[ck].dropna().unique() if clean_str(v) and clean_str(v) not in ['NAN', 'NONE', 'LAIN-LAIN'])
-    gab_ent = sorted(list(ent_dlr))
-    lbl_tot, kol_nm = f'TOTAL ({dlr_pil})', 'KOOR / COUNTER / DEALER'
+        if not ds.empty and ck in ds.columns: ent_dlr.update(clean_str(v) for v in ds[ck].dropna().unique() if clean_str(v) and clean_str(v) not in ['NAN', 'NONE', 'LAIN-LAIN'])
+    gab_ent, lbl_tot, kol_nm = sorted(list(ent_dlr)), f'TOTAL ({dlr_pil})', 'KOOR / COUNTER / DEALER'
 
     r_tot_p = calc_sales_row(lbl_tot, kol_nm, safe_int(saved_td.get(dlr_pil, 0)), f_c, f_l, n_c, n_t)
     r_tot_pr = calc_proses_row(lbl_tot, kol_nm, db_c, len(f_c))
@@ -1100,8 +1097,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         f"<b>✅ Approval Ratio</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_s['ACC%']}</span><br><b>Open SPK: {r_tot_s['TERBUKA']:,} (Ideal 50%)</b>",
         f"<b>🏁 Forecast Closing</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_p['FORC']:,} Unit</span><br><b>Forecast vs Target: {forc_pct_dlr:.2f}%</b>"
     ]
-    for col_st, h_str in zip(st.columns(6), kpi_items_html):
-        col_st.markdown(h_str, unsafe_allow_html=True)
+    for col_st, h_str in zip(st.columns(6), kpi_items_html): col_st.markdown(h_str, unsafe_allow_html=True)
 
     df_koor_only, df_cnt_only = pd.DataFrame(), pd.DataFrame()
     if not df_p_it.empty:
@@ -1115,12 +1111,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
             knm = str(rk[kol_nm])
             k_pr = df_pr_it[df_pr_it[kol_nm] == knm].iloc[0] if (not df_pr_it.empty and knm in df_pr_it[kol_nm].values) else {}
             k_sp = df_s_it[df_s_it[kol_nm] == knm].iloc[0] if (not df_s_it.empty and knm in df_s_it[kol_nm].values) else {}
-            k_eval_list.append({
-                'nama': knm, 'target': safe_int(rk['TARGET']), 'ideal': safe_int(rk['IDEAL']), 'stu': safe_int(rk['STU']),
-                'pct': safe_float(rk['_pct']), 'db': safe_int(k_pr.get('DB', 0)), 'dbq_str': k_pr.get('DB Q', '0.00%'),
-                'stup_str': k_pr.get('STU%', '0.00%'), 'spk_grw_str': k_sp.get('GROWTH', '0.00%'), 'acc_str': k_sp.get('ACC%', '0.00%'),
-                'dbq_val': safe_float(k_pr.get('DB Q', 0.0)), 'stup_val': safe_float(k_pr.get('STU%', 0.0)), 'acc_val': safe_float(k_sp.get('_acc_val', 0.0))
-            })
+            k_eval_list.append({'nama': knm, 'target': safe_int(rk['TARGET']), 'ideal': safe_int(rk['IDEAL']), 'stu': safe_int(rk['STU']), 'pct': safe_float(rk['_pct']), 'db': safe_int(k_pr.get('DB', 0)), 'dbq_str': k_pr.get('DB Q', '0.00%'), 'stup_str': k_pr.get('STU%', '0.00%'), 'spk_grw_str': k_sp.get('GROWTH', '0.00%'), 'acc_str': k_sp.get('ACC%', '0.00%'), 'dbq_val': safe_float(k_pr.get('DB Q', 0.0)), 'stup_val': safe_float(k_pr.get('STU%', 0.0)), 'acc_val': safe_float(k_sp.get('_acc_val', 0.0))})
         k_eval_list.sort(key=lambda x: (0 if x['target'] > 0 else 1, x['pct'], x['stu'], x['stup_val'], x['dbq_val'], x['acc_val']))
         fk = k_eval_list[0]
         focus_koor_html = f"<span style='color:#FFEA00;font-weight:800;'>{fk['nama']}</span> — Target vs Result: <b>{fk['target']}/{fk['stu']} ({fk['pct']:.2f}% | Ideal: {fk['ideal']})</b> | DB Quality: <b>{fk['dbq_str']}</b> | STU Ratio: <b>{fk['stup_str']}</b> | SPK Growth: <b>{fk['spk_grw_str']}</b> | Approval: <b>{fk['acc_str']}</b>"
@@ -1131,16 +1122,12 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         df_sm_valid = df_sm_all[(~df_sm_all['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_all['_db_val'] >= 2)].copy()
         if not df_sm_valid.empty:
             df_sm_valid['has_t'] = df_sm_valid['TARGET'].apply(lambda x: 0 if x > 0 else 1)
-            df_sm_valid = df_sm_valid.sort_values(by=['has_t', '_pct_val', '_stu_val', '_stup_val', '_dbq_val', '_acc_val', '_db_val'], ascending=[True, True, True, True, True, True, True]).reset_index(drop=True)
+            df_sm_valid = df_sm_valid.sort_values(by=['has_t', '_pct_val', '_stu_val', '_stup_val', '_dbq_val', '_acc_val', '_db_val'], ascending=[True]*7).reset_index(drop=True)
             fs = df_sm_valid.iloc[0]
             fs_idl = round(safe_int(fs['TARGET']) * persen_desimal)
             focus_sm_html = f"<span style='color:#FFEA00;font-weight:800;'>{fs['NAMA SALESMAN']}</span> — Target vs Result: <b>{fs['TARGET']}/{fs['STU']} ({fs[col_name_pct]} | Ideal: {fs_idl})</b> | DB: <b>{fs['DB']}</b> (DB Quality: <b>{fs['DB Q']}</b>) | STU Ratio: <b>{fs['STU%']}</b> | SPK: <b>{fs['SPK']}</b> (Approval: <b>{fs['ACC%']}</b>)"
 
-    focus_box_html = f"""<div class="focus-alert-box">
-        <div>🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div>
-        <div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div>
-    </div>"""
-    st.markdown(focus_box_html, unsafe_allow_html=True)
+    st.markdown(f"""<div class="focus-alert-box"><div>🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div><div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div></div>""", unsafe_allow_html=True)
 
     st.divider()
     jdl_rev_1 = f'1. TABEL PENJUALAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
@@ -1148,7 +1135,6 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     kol_pj = [kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
     df_p_full = pd.concat([df_p_it, pd.DataFrame([r_tot_p])], ignore_index=True)
 
-    # Buat paket HTML khusus untuk Capture Tabel 1 (Judul Sheet + KPI 6 Kolom + Focus Box + Tabel 1)
     tbl1_only_html = build_compact_html_string(df_p_it, df_p_full, kol_pj, kol_nm, '_pct', f'cap_tbl1_inner_{dlr_pil}', title_text=None)
     kpi_grid_cells = ''.join(f'<div style="flex:1;min-width:160px;font-size:13.5px;line-height:1.45;color:#FFFFFF;">{item}</div>' for item in kpi_items_html)
     custom_cap_tbl1 = f"""<div style="width:1320px;background-color:#0E1117;padding:20px 24px;font-family:'Source Sans Pro',sans-serif;color:#FFFFFF;box-sizing:border-box;">
@@ -1187,8 +1173,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     st.divider()
     jdl_rev_5 = f'5. TABEL DETAIL SALESMAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
     st.markdown(f'<div class="section-title">{jdl_rev_5}</div>', unsafe_allow_html=True)
-    if len(mapping_emp_target) <= len(FIXED_COUNTER_TARGETS):
-        st.warning('⚠️ File Master Employee belum diunggah. Silakan unggah di menu **📁 UPLOAD FILE** agar kolom TARGET otomatis terisi.')
+    if len(mapping_emp_target) <= len(FIXED_COUNTER_TARGETS): st.warning('⚠️ File Master Employee belum diunggah. Silakan unggah di menu **📁 UPLOAD FILE** agar kolom TARGET otomatis terisi.')
     kol_sm = ['NAMA SALESMAN', 'TARGET', 'STU', col_name_pct, 'AVG DB', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']
     if r_sm:
         df_smi = pd.DataFrame(r_sm).sort_values(by=['TARGET', '_pct_val', '_stu_val', '_db_val'], ascending=[False, True, True, True]).reset_index(drop=True)
@@ -1199,13 +1184,9 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     else: st.info(f'ℹ️ Belum ada data Salesman untuk dealer {dlr_pil}.')
 
     st.divider()
-    if tanggal_akhir > 21:
-        tgl_sasaran, sisa_hari = 30, max(1, 30 - tanggal_akhir)
-        horizon_lbl = f"Optimalisasi Closing s.d Tgl 30 Oktober 2026 ({sisa_hari} Hari Kerja)"
-    else:
-        tgl_sasaran = min(30, tanggal_akhir + 7)
-        sisa_hari = max(1, tgl_sasaran - tanggal_akhir)
-        horizon_lbl = f"Akselerasi 7 Hari ke Depan s.d Tgl {tgl_sasaran} Oktober 2026 ({sisa_hari} Hari Kerja)"
+    tgl_sasaran = 30 if tanggal_akhir > 21 else min(30, tanggal_akhir + 7)
+    sisa_hari = max(1, tgl_sasaran - tanggal_akhir)
+    horizon_lbl = f"Optimalisasi Closing s.d Tgl 30 Oktober 2026 ({sisa_hari} Hari Kerja)" if tanggal_akhir > 21 else f"Akselerasi 7 Hari ke Depan s.d Tgl {tgl_sasaran} Oktober 2026 ({sisa_hari} Hari Kerja)"
 
     jdl_rev_6 = f'6. TABEL ANALISA & ACTION PLAN — {dlr_pil} ({horizon_lbl})'
     st.markdown(f'<div class="section-title">{jdl_rev_6}</div>', unsafe_allow_html=True)
@@ -1230,9 +1211,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     top_rej_reasons_str, top_1_reason = "Belum ada SPK ditolak", "Kapasitas/SLIK"
     if not df_rej_dlr.empty and 'Alasan_Reject_Clean' in df_rej_dlr.columns:
         vc_rej = df_rej_dlr['Alasan_Reject_Clean'].value_counts()
-        if not vc_rej.empty:
-            top_1_reason = str(vc_rej.index[0])
-            top_rej_reasons_str = ", ".join([f"{k} ({v} SPK)" for k, v in vc_rej.head(4).items()])
+        if not vc_rej.empty: top_1_reason, top_rej_reasons_str = str(vc_rej.index[0]), ", ".join([f"{k} ({v} SPK)" for k, v in vc_rej.head(4).items()])
 
     eff_acc_rate = 0.50 if cur_acc_pct >= 99.9 else (max(IDEAL_ACC_PCT, cur_acc_pct) / 100.0)
     potensi_stu_open = min(tambahan_stu_wajib, round(cur_open_spk * eff_acc_rate))
@@ -1254,10 +1233,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         wt_rational_str = f"Segmen terburuk {wt_name}: target rasional +{wt_stu_add} STU (menjadi {wt_stu + wt_stu_add} unit), +{wt_spk_add} SPK, +{wt_db_add} DB."
         default_plan_type = limit_words(f"Fokus {wt_name}: kejar +{wt_stu_add} STU (menjadi {wt_stu + wt_stu_add} unit) dan +{wt_spk_add} SPK (ACC% >=50%). Tambah +{wt_db_add} DB {wt_name} TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%, STU% >=10%).")
 
-    if cur_acc_pct >= 99.9:
-        default_cond_leasing = limit_words(f"Total {cur_spk} SPK (vs LM {cur_spk_lm}), ACC% 100% belum valid karena {cur_open_spk} SPK masih Terbuka. Faktur kredit cair {tot_fak_kredit_curr} unit (BAF {fak_kredit_curr['BAF']}, ADIRA {fak_kredit_curr['ADIRA']}, SOF {fak_kredit_curr['SOF']}).")
-    else:
-        default_cond_leasing = limit_words(f"Total {cur_spk} SPK (vs LM {cur_spk_lm}), ACC% {cur_acc_pct:.1f}% (ideal 50%), {cur_open_spk} SPK Terbuka, reject tertinggi: {top_1_reason}. Faktur kredit {tot_fak_kredit_curr} unit (terkuat {best_lsg[0]}).")
+    default_cond_leasing = limit_words(f"Total {cur_spk} SPK (vs LM {cur_spk_lm}), ACC% 100% belum valid karena {cur_open_spk} SPK masih Terbuka. Faktur kredit cair {tot_fak_kredit_curr} unit (BAF {fak_kredit_curr['BAF']}, ADIRA {fak_kredit_curr['ADIRA']}, SOF {fak_kredit_curr['SOF']}).") if cur_acc_pct >= 99.9 else limit_words(f"Total {cur_spk} SPK (vs LM {cur_spk_lm}), ACC% {cur_acc_pct:.1f}% (ideal 50%), {cur_open_spk} SPK Terbuka, reject tertinggi: {top_1_reason}. Faktur kredit {tot_fak_kredit_curr} unit (terkuat {best_lsg[0]}).")
     default_plan_leasing = limit_words(f"Eksekusi {cur_open_spk} SPK Terbuka dalam 1x24 jam (target cair +{potensi_stu_open} STU) dan tambah +{kebutuhan_spk_baru} SPK baru. Prioritaskan 60% aplikasi ke {best_fak_lsg} serta perketat screening {top_1_reason} agar ACC% >=50%.")
 
     default_cond_koor, default_plan_koor, wk_rational_str = "Belum ada data Koordinator.", "Belum ada rencana aksi Koordinator.", ""
@@ -1310,20 +1286,29 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
             default_cond_mp = limit_words(f"{len(top_bad)} Salesman aktif zona kritis: {names_kritis}. Rata-rata DB Quality dan konversi STU% masih di bawah standar ideal 30% dan 10%.")
             default_plan_mp = limit_words(f"Kawal joint canvassing {len(top_bad)} MP kritis untuk kejar target rasional +1 s.d +2 STU dan +3 SPK/orang. Wajib input 4 DB/hari/MP TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%).")
 
-    ai_cfg = load_json(AI_CONFIG_FILE)
-    active_api_key = ai_cfg.get('gemini_api_key', os.environ.get('GEMINI_API_KEY', ''))
+    active_api_key = resolve_gemini_api_key()
     cache_key = f"ai_tbl6_v8_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
 
     col_btn1, col_btn2 = st.columns([1, 2])
     with col_btn1: gen_ai_clicked = st.button('✨ Generate Narasi Dinamis dengan AI (Gemini)', type='primary', use_container_width=True)
     with col_btn2:
-        with st.expander('🤖 Pengaturan Gemini API Key (Opsional — Klik untuk buka)'):
-            inp_api_key = st.text_input('Masukkan Gemini API Key:', value=active_api_key, type='password')
-            if st.button('💾 Simpan API Key'):
-                save_json({'gemini_api_key': inp_api_key.strip()}, AI_CONFIG_FILE); active_api_key = inp_api_key.strip(); st.success('API Key berhasil disimpan!')
+        with st.expander('🤖 Pengaturan / Generate API Key Share GitHub (Klik untuk buka)'):
+            st.caption('💡 API Key sudah terpasang otomatis (built-in) untuk Share Dashboard GitHub. Anda juga bisa menggantinya di bawah ini atau menyalin konfigurasi `secrets.toml` untuk Streamlit Cloud:')
+            inp_api_key = st.text_input('Masukkan / Ganti Gemini API Key:', value=active_api_key, type='password')
+            c_k1, c_k2 = st.columns(2)
+            with c_k1:
+                if st.button('💾 Terapkan & Simpan API Key', use_container_width=True):
+                    clean_inp = inp_api_key.strip() or DEFAULT_SHARED_API_KEY
+                    st.session_state['shared_gemini_api_key'] = clean_inp
+                    save_json({'gemini_api_key': clean_inp}, AI_CONFIG_FILE)
+                    active_api_key = clean_inp
+                    st.success('✅ API Key aktif di sesi ini & disimpan!')
+            with c_k2:
+                st.markdown('<a href="[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#1E293B;color:#00E5FF;border:1px solid #334155;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Buat API Key Baru (Google AI Studio)</a>', unsafe_allow_html=True)
+            st.code(f'GEMINI_API_KEY = "{inp_api_key.strip() or active_api_key}"', language='toml')
 
     if gen_ai_clicked:
-        if not active_api_key: st.warning('⚠️ Silakan masukkan Gemini API Key terlebih dahulu pada kotak Pengaturan Gemini API Key di sebelah kanan tombol.')
+        if not active_api_key: st.warning('⚠️ Silakan masukkan Gemini API Key terlebih dahulu.')
         else:
             with st.spinner(f'🤖 AI sedang membedah data mentah & menyusun Target Rasional 7 Hari ke depan untuk {dlr_pil} (Maks 35 kata/sel)...'):
                 raw_t1 = df_p_it[[kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', col_name_pct, 'STU LM', '% LM']].to_string(index=False) if not df_p_it.empty else "Kosong"
@@ -1362,7 +1347,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     tabel_analisa_dom_id = f"Capture_Analisa_{re.sub(r'[^a-zA-Z0-9]', '_', dlr_pil)}"
     copy_payload_json, safe_dlr_fname = json.dumps(copy_texts_dict), re.sub(r'[^a-zA-Z0-9_-]', '_', f"Analisa_ActionPlan_{dlr_pil}_Tgl_{tanggal_akhir}")
 
-    interactive_analisa_component = f"""<html><head><script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script><style>
+    components.html(f"""<html><head><script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script><style>
         body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #E2E8F0; }}
         .compact-table-wrap {{ width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }}
         .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
@@ -1474,5 +1459,4 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         `);
         w.document.close();
     }}
-    </script></body></html>"""
-    components.html(interactive_analisa_component, height=620, scrolling=True)
+    </script></body></html>""", height=620, scrolling=True)
