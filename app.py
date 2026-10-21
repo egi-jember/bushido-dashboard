@@ -45,6 +45,7 @@ table.narrative-tbl td.cond-col { width: 42.5%; background-color: #0E1117; }
 table.narrative-tbl td.plan-col { width: 42.5%; background-color: #111622; }
 p.nar-p { margin: 0 0 6px 0; padding: 0; color: #E2E8F0; font-weight: 400; line-height: 1.55; text-align: left; }
 p.nar-p:last-of-type { margin-bottom: 4px; }
+.focus-alert-box { margin-top: 14px; padding: 11px 16px; background: linear-gradient(90deg, rgba(255,0,127,0.14) 0%, rgba(14,17,23,0.95) 100%); border-left: 4px solid #FF007F; border-top: 1px solid #2D3748; border-right: 1px solid #2D3748; border-bottom: 1px solid #2D3748; border-radius: 6px; font-size: 13.5px; line-height: 1.65; color: #E2E8F0; }
 </style>""", unsafe_allow_html=True)
 
 IDEAL_DBQ_PCT, IDEAL_STU_PCT, IDEAL_ACC_PCT, MAX_NARRATIVE_WORDS = 30.0, 10.0, 50.0, 35
@@ -156,7 +157,7 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
                 canvas.toBlob(async (blob) => {{
                     try {{
                         await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
-                        msg.style.color = '#00FF66'; msg.innerText = '✅ Gambar tabel + Judul disalin ke Clipboard! (Siap Ctrl+V di WA/Excel)';
+                        msg.style.color = '#00FF66'; msg.innerText = '✅ Gambar berhasil disalin ke Clipboard! (Siap Ctrl+V di WA/Excel)';
                     }} catch (err) {{
                         const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_fname}.jpg'; a.click();
                         msg.style.color = '#00E5FF'; msg.innerText = '📥 Browser membatasi clipboard, gambar otomatis diunduh sebagai JPG.';
@@ -174,12 +175,12 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
     </script></body></html>"""
     components.html(btn_code, height=36)
 
-def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, key_suffix='tbl', header_labels=None, ultra_compact=False, title_text=None):
+def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, key_suffix='tbl', header_labels=None, ultra_compact=False, title_text=None, custom_capture_html=None):
     if df_full is None or df_full.empty: return
     dom_id = f"Capture_{re.sub(r'[^a-zA-Z0-9]', '_', key_suffix)}"
     html_display_str = build_compact_html_string(df_items, df_full, columns, name_col, metric_col, dom_id, header_labels=header_labels, ultra_compact=ultra_compact, title_text=None)
     cap_title = title_text if title_text else key_suffix.replace('_', ' ')
-    html_capture_str = build_compact_html_string(df_items, df_full, columns, name_col, metric_col, f"{dom_id}_cap", header_labels=header_labels, ultra_compact=ultra_compact, title_text=cap_title)
+    html_capture_str = custom_capture_html if custom_capture_html is not None else build_compact_html_string(df_items, df_full, columns, name_col, metric_col, f"{dom_id}_cap", header_labels=header_labels, ultra_compact=ultra_compact, title_text=cap_title)
     if ultra_compact:
         safe_fname, comp_height, hidden_uc_payload = re.sub(r'[^a-zA-Z0-9_-]', '_', key_suffix), (len(df_full) * 29) + 100, json.dumps(html_capture_str)
         uc_html = f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
@@ -1032,7 +1033,9 @@ elif menu_pilihan == '🏦 LEASING':
 
 elif menu_pilihan == '🏢 DETAIL DEALER':
     dlr_pil = st.selectbox('🏢 Pilih Dealer untuk Review:', daftar_dealer, index=0)
-    st.markdown(f'<div class="main-title">DETAIL DEALER — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)</div><div class="sub-title">Rekapitulasi Terpadu Penjualan, Proses Kerja, SPK Leasing, Penjualan Per Type & Detail Salesman Khusus Dealer {dlr_pil} (Acuan Ideal: DB Quality 30% | STU% 10% | ACC% 50%)</div>', unsafe_allow_html=True)
+    main_hdr_text = f'DETAIL DEALER — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    sub_hdr_text = f'Rekapitulasi Terpadu Penjualan, Proses Kerja, SPK Leasing, Penjualan Per Type & Detail Salesman Khusus Dealer {dlr_pil} (Acuan Ideal: DB Quality 30% | STU% 10% | ACC% 50%)'
+    st.markdown(f'<div class="main-title">{main_hdr_text}</div><div class="sub-title">{sub_hdr_text}</div>', unsafe_allow_html=True)
 
     saved_td, saved_tk = load_json(TARGET_DEALER_FILE), load_json(TARGET_KOOR_FILE)
     cd_nota = 'Nama Dealer' if (df_nota is not None and 'Nama Dealer' in df_nota.columns) else 'Dealer'
@@ -1060,53 +1063,15 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     r_tot_pr = calc_proses_row(lbl_tot, kol_nm, db_c, len(f_c))
     r_tot_s = calc_leasing_row(lbl_tot, s_c, s_l, kol_nm)
 
-    # 6 KOLOM KPI SUMMARY (Target vs Result - Database Quality - STU Ratio - SPK Growth - Approval Ratio - Forecast Closing)
-    kp1, kp2, kp3, kp4, kp5, kp6 = st.columns(6)
-    kp1.markdown(f"**🎯 Target vs Result**<br><span style='font-size:24px;font-weight:bold;'>{r_tot_p['TARGET']:,} / {r_tot_p['STU']:,}</span><br><b>{r_tot_p['_pct']:.2f}% tercapai (Nota: {r_tot_p['NOTA']:,})</b>", unsafe_allow_html=True)
-    kp2.markdown(f"**✨ Database Quality**<br><span style='font-size:24px;font-weight:bold;'>{r_tot_pr['DB Q']}</span><br><b>Hot: {r_tot_pr['HOT']:,} / {r_tot_pr['DB']:,} DB (Ideal 30%)</b>", unsafe_allow_html=True)
-    kp3.markdown(f"**📈 STU Ratio**<br><span style='font-size:24px;font-weight:bold;'>{r_tot_pr['STU%']}</span><br><b>STU: {r_tot_pr['STU']:,} / {r_tot_pr['DB']:,} DB (Ideal 10%)</b>", unsafe_allow_html=True)
-    kp4.markdown(f"**🚀 SPK Growth**<br><span style='font-size:24px;font-weight:bold;'>{r_tot_s['GROWTH']}</span><br><b>SPK: {r_tot_s['SPK']:,} vs LM: {r_tot_s['SPK LM']:,}</b>", unsafe_allow_html=True)
-    kp5.markdown(f"**✅ Approval Ratio**<br><span style='font-size:24px;font-weight:bold;'>{r_tot_s['ACC%']}</span><br><b>Open SPK: {r_tot_s['TERBUKA']:,} (Ideal 50%)</b>", unsafe_allow_html=True)
-    forc_pct_dlr = (r_tot_p['FORC'] / r_tot_p['TARGET'] * 100.0) if r_tot_p['TARGET'] > 0 else 0.0
-    kp6.markdown(f"**🏁 Forecast Closing**<br><span style='font-size:24px;font-weight:bold;'>{r_tot_p['FORC']:,} Unit</span><br><b>Forecast vs Target: {forc_pct_dlr:.2f}%</b>", unsafe_allow_html=True)
-
-    st.divider()
-    jdl_rev_1 = f'1. TABEL PENJUALAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
-    st.markdown(f'<div class="section-title">{jdl_rev_1}</div>', unsafe_allow_html=True)
-    kol_pj = [kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
     rp_all = [calc_sales_row(e, kol_nm, get_koor_or_counter_target(e, saved_tk), f_c[f_c['Koor'] == e] if not f_c.empty else pd.DataFrame(), f_l[f_l['Koor'] == e] if not f_l.empty else pd.DataFrame(), n_c[n_c['Koor'] == e] if not n_c.empty else pd.DataFrame(), n_t[n_t['Koor'] == e] if not n_t.empty else pd.DataFrame()) for e in gab_ent]
     df_p_it = pd.DataFrame(rp_all).sort_values(by=['_pct', 'STU'], ascending=[True, True]).reset_index(drop=True) if rp_all else pd.DataFrame()
-    render_compact_html_table(df_p_it, pd.concat([df_p_it, pd.DataFrame([r_tot_p])], ignore_index=True), kol_pj, kol_nm, '_pct', key_suffix=f'Review_1_Penjualan_{dlr_pil}', title_text=jdl_rev_1)
 
-    st.divider()
-    jdl_rev_2 = f'2. TABEL PROSES KERJA — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
-    st.markdown(f'<div class="section-title">{jdl_rev_2}</div>', unsafe_allow_html=True)
-    kol_pr = [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']
     rpr_all = [calc_proses_row(e, kol_nm, db_c[db_c['Koor'] == e] if not db_c.empty else pd.DataFrame(), len(f_c[f_c['Koor'] == e]) if not f_c.empty else 0) for e in gab_ent]
     df_pr_it = pd.DataFrame(rpr_all).sort_values(by=['_stu_pct', 'STU'], ascending=[True, True]).reset_index(drop=True) if rpr_all else pd.DataFrame()
-    render_compact_html_table(df_pr_it, pd.concat([df_pr_it, pd.DataFrame([r_tot_pr])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', key_suffix=f'Review_2_Proses_{dlr_pil}', title_text=jdl_rev_2)
 
-    st.divider()
-    jdl_rev_3 = f'3. TABEL SPK & LEASING — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
-    st.markdown(f'<div class="section-title">{jdl_rev_3}</div>', unsafe_allow_html=True)
-    kol_sp = [kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']
     rs_all = [calc_leasing_row(e, s_c[s_c['Koor_SPK'] == e] if not s_c.empty else pd.DataFrame(), s_l[s_l['Koor_SPK'] == e] if not s_l.empty else pd.DataFrame(), kol_nm) for e in gab_ent]
     df_s_it = pd.DataFrame(rs_all).sort_values(by=['_acc_val', '_spk_val'], ascending=[True, True]).reset_index(drop=True) if rs_all else pd.DataFrame()
-    render_compact_html_table(df_s_it, pd.concat([df_s_it, pd.DataFrame([r_tot_s])], ignore_index=True), kol_sp, kol_nm, '_acc_val', key_suffix=f'Review_3_Leasing_{dlr_pil}', title_text=jdl_rev_3)
 
-    st.divider()
-    jdl_rev_4 = f'4. TABEL PENJUALAN PER TYPE — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
-    st.markdown(f'<div class="section-title">{jdl_rev_4}</div>', unsafe_allow_html=True)
-    kol_t_d = ['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF']
-    df_td_i, df_td_f, _ = build_type_table(f_c, f_l, db_c, s_c, [(k, 'Type_Clean', 'Type_Clean', 'Type_Clean') for k in FOKUS_KATEGORI_TYPE], 'TYPE', tot_label=lbl_tot, sort_by_growth=True)
-    if not df_td_f.empty: render_compact_html_table(df_td_i, df_td_f, kol_t_d, 'TYPE', '_growth_val', key_suffix=f'Review_4_Type_{dlr_pil}', title_text=jdl_rev_4)
-
-    st.divider()
-    jdl_rev_5 = f'5. TABEL DETAIL SALESMAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
-    st.markdown(f'<div class="section-title">{jdl_rev_5}</div>', unsafe_allow_html=True)
-    if len(mapping_emp_target) <= len(FIXED_COUNTER_TARGETS):
-        st.warning('⚠️ File Master Employee belum diunggah. Silakan unggah di menu **📁 UPLOAD FILE** agar kolom TARGET otomatis terisi.')
-    kol_sm = ['NAMA SALESMAN', 'TARGET', 'STU', col_name_pct, 'AVG DB', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']
     sm_set = set()
     for ds in [f_c, n_c, db_c, s_c]:
         if not ds.empty and 'Salesman_Clean' in ds.columns: sm_set.update(clean_str(v) for v in ds['Salesman_Clean'].dropna().unique() if clean_str(v) and clean_str(v) not in ['NAN', 'NONE', 'TOTAL'])
@@ -1123,7 +1088,108 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         sspk = s_c[s_c['Salesman_Clean'] == sm] if (not s_c.empty and 'Salesman_Clean' in s_c.columns) else pd.DataFrame()
         spk_v, acc_v, rej_v = len(sspk), (len(sspk[sspk['Status_SPK_Clean'] == 'DISETUJUI']) if (not sspk.empty and 'Status_SPK_Clean' in sspk.columns) else 0), (len(sspk[sspk['Status_SPK_Clean'] == 'DITOLAK']) if (not sspk.empty and 'Status_SPK_Clean' in sspk.columns) else 0)
         t_sa += acc_v; t_sr += rej_v
-        r_sm.append({'NAMA SALESMAN': sm, 'TARGET': targ, 'STU': stu, col_name_pct: f'{pct_sm:.2f}%', 'AVG DB': f'{(db_v/hari_aktif):.2f}', 'DB': db_v, 'HOT': hot_v, 'DB Q': f'{(hot_v/db_v*100 if db_v>0 else 0):.2f}%', 'SPK': spk_v, 'ACC%': f'{(acc_v/(acc_v+rej_v)*100 if (acc_v+rej_v)>0 else 0):.2f}%', 'STU%': f'{(stu/db_v*100 if db_v>0 else 0):.2f}%', '_stu_val': stu, '_db_val': db_v, '_pct_val': pct_sm})
+        dbq_v, stup_v, acc_p_v = (hot_v / db_v * 100.0 if db_v > 0 else 0.0), (stu / db_v * 100.0 if db_v > 0 else 0.0), (acc_v / (acc_v + rej_v) * 100.0 if (acc_v + rej_v) > 0 else 0.0)
+        r_sm.append({'NAMA SALESMAN': sm, 'TARGET': targ, 'STU': stu, col_name_pct: f'{pct_sm:.2f}%', 'AVG DB': f'{(db_v/hari_aktif):.2f}', 'DB': db_v, 'HOT': hot_v, 'DB Q': f'{dbq_v:.2f}%', 'SPK': spk_v, 'ACC%': f'{acc_p_v:.2f}%', 'STU%': f'{stup_v:.2f}%', '_stu_val': stu, '_db_val': db_v, '_pct_val': pct_sm, '_dbq_val': dbq_v, '_stup_val': stup_v, '_acc_val': acc_p_v})
+
+    forc_pct_dlr = (r_tot_p['FORC'] / r_tot_p['TARGET'] * 100.0) if r_tot_p['TARGET'] > 0 else 0.0
+    kpi_items_html = [
+        f"<b>🎯 Target vs Result</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_p['TARGET']:,} / {r_tot_p['STU']:,}</span><br><b>{r_tot_p['_pct']:.2f}% tercapai (Nota: {r_tot_p['NOTA']:,})<br>Ideal Tgl {tanggal_akhir} ({col_name_pct}): {r_tot_p['IDEAL']:,} Unit</b>",
+        f"<b>✨ Database Quality</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_pr['DB Q']}</span><br><b>Hot: {r_tot_pr['HOT']:,} / {r_tot_pr['DB']:,} DB (Ideal 30%)</b>",
+        f"<b>📈 STU Ratio</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_pr['STU%']}</span><br><b>STU: {r_tot_pr['STU']:,} / {r_tot_pr['DB']:,} DB (Ideal 10%)</b>",
+        f"<b>🚀 SPK Growth</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_s['GROWTH']}</span><br><b>SPK: {r_tot_s['SPK']:,} vs LM: {r_tot_s['SPK LM']:,}</b>",
+        f"<b>✅ Approval Ratio</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_s['ACC%']}</span><br><b>Open SPK: {r_tot_s['TERBUKA']:,} (Ideal 50%)</b>",
+        f"<b>🏁 Forecast Closing</b><br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{r_tot_p['FORC']:,} Unit</span><br><b>Forecast vs Target: {forc_pct_dlr:.2f}%</b>"
+    ]
+    for col_st, h_str in zip(st.columns(6), kpi_items_html):
+        col_st.markdown(h_str, unsafe_allow_html=True)
+
+    df_koor_only, df_cnt_only = pd.DataFrame(), pd.DataFrame()
+    if not df_p_it.empty:
+        df_koor_only = df_p_it[~df_p_it[kol_nm].str.upper().str.startswith('COUNTER')].copy()
+        df_cnt_only = df_p_it[df_p_it[kol_nm].str.upper().str.startswith('COUNTER')].sort_values(by=['_pct', 'STU'], ascending=[True, True])
+
+    focus_koor_html = "Tidak ada data Koordinator"
+    if not df_koor_only.empty:
+        k_eval_list = []
+        for _, rk in df_koor_only.iterrows():
+            knm = str(rk[kol_nm])
+            k_pr = df_pr_it[df_pr_it[kol_nm] == knm].iloc[0] if (not df_pr_it.empty and knm in df_pr_it[kol_nm].values) else {}
+            k_sp = df_s_it[df_s_it[kol_nm] == knm].iloc[0] if (not df_s_it.empty and knm in df_s_it[kol_nm].values) else {}
+            k_eval_list.append({
+                'nama': knm, 'target': safe_int(rk['TARGET']), 'ideal': safe_int(rk['IDEAL']), 'stu': safe_int(rk['STU']),
+                'pct': safe_float(rk['_pct']), 'db': safe_int(k_pr.get('DB', 0)), 'dbq_str': k_pr.get('DB Q', '0.00%'),
+                'stup_str': k_pr.get('STU%', '0.00%'), 'spk_grw_str': k_sp.get('GROWTH', '0.00%'), 'acc_str': k_sp.get('ACC%', '0.00%'),
+                'dbq_val': safe_float(k_pr.get('DB Q', 0.0)), 'stup_val': safe_float(k_pr.get('STU%', 0.0)), 'acc_val': safe_float(k_sp.get('_acc_val', 0.0))
+            })
+        k_eval_list.sort(key=lambda x: (0 if x['target'] > 0 else 1, x['pct'], x['stu'], x['stup_val'], x['dbq_val'], x['acc_val']))
+        fk = k_eval_list[0]
+        focus_koor_html = f"<span style='color:#FFEA00;font-weight:800;'>{fk['nama']}</span> — Target vs Result: <b>{fk['target']}/{fk['stu']} ({fk['pct']:.2f}% | Ideal: {fk['ideal']})</b> | DB Quality: <b>{fk['dbq_str']}</b> | STU Ratio: <b>{fk['stup_str']}</b> | SPK Growth: <b>{fk['spk_grw_str']}</b> | Approval: <b>{fk['acc_str']}</b>"
+
+    focus_sm_html = "Tidak ada Salesman aktif (Non-Counter dengan DB >= 2)"
+    if r_sm:
+        df_sm_all = pd.DataFrame(r_sm)
+        df_sm_valid = df_sm_all[(~df_sm_all['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_all['_db_val'] >= 2)].copy()
+        if not df_sm_valid.empty:
+            df_sm_valid['has_t'] = df_sm_valid['TARGET'].apply(lambda x: 0 if x > 0 else 1)
+            df_sm_valid = df_sm_valid.sort_values(by=['has_t', '_pct_val', '_stu_val', '_stup_val', '_dbq_val', '_acc_val', '_db_val'], ascending=[True, True, True, True, True, True, True]).reset_index(drop=True)
+            fs = df_sm_valid.iloc[0]
+            fs_idl = round(safe_int(fs['TARGET']) * persen_desimal)
+            focus_sm_html = f"<span style='color:#FFEA00;font-weight:800;'>{fs['NAMA SALESMAN']}</span> — Target vs Result: <b>{fs['TARGET']}/{fs['STU']} ({fs[col_name_pct]} | Ideal: {fs_idl})</b> | DB: <b>{fs['DB']}</b> (DB Quality: <b>{fs['DB Q']}</b>) | STU Ratio: <b>{fs['STU%']}</b> | SPK: <b>{fs['SPK']}</b> (Approval: <b>{fs['ACC%']}</b>)"
+
+    focus_box_html = f"""<div class="focus-alert-box">
+        <div>🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div>
+        <div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div>
+    </div>"""
+    st.markdown(focus_box_html, unsafe_allow_html=True)
+
+    st.divider()
+    jdl_rev_1 = f'1. TABEL PENJUALAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    st.markdown(f'<div class="section-title">{jdl_rev_1}</div>', unsafe_allow_html=True)
+    kol_pj = [kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
+    df_p_full = pd.concat([df_p_it, pd.DataFrame([r_tot_p])], ignore_index=True)
+
+    # Buat paket HTML khusus untuk Capture Tabel 1 (Judul Sheet + KPI 6 Kolom + Focus Box + Tabel 1)
+    tbl1_only_html = build_compact_html_string(df_p_it, df_p_full, kol_pj, kol_nm, '_pct', f'cap_tbl1_inner_{dlr_pil}', title_text=None)
+    kpi_grid_cells = ''.join(f'<div style="flex:1;min-width:160px;font-size:13.5px;line-height:1.45;color:#FFFFFF;">{item}</div>' for item in kpi_items_html)
+    custom_cap_tbl1 = f"""<div style="width:1320px;background-color:#0E1117;padding:20px 24px;font-family:'Source Sans Pro',sans-serif;color:#FFFFFF;box-sizing:border-box;">
+        <div style="font-size:38px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{main_hdr_text}</div>
+        <div style="font-size:14px;font-weight:600;color:#64748B;margin-bottom:18px;">{sub_hdr_text}</div>
+        <div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:16px;">{kpi_grid_cells}</div>
+        <div style="margin-top:12px;margin-bottom:18px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,rgba(14,17,23,0.95) 100%);border-left:4px solid #FF007F;border-top:1px solid #2D3748;border-right:1px solid #2D3748;border-bottom:1px solid #2D3748;border-radius:6px;font-size:13.5px;line-height:1.65;color:#E2E8F0;">
+            <div>🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div>
+            <div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div>
+        </div>
+        <hr style="border:none;border-top:1px solid #2D3748;margin:16px 0;">
+        <div style="font-size:21px;font-weight:700;color:#4318FF;margin-bottom:10px;">{jdl_rev_1}</div>
+        {tbl1_only_html}
+    </div>"""
+    render_compact_html_table(df_p_it, df_p_full, kol_pj, kol_nm, '_pct', key_suffix=f'Review_1_Penjualan_{dlr_pil}', title_text=jdl_rev_1, custom_capture_html=custom_cap_tbl1)
+
+    st.divider()
+    jdl_rev_2 = f'2. TABEL PROSES KERJA — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    st.markdown(f'<div class="section-title">{jdl_rev_2}</div>', unsafe_allow_html=True)
+    kol_pr = [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']
+    render_compact_html_table(df_pr_it, pd.concat([df_pr_it, pd.DataFrame([r_tot_pr])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', key_suffix=f'Review_2_Proses_{dlr_pil}', title_text=jdl_rev_2)
+
+    st.divider()
+    jdl_rev_3 = f'3. TABEL SPK & LEASING — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    st.markdown(f'<div class="section-title">{jdl_rev_3}</div>', unsafe_allow_html=True)
+    kol_sp = [kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']
+    render_compact_html_table(df_s_it, pd.concat([df_s_it, pd.DataFrame([r_tot_s])], ignore_index=True), kol_sp, kol_nm, '_acc_val', key_suffix=f'Review_3_Leasing_{dlr_pil}', title_text=jdl_rev_3)
+
+    st.divider()
+    jdl_rev_4 = f'4. TABEL PENJUALAN PER TYPE — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    st.markdown(f'<div class="section-title">{jdl_rev_4}</div>', unsafe_allow_html=True)
+    kol_t_d = ['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF']
+    df_td_i, df_td_f, _ = build_type_table(f_c, f_l, db_c, s_c, [(k, 'Type_Clean', 'Type_Clean', 'Type_Clean') for k in FOKUS_KATEGORI_TYPE], 'TYPE', tot_label=lbl_tot, sort_by_growth=True)
+    if not df_td_f.empty: render_compact_html_table(df_td_i, df_td_f, kol_t_d, 'TYPE', '_growth_val', key_suffix=f'Review_4_Type_{dlr_pil}', title_text=jdl_rev_4)
+
+    st.divider()
+    jdl_rev_5 = f'5. TABEL DETAIL SALESMAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    st.markdown(f'<div class="section-title">{jdl_rev_5}</div>', unsafe_allow_html=True)
+    if len(mapping_emp_target) <= len(FIXED_COUNTER_TARGETS):
+        st.warning('⚠️ File Master Employee belum diunggah. Silakan unggah di menu **📁 UPLOAD FILE** agar kolom TARGET otomatis terisi.')
+    kol_sm = ['NAMA SALESMAN', 'TARGET', 'STU', col_name_pct, 'AVG DB', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']
     if r_sm:
         df_smi = pd.DataFrame(r_sm).sort_values(by=['TARGET', '_pct_val', '_stu_val', '_db_val'], ascending=[False, True, True, True]).reset_index(drop=True)
         tt, ts, tdb, thot, tspk, n_sm = int(df_smi['TARGET'].sum()), int(df_smi['STU'].sum()), int(df_smi['DB'].sum()), int(df_smi['HOT'].sum()), int(df_smi['SPK'].sum()), len(df_smi)
@@ -1194,14 +1260,9 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         default_cond_leasing = limit_words(f"Total {cur_spk} SPK (vs LM {cur_spk_lm}), ACC% {cur_acc_pct:.1f}% (ideal 50%), {cur_open_spk} SPK Terbuka, reject tertinggi: {top_1_reason}. Faktur kredit {tot_fak_kredit_curr} unit (terkuat {best_lsg[0]}).")
     default_plan_leasing = limit_words(f"Eksekusi {cur_open_spk} SPK Terbuka dalam 1x24 jam (target cair +{potensi_stu_open} STU) dan tambah +{kebutuhan_spk_baru} SPK baru. Prioritaskan 60% aplikasi ke {best_fak_lsg} serta perketat screening {top_1_reason} agar ACC% >=50%.")
 
-    df_koor_only, df_cnt_only = pd.DataFrame(), pd.DataFrame()
-    if not df_p_it.empty:
-        df_koor_only = df_p_it[~df_p_it[kol_nm].str.upper().str.startswith('COUNTER')].sort_values(by=['_pct', 'STU'], ascending=[True, True])
-        df_cnt_only = df_p_it[df_p_it[kol_nm].str.upper().str.startswith('COUNTER')].sort_values(by=['_pct', 'STU'], ascending=[True, True])
-
     default_cond_koor, default_plan_koor, wk_rational_str = "Belum ada data Koordinator.", "Belum ada rencana aksi Koordinator.", ""
     if not df_koor_only.empty:
-        wk = df_koor_only.iloc[0]
+        wk = df_koor_only.sort_values(by=['_pct', 'STU'], ascending=[True, True]).iloc[0]
         wk_nm, wk_t, wk_i, wk_s, wk_pct = str(wk[kol_nm]), safe_int(wk['TARGET']), safe_int(wk['IDEAL']), safe_int(wk['STU']), safe_float(wk['_pct'])
         wk_pr = df_pr_it[df_pr_it[kol_nm] == wk_nm].iloc[0] if (not df_pr_it.empty and wk_nm in df_pr_it[kol_nm].values) else {}
         wk_sp = df_s_it[df_s_it[kol_nm] == wk_nm].iloc[0] if (not df_s_it.empty and wk_nm in df_s_it[kol_nm].values) else {}
@@ -1224,9 +1285,9 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         wc_rational_str = f"Counter terburuk {wc_nm} (STU saat ini {wc_s} dari target {wc_t}): target rasional 7 hari adalah +{wc_add} STU (menjadi {wc_goal_rasional} unit), +{wc_spk_need} SPK, {wc_db_hari} DB/hari."
         default_plan_counter = limit_words(f"{wc_nm} kejar target rasional +{wc_add} STU (menjadi {wc_goal_rasional} unit), cairkan {safe_int(wc_sp.get('TERBUKA', 0))} SPK Terbuka, cetak +{wc_spk_need} SPK. Input {wc_db_hari} DB/hari TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%).")
 
-    default_cond_mp = "Seluruh Salesman lapangan sudah di zona aman."
+    default_cond_mp = "Seluruh Salesman lapangan aktif sudah di zona aman."
     default_plan_mp = "Pertahankan input database harian TANPA MENURUNKAN KUALITAS DATABASE sesuai standar DB Q 30%, STU% 10%, ACC% 50%."
-    top_bad_raw_str = "Tidak ada salesman di zona kritis."
+    top_bad_raw_str = "Tidak ada salesman aktif di zona kritis."
     if r_sm:
         df_sm_eval = pd.DataFrame(r_sm)
         min_p_tbl, max_p_tbl = float(df_sm_eval['_pct_val'].min()), float(df_sm_eval['_pct_val'].max())
@@ -1236,8 +1297,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
             if (s_u >= idl and idl > 0) or (v_p >= target_persen_harian and target_persen_harian > 0): return False
             ratio_c = ((v_p - min_p_tbl) / (max_p_tbl - min_p_tbl)) if max_p_tbl > min_p_tbl else 0.0
             return (ratio_c <= 0.15) or (v_p < target_persen_harian)
-        df_sm_non_cnt = df_sm_eval[~df_sm_eval['NAMA SALESMAN'].apply(is_counter_personnel)].copy()
-        if df_sm_non_cnt.empty: df_sm_non_cnt = df_sm_eval.copy()
+        df_sm_non_cnt = df_sm_eval[(~df_sm_eval['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_eval['_db_val'] >= 2)].copy()
         df_kritis_with_target = df_sm_non_cnt[(df_sm_non_cnt['TARGET'] > 0) & (df_sm_non_cnt.apply(is_zona_kritis, axis=1))].sort_values(by=['TARGET', '_pct_val', '_stu_val', '_db_val'], ascending=[False, True, True, True])
         if not df_kritis_with_target.empty:
             max_kritis_target = int(df_kritis_with_target['TARGET'].max())
@@ -1247,12 +1307,12 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         if not top_bad.empty:
             names_kritis = ", ".join([f"{rb['NAMA SALESMAN']} (STU {safe_int(rb['STU'])}/{safe_int(rb['TARGET'])}, DB {safe_int(rb['DB'])}, SPK {safe_int(rb['SPK'])})" for _, rb in top_bad.iterrows()])
             top_bad_raw_str = "; ".join([f"{rb['NAMA SALESMAN']}: Target {rb['TARGET']}, STU {rb['STU']} ({rb[col_name_pct]}), DB {rb['DB']} (AVG {rb['AVG DB']}), HOT {rb['HOT']} (DB Q {rb['DB Q']}), SPK {rb['SPK']} (ACC% {rb['ACC%']}), STU% {rb['STU%']} -> Target Rasional 7 Hari: +1 s.d +2 STU" for _, rb in top_bad.iterrows()])
-            default_cond_mp = limit_words(f"{len(top_bad)} Salesman zona kritis: {names_kritis}. Rata-rata DB Quality dan konversi STU% masih di bawah standar ideal 30% dan 10%.")
+            default_cond_mp = limit_words(f"{len(top_bad)} Salesman aktif zona kritis: {names_kritis}. Rata-rata DB Quality dan konversi STU% masih di bawah standar ideal 30% dan 10%.")
             default_plan_mp = limit_words(f"Kawal joint canvassing {len(top_bad)} MP kritis untuk kejar target rasional +1 s.d +2 STU dan +3 SPK/orang. Wajib input 4 DB/hari/MP TANPA MENURUNKAN KUALITAS DATABASE (DB Q >=30%).")
 
     ai_cfg = load_json(AI_CONFIG_FILE)
     active_api_key = ai_cfg.get('gemini_api_key', os.environ.get('GEMINI_API_KEY', ''))
-    cache_key = f"ai_tbl6_v7_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
+    cache_key = f"ai_tbl6_v8_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
 
     col_btn1, col_btn2 = st.columns([1, 2])
     with col_btn1: gen_ai_clicked = st.button('✨ Generate Narasi Dinamis dengan AI (Gemini)', type='primary', use_container_width=True)
@@ -1276,7 +1336,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
                     f"- Dealer {dlr_pil} (STU saat ini {dlr_stu} dari target bulanan {dlr_targ}, Ideal tgl {tanggal_akhir}={dlr_ideal}): Target Rasional s.d tgl {tgl_sasaran} adalah tambahan +{tambahan_stu_wajib} STU (sehingga total mencapai {stu_sasaran_rasional} unit, atau {target_stu_per_hari:.1f} STU/hari), input {target_db_per_mp_hari:.1f} DB/MP/hari.\n"
                     f"- {wt_rational_str}\n- {wk_rational_str}\n- {wc_rational_str}\n"
                     f"TOTAL LEASING & FAKTUR KREDIT: Total SPK={cur_spk} (LM={cur_spk_lm}), ACC%={cur_acc_pct:.1f}%, SPK Terbuka={cur_open_spk} (target cair rasional +{potensi_stu_open} STU, tambah +{kebutuhan_spk_baru} SPK baru). Faktur Kredit Cair={tot_fak_kredit_curr} unit (BAF={fak_kredit_curr['BAF']}, ADIRA={fak_kredit_curr['ADIRA']}, SOF={fak_kredit_curr['SOF']}). Alasan Reject SPK Tertinggi: {top_rej_reasons_str}.\n"
-                    f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN ZONA KRITIS (NON-COUNTER) ---\n{top_bad_raw_str}"
+                    f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
                 )
                 try:
                     st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
