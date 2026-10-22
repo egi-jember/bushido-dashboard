@@ -46,6 +46,8 @@ table.narrative-tbl td.plan-col { width: 42.5%; background-color: #111622; }
 p.nar-p { margin: 0 0 6px 0; padding: 0; color: #E2E8F0; font-weight: 400; line-height: 1.55; text-align: left; }
 p.nar-p:last-of-type { margin-bottom: 4px; }
 .focus-alert-box { margin-top: 14px; padding: 11px 16px; background: linear-gradient(90deg, rgba(255,0,127,0.14) 0%, rgba(14,17,23,0.95) 100%); border-left: 4px solid #FF007F; border-top: 1px solid #2D3748; border-right: 1px solid #2D3748; border-bottom: 1px solid #2D3748; border-radius: 6px; font-size: 13.5px; line-height: 1.65; color: #E2E8F0; }
+.unmapped-sales-box { margin: 4px 0 12px 0; padding: 10px 14px; background: linear-gradient(90deg, rgba(255,234,0,0.12) 0%, rgba(14,17,23,0.96) 100%); border-left: 4px solid #FFEA00; border-top: 1px solid #2D3748; border-right: 1px solid #2D3748; border-bottom: 1px solid #2D3748; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #E2E8F0; }
+.unmapped-badge { display: inline-block; background-color: #1E293B; color: #FFEA00; border: 1px solid #475569; border-radius: 4px; padding: 2px 8px; margin: 2px 4px 2px 0; font-size: 12px; font-weight: 700; }
 </style>""", unsafe_allow_html=True)
 
 DEFAULT_SHARED_API_KEY = "AQ.Ab8RN6LAV5JudlB8Ht6CnFRdJWnvX-be0Jn8zb4NHQ8CNjyHUg"
@@ -634,11 +636,14 @@ def assign_koor_and_sales(df, col_idx_override=None, tracker=None, koor_col_name
     if sc_name is not None:
         s_s = df[sc_name].iloc[:, 0] if isinstance(df[sc_name], pd.DataFrame) else df[sc_name]
         s_cl = s_s.astype(str).str.split().str.join(' ').str.upper()
-        df['Salesman_Clean'] = s_cl.where(~s_cl.isin(['NAN', 'NONE', '', 'NA', '-']), None)
+        df['Salesman_Clean'] = s_cl.where(~s_cl.isin(['NAN', 'NONE', '', 'NA', '-', 'TOTAL', 'JUMLAH']), None)
         def map_kr(s):
-            if s and pd.notna(s) and mapping_salesman_koor:
-                if s not in mapping_salesman_koor and tracker is not None: tracker.add(s)
-                return mapping_salesman_koor.get(s, 'LAIN-LAIN')
+            if s and pd.notna(s):
+                kr_val = clean_str(mapping_salesman_koor.get(s, '')) if mapping_salesman_koor else ''
+                if not kr_val or kr_val in ['NAN', 'NONE', '-', 'LAIN-LAIN']:
+                    if tracker is not None: tracker.add(s)
+                    return 'LAIN-LAIN'
+                return kr_val
             return 'LAIN-LAIN'
         df[koor_col_name] = df['Salesman_Clean'].apply(map_kr)
     else: df['Salesman_Clean'], df[koor_col_name] = None, 'LAIN-LAIN'
@@ -693,6 +698,51 @@ if path_spk:
                 df_spk['bulan'], df_spk['hari'], df_spk['tahun'] = df_spk['Tanggal_Parsed'].dt.month, df_spk['Tanggal_Parsed'].dt.day, df_spk['Tanggal_Parsed'].dt.year
             df_spk = assign_type_from_lookup(assign_koor_and_sales(df_spk, col_idx_override=25, tracker=sales_tanpa_koor_spk, koor_col_name='Koor_SPK'), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all)
     except Exception as e: st.error(f'Error SPK: {e}')
+
+def get_unmapped_salesman_details():
+    details = {}
+    def collect_from_df(df_src, koor_col, dlr_col, src_label):
+        if df_src is None or df_src.empty or 'Salesman_Clean' not in df_src.columns: return
+        sub = df_src[df_src['Salesman_Clean'].notna() & (df_src[koor_col] == 'LAIN-LAIN')] if koor_col in df_src.columns else df_src[df_src['Salesman_Clean'].notna()]
+        for _, r in sub.iterrows():
+            sm = clean_str(r.get('Salesman_Clean', ''))
+            if not sm or sm in ['NAN', 'NONE', 'TOTAL', 'JUMLAH', '-']: continue
+            dlr = clean_str(r.get(dlr_col, '')) if dlr_col in df_src.columns else ''
+            if sm not in details: details[sm] = {'dealers': set(), 'sources': set()}
+            if dlr and dlr not in ['NAN', 'NONE']: details[sm]['dealers'].add(dlr)
+            details[sm]['sources'].add(src_label)
+    collect_from_df(df_database, 'Koor', 'Nama_Dealer_Clean', 'Database')
+    collect_from_df(df_faktur, 'Koor', 'Nama Dealer', 'Faktur')
+    cd_nt = 'Nama Dealer' if (df_nota is not None and 'Nama Dealer' in df_nota.columns) else 'Dealer'
+    collect_from_df(df_nota, 'Koor', cd_nt, 'Nota')
+    collect_from_df(df_spk, 'Koor_SPK', 'Nama_Dealer_SPK', 'SPK')
+    return details
+
+def render_unmapped_salesman_alert(key_prefix='sales'):
+    unmapped_info = get_unmapped_salesman_details()
+    if not unmapped_info:
+        st.markdown('<div class="unmapped-sales-box" style="border-left-color:#00FF66; background:linear-gradient(90deg, rgba(0,255,102,0.10) 0%, rgba(14,17,23,0.96) 100%);">✅ <b>Status Data Lookup Koordinator:</b> Seluruh nama salesman pada Database, Faktur, Nota, dan SPK sudah memiliki Koordinator.</div>', unsafe_allow_html=True)
+        return
+    sorted_names = sorted(unmapped_info.keys())
+    db_only_names = [nm for nm in sorted_names if 'Database' in unmapped_info[nm]['sources']]
+    badges_html = []
+    rows_detail = []
+    for nm in sorted_names:
+        dlrs = ', '.join(sorted(unmapped_info[nm]['dealers'])) or '-'
+        srcs = ', '.join(sorted(unmapped_info[nm]['sources']))
+        badges_html.append(f'<span class="unmapped-badge">{nm} <span style="color:#94A3B8;font-weight:400;">({dlrs} | {srcs})</span></span>')
+        rows_detail.append({'NAMA SALESMAN (BELUM ADA KOORDINATOR)': nm, 'DEALER': dlrs, 'SUMBER DATA': srcs})
+    st.markdown(f"""<div class="unmapped-sales-box">
+        <div>⚠️ <b> ditemukan {len(sorted_names)} Nama Salesman Belum Memiliki Koordinator di Data Lookup ({len(db_only_names)} dari Database):</b></div>
+        <div style="margin-top:6px;">{''.join(badges_html)}</div>
+    </div>""", unsafe_allow_html=True)
+    with st.expander(f"📋 Klik untuk Salin / Lihat Tabel {len(sorted_names)} Nama Salesman Tanpa Koordinator (Untuk Update Data Lookup)"):
+        c_u1, c_u2 = st.columns([2, 1])
+        with c_u1:
+            st.dataframe(pd.DataFrame(rows_detail), hide_index=True, use_container_width=True)
+        with c_u2:
+            st.caption("Salin daftar nama di bawah ini langsung ke kolom Salesman di Excel **Data Lookup**:")
+            st.code('\n'.join(sorted_names), language='text')
 
 today_wib = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=7)).date()
 current_month, current_year = today_wib.month, today_wib.year
@@ -834,6 +884,8 @@ if menu_pilihan == '📈 SALES':
     for sub_l, nc, sec_t, k_ed, btn_l in [(k_list, 'NAMA KOORDINATOR', 'DASHBOARD PENJUALAN KOORDINATOR', 'tbl_koor', '💾 Simpan Target Koordinator'), (c_list, 'NAMA COUNTER', 'DASHBOARD PENJUALAN COUNTER', 'tbl_cnt', '💾 Simpan Target Counter')]:
         st.divider()
         st.markdown(f'<div class="section-title">{sec_t}</div>', unsafe_allow_html=True)
+        if nc == 'NAMA KOORDINATOR':
+            render_unmapped_salesman_alert('sales_koor')
         if sub_l:
             df_s = pd.DataFrame(sub_l).sort_values(by=['_pct', 'STU'], ascending=[True, True]).reset_index(drop=True).rename(columns={'NAMA': nc})
             tt, ts, tsl = int(df_s['TARGET'].sum()), int(df_s['STU'].sum()), int(df_s['STU LM'].sum())
@@ -906,6 +958,8 @@ elif menu_pilihan == '⚙️ PROCESS':
         st.divider()
         full_st_lbl = f'{st_lbl} (1 s.d {tanggal_akhir} Oktober 2026)'
         st.markdown(f'<div class="section-title">{full_st_lbl}</div>', unsafe_allow_html=True)
+        if nc == 'NAMA KOORDINATOR':
+            render_unmapped_salesman_alert('process_koor')
         if sl:
             dfs = pd.DataFrame(sl).sort_values(by='_stu_pct', ascending=True).reset_index(drop=True).rename(columns={'NAMA': nc})
             sdb, shot, smp, sstu = int(dfs['DB'].sum()), int(dfs['HOT'].sum()), int(dfs['JML MP'].sum()), int(dfs['STU'].sum())
