@@ -57,9 +57,20 @@ tabel_target_harian = {1:0.0, 2:1.0, 3:2.0, 4:5.0, 5:8.0, 6:12.0, 7:18.0, 8:21.0
 FIXED_COUNTER_TARGETS = {'IIN BARIROH': 25, 'SITI NURJANAH': 25, 'TRIA DAMAYANTI': 25, 'MUHAMMAD HAMDAN WAHDI': 15, 'DESVIN NURUL PRISTANTINI': 15, 'RIKA DWI ASTUTI': 15, 'NURUL FADILAH': 15}
 FOKUS_KATEGORI_TYPE = ['AT PREMIUM', 'AT CLASSY', 'AT LPM']
 daftar_dealer = ['SIP PANJI', 'SIP BESUKI', 'SIP A. YANI', 'SIP SRONO', 'SIP SIAGA', 'SIP SOBO', 'SIP GIRI']
-TARGET_DEALER_FILE, TARGET_KOOR_FILE, AI_CONFIG_FILE, UPLOAD_DIR = 'dealer_targets_saved.json', 'koor_targets_saved.json', 'ai_config.json', 'saved_raw_files'
-DB_Multi_DIR, RAW_META_FILE = os.path.join(UPLOAD_DIR, 'database_files'), os.path.join(UPLOAD_DIR, 'metadata.json')
+TARGET_DEALER_FILE, TARGET_KOOR_FILE, KPI_SAVED_FILE, AI_CONFIG_FILE, UPLOAD_DIR = 'dealer_targets_saved.json', 'koor_targets_saved.json', 'kpi_targets_saved.json', 'ai_config.json', 'saved_raw_files'
+DB_Multi_DIR, RATING_Multi_DIR, RAW_META_FILE = os.path.join(UPLOAD_DIR, 'database_files'), os.path.join(UPLOAD_DIR, 'rating_files'), os.path.join(UPLOAD_DIR, 'metadata.json')
 os.makedirs(DB_Multi_DIR, exist_ok=True)
+os.makedirs(RATING_Multi_DIR, exist_ok=True)
+
+DEFAULT_KPI_DEALER = {
+    'SIP PANJI':   {'T. STU': 85, 'T. MAXI': 35, 'T. CLASSY': 7,  'T. MP': 24, 'T. INC': 85, 'T. ACC%': 50.0, 'T. MYDR': 0, 'T. G REV': 0},
+    'SIP BESUKI':  {'T. STU': 40, 'T. MAXI': 20, 'T. CLASSY': 8,  'T. MP': 7,  'T. INC': 48, 'T. ACC%': 54.0, 'T. MYDR': 0, 'T. G REV': 0},
+    'SIP A. YANI': {'T. STU': 35, 'T. MAXI': 22, 'T. CLASSY': 4,  'T. MP': 6,  'T. INC': 13, 'T. ACC%': 55.0, 'T. MYDR': 0, 'T. G REV': 0},
+    'SIP SRONO':   {'T. STU': 90, 'T. MAXI': 50, 'T. CLASSY': 12, 'T. MP': 26, 'T. INC': 70, 'T. ACC%': 50.0, 'T. MYDR': 0, 'T. G REV': 0},
+    'SIP SIAGA':   {'T. STU': 60, 'T. MAXI': 36, 'T. CLASSY': 9,  'T. MP': 11, 'T. INC': 30, 'T. ACC%': 50.0, 'T. MYDR': 0, 'T. G REV': 0},
+    'SIP SOBO':    {'T. STU': 50, 'T. MAXI': 34, 'T. CLASSY': 9,  'T. MP': 10, 'T. INC': 30, 'T. ACC%': 50.0, 'T. MYDR': 0, 'T. G REV': 0},
+    'SIP GIRI':    {'T. STU': 35, 'T. MAXI': 7,  'T. CLASSY': 3,  'T. MP': 5,  'T. INC': 15, 'T. ACC%': 50.0, 'T. MYDR': 0, 'T. G REV': 0},
+}
 
 def clean_str(val): return '' if pd.isna(val) else ' '.join(str(val).split()).upper()
 def nospace_str(val): return '' if pd.isna(val) else ''.join(str(val).split()).upper()
@@ -306,6 +317,33 @@ def get_saved_file_path(prefix):
 def get_saved_database_paths():
     return sorted(glob.glob(os.path.join(DB_Multi_DIR, "*.*")))
 
+def save_rating_files(up_files):
+    meta = load_json(RAW_META_FILE)
+    now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
+    file_times = meta.get('rating_multi', {}).get('file_times', {})
+    updated_dealers = []
+    for uf in up_files:
+        new_dlr = normalize_dealer_name(os.path.splitext(uf.name)[0])
+        for old_p in glob.glob(os.path.join(RATING_Multi_DIR, "*.*")):
+            old_bname = os.path.basename(old_p)
+            old_dlr = normalize_dealer_name(os.path.splitext(old_bname)[0])
+            if (new_dlr in daftar_dealer and old_dlr == new_dlr) or (old_bname.upper() == uf.name.upper()):
+                try: os.remove(old_p)
+                except Exception: pass
+        p = os.path.join(RATING_Multi_DIR, uf.name)
+        with open(p, 'wb') as f: f.write(uf.getbuffer())
+        file_times[uf.name] = now_str
+        updated_dealers.append(f"{uf.name} ({new_dlr})")
+    all_saved_paths = sorted(glob.glob(os.path.join(RATING_Multi_DIR, "*.*")))
+    all_names = [os.path.basename(p) for p in all_saved_paths]
+    file_times = {k: file_times.get(k, now_str) for k in all_names}
+    meta['rating_multi'] = {'file_names': all_names, 'saved_paths': all_saved_paths, 'file_times': file_times, 'count': len(all_names), 'updated_at': now_str}
+    save_json(meta, RAW_META_FILE)
+    return updated_dealers, len(all_names)
+
+def get_saved_rating_paths():
+    return sorted(glob.glob(os.path.join(RATING_Multi_DIR, "*.*")))
+
 def get_azura_logo_path():
     saved_logo = get_saved_file_path('azura_logo')
     if saved_logo and os.path.exists(saved_logo): return saved_logo
@@ -397,7 +435,7 @@ Format JSON:
 
 render_sidebar_azura_logo()
 st.sidebar.markdown('### ⚔️ BUSHIDO ANALYSIS')
-MAIN_TABS, UPLOAD_TAB = ['📈 SALES', '🏍️ BY TYPE', '⚙️ PROCESS', '🏦 LEASING', '🏢 DETAIL DEALER'], '📁 UPLOAD FILE'
+MAIN_TABS, UPLOAD_TAB = ['📈 SALES', '🎯 KPI', '🏍️ BY TYPE', '⚙️ PROCESS', '🏦 LEASING', '🏢 DETAIL DEALER'], '📁 UPLOAD FILE'
 if 'active_menu_tab' not in st.session_state: st.session_state['active_menu_tab'] = '📈 SALES'
 
 def on_main_nav_change():
@@ -501,8 +539,14 @@ def assign_type_from_lookup(df, map_d, map_ns, unmapped=None):
     else: df['Type_Clean'] = 'LAIN-LAIN'
     return df
 
-def read_single_db_file(fpath):
+def get_file_mtime(fpath):
+    try: return os.path.getmtime(fpath) if fpath and os.path.exists(fpath) else 0.0
+    except Exception: return 0.0
+
+@st.cache_data(show_spinner=False)
+def read_single_db_file_cached(fpath, mtime):
     df_raw = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+    df_raw = smart_text_to_columns(df_raw)
     if df_raw is None or df_raw.empty: return pd.DataFrame()
     h_idx = next((r for r in range(min(25, len(df_raw))) if any(m in [clean_str(v) for v in df_raw.iloc[r].values if pd.notna(v)] for m in ['CUSTOMER NAME', 'POINT NAME', 'PROSPECT DATE', 'DATA TYPE', 'KTP NO.', 'POINT CODE'])), 0)
     df = df_raw.iloc[h_idx + 1:].copy()
@@ -516,6 +560,156 @@ def read_single_db_file(fpath):
     if col_k is not None: df.loc[col_k == 'SIP PANJI BESUKI', 'Nama_Dealer_Clean'] = 'SIP BESUKI'
     df['Data_Type_Clean'] = df.iloc[:, cu.index('DATA TYPE')].astype(str).str.strip().str.upper() if 'DATA TYPE' in cu else (df.iloc[:, 5].astype(str).str.strip().str.upper() if df.shape[1] > 5 else '')
     return parse_date_cols(df)
+
+def read_single_db_file(fpath):
+    return read_single_db_file_cached(fpath, get_file_mtime(fpath)).copy()
+
+def smart_text_to_columns(df):
+    if df is not None and df.shape[1] == 1 and len(df) > 0:
+        sample_str = str(df.iloc[0, 0])
+        for delim in ['	', ';', ',', '|']:
+            if delim in sample_str:
+                df_split = df.iloc[:, 0].str.split(delim, expand=True)
+                if df_split.shape[1] > 1:
+                    return df_split
+    return df
+
+@st.cache_data(show_spinner=False)
+def read_single_rating_file_cached(fpath, mtime):
+    df_raw = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+    df_raw = smart_text_to_columns(df_raw)
+    if df_raw is None or df_raw.empty: return pd.DataFrame()
+    rating_markers = ['KODE DEALER', 'DEALER CODE', 'POINT CODE', 'POINT NAME', 'CUSTOMER NAME', 'NAMA CUSTOMER', 'NAMA KONSUMEN', 'RATING', 'REVIEW', 'STAR', 'BINTANG', 'SCORE', 'NILAI', 'SALESMAN', 'NAMA SALES', 'NAMA PEGAWAI', 'PRAMUNIAGA', 'TANGGAL', 'DATE', 'PROSPECT DATE']
+    h_idx = next((r for r in range(min(25, len(df_raw))) if any(m in [clean_str(v) for v in df_raw.iloc[r].values if pd.notna(v)] for m in rating_markers)), 0)
+    df = df_raw.iloc[h_idx + 1:].copy()
+    df.columns = make_unique_columns([str(c).strip() for c in df_raw.iloc[h_idx].values])
+    df = df.dropna(how='all').reset_index(drop=True)
+    if df.empty: return pd.DataFrame()
+    cu = [c.upper() for c in df.columns]
+    chk_col = next((df.columns[cu.index(c)] for c in ['CUSTOMER NAME', 'NAMA CUSTOMER', 'NAMA KONSUMEN', 'NAMA PELANGGAN', 'NAMA SALES', 'SALESMAN', 'KODE DEALER', 'DEALER CODE', 'POINT CODE'] if c in cu), df.columns[0])
+    s_chk = df[chk_col].iloc[:, 0] if isinstance(df[chk_col], pd.DataFrame) else df[chk_col]
+    df = df[s_chk.notna() & ~s_chk.astype(str).str.strip().str.upper().isin(['CUSTOMER NAME', 'NAMA CUSTOMER', 'NAMA KONSUMEN', 'KODE DEALER', 'DEALER CODE', 'POINT CODE', 'NO', 'NO.', 'TOTAL', 'JUMLAH', 'NAN', 'NONE', ''])].reset_index(drop=True)
+    fallback_dlr = normalize_dealer_name(os.path.splitext(os.path.basename(fpath))[0])
+    df['Nama_Dealer_Clean'] = fallback_dlr if fallback_dlr in daftar_dealer else (fallback_dlr or 'TIDAK DIKETAHUI')
+    return parse_date_cols(df)
+
+def read_single_rating_file(fpath):
+    return read_single_rating_file_cached(fpath, get_file_mtime(fpath)).copy()
+
+def assign_rating_dealer_and_koor(df, map_dlr_code):
+    if df is None or df.empty:
+        if df is not None:
+            df['Kode_Dealer_Clean'] = ''
+            df['Salesman_Clean'] = None
+            df['Koor'] = 'LAIN-LAIN'
+            df['Nama_Dealer_Clean'] = 'TIDAK DIKETAHUI'
+        return df
+    
+    df.columns = make_unique_columns([str(c).strip() for c in df.columns])
+    cu = [str(c).strip().upper() for c in df.columns]
+    fallback_file_dlr = df['Nama_Dealer_Clean'].iloc[0] if ('Nama_Dealer_Clean' in df.columns and len(df) > 0) else 'TIDAK DIKETAHUI'
+    
+    # Deteksi cerdas kolom Salesman dengan mencocokkan isi kolom terhadap daftar nama Salesman di Data Lookup
+    sm_col = next((df.columns[cu.index(c)] for c in ['SALESMAN/TEKNISI', 'NAMA SALESMAN', 'SALESMAN', 'NAMA SALES', 'NAMA PEGAWAI', 'PRAMUNIAGA', 'SALES NAME', 'PIC'] if c in cu), None)
+    if sm_col is None and (mapping_salesman_koor or mapping_salesman_dealer):
+        known_sm_set = set(mapping_salesman_koor.keys()) | set(mapping_salesman_dealer.keys())
+        known_sm_ns = {alnum_str(k) for k in known_sm_set if alnum_str(k)}
+        best_c, best_sc = None, 0
+        for i, cn in enumerate(df.columns):
+            if cu[i] in {'NAMA_DEALER_CLEAN', 'TANGGAL_PARSED', 'BULAN', 'HARI', 'TAHUN'}: continue
+            s_vals = df.iloc[:, i].dropna().astype(str).apply(clean_str)
+            if s_vals.empty: continue
+            sc = int(s_vals.isin(known_sm_set).sum()) + int(s_vals.apply(alnum_str).isin(known_sm_ns).sum())
+            if sc > best_sc:
+                best_sc, best_c = sc, cn
+        if best_sc > 0:
+            sm_col = best_c
+    if sm_col is None and df.shape[1] > 9: sm_col = df.columns[9]
+    if sm_col is None:
+        sm_col = next((df.columns[i] for i, c in enumerate(cu) if any(k in c for k in ['SALES', 'PEGAWAI', 'PRAMUNIAGA', 'TEKNISI'])), None)
+
+    kd_col = next((df.columns[cu.index(c)] for c in ['KODE DEALER', 'DEALER CODE', 'POINT CODE', 'KODE CABANG', 'BRANCH CODE', 'KD DEALER', 'KODE_DEALER', 'DEALER ID', 'OUTLET CODE', 'KODE OUTLET'] if c in cu), None)
+    if kd_col is None and df.shape[1] > 2: kd_col = df.columns[2]
+    
+    dn_col = next((df.columns[cu.index(c)] for c in ['NAMA DEALER', 'DEALER', 'POINT NAME', 'CABANG'] if c in cu), None)
+    if dn_col is None and df.shape[1] > 3: dn_col = df.columns[3]
+
+    map_sm_dlr_ns = {alnum_str(k): v for k, v in mapping_salesman_dealer.items() if alnum_str(k)} if mapping_salesman_dealer else {}
+    map_sm_koor_ns = {alnum_str(k): v for k, v in mapping_salesman_koor.items() if alnum_str(k)} if mapping_salesman_koor else {}
+
+    def resolve_koor_from_sm(sm_c):
+        if not sm_c or sm_c in ['NAN', 'NONE', '', '-']: return 'LAIN-LAIN'
+        if mapping_salesman_koor:
+            if sm_c in mapping_salesman_koor: return clean_str(mapping_salesman_koor[sm_c])
+            sm_ns = alnum_str(sm_c)
+            if sm_ns and sm_ns in map_sm_koor_ns: return clean_str(map_sm_koor_ns[sm_ns])
+            for k_s, v_k in mapping_salesman_koor.items():
+                if len(k_s) >= 4 and (k_s in sm_c or sm_c in k_s): return clean_str(v_k)
+        return 'LAIN-LAIN'
+
+    def resolve_dlr_and_koor(kd_val, dn_val, sm_val, kr_resolved):
+        sm_c = clean_str(sm_val)
+        # 1. Prioritas Utama: Lookup Dealer langsung dari Nama Salesman
+        if sm_c and mapping_salesman_dealer:
+            if sm_c in mapping_salesman_dealer: return mapping_salesman_dealer[sm_c]
+            sm_ns = alnum_str(sm_c)
+            if sm_ns and sm_ns in map_sm_dlr_ns: return map_sm_dlr_ns[sm_ns]
+            for sm_k, dlr_v in mapping_salesman_dealer.items():
+                if len(sm_k) >= 4 and (sm_k in sm_c or sm_c in sm_k): return dlr_v
+
+        # 2. Prioritas Kedua: Lookup Dealer dari Koordinator Salesman tersebut
+        if kr_resolved and kr_resolved != 'LAIN-LAIN':
+            if 'mapping_koor_dealer' in globals() and kr_resolved in mapping_koor_dealer:
+                return mapping_koor_dealer[kr_resolved]
+            norm_kr = normalize_dealer_name(kr_resolved)
+            if norm_kr in daftar_dealer:
+                return norm_kr
+
+        # 3. Fallback: Kode Dealer atau Nama Dealer di baris file
+        k_code = clean_str(kd_val)
+        if k_code.endswith('.0'): k_code = k_code[:-2].strip()
+        k_alnum = alnum_str(k_code)
+        if k_code:
+            if k_code in map_dlr_code: dl = map_dlr_code[k_code]
+            elif k_alnum in map_dlr_code: dl = map_dlr_code[k_alnum]
+            elif k_code == 'SIP PANJI BESUKI': dl = 'SIP BESUKI'
+            else: dl = normalize_dealer_name(k_code)
+            if dl in daftar_dealer: return dl
+            
+        d_name = clean_str(dn_val)
+        if d_name:
+            if d_name == 'SIP PANJI BESUKI': return 'SIP BESUKI'
+            norm_dn = normalize_dealer_name(d_name)
+            if norm_dn in daftar_dealer: return norm_dn
+                
+        return fallback_file_dlr if fallback_file_dlr in daftar_dealer else (normalize_dealer_name(d_name) or 'TIDAK DIKETAHUI')
+
+    dealers, sm_cleans, koors, kode_dealers = [], [], [], []
+    for _, row in df.iterrows():
+        kd_v = row[kd_col] if kd_col is not None and kd_col in df.columns else ''
+        dn_v = row[dn_col] if dn_col is not None and dn_col in df.columns else ''
+        sm_v = row[sm_col] if sm_col is not None and sm_col in df.columns else ''
+        
+        if isinstance(kd_v, pd.Series): kd_v = kd_v.iloc[0]
+        if isinstance(dn_v, pd.Series): dn_v = dn_v.iloc[0]
+        if isinstance(sm_v, pd.Series): sm_v = sm_v.iloc[0]
+        
+        sm_clean = clean_str(sm_v)
+        sm_clean = sm_clean if (sm_clean and sm_clean not in ['NAN', 'NONE', '', '-']) else None
+        kr_val = resolve_koor_from_sm(sm_clean)
+        if not kr_val or kr_val in ['NAN', 'NONE', '-']: kr_val = 'LAIN-LAIN'
+        dlr_res = resolve_dlr_and_koor(kd_v, dn_v, sm_clean, kr_val)
+                
+        dealers.append(dlr_res)
+        sm_cleans.append(sm_clean)
+        koors.append(kr_val)
+        kode_dealers.append(clean_str(kd_v)[:-2].strip() if clean_str(kd_v).endswith('.0') else clean_str(kd_v))
+
+    df['Nama_Dealer_Clean'] = dealers
+    df['Salesman_Clean'] = sm_cleans
+    df['Koor'] = koors
+    df['Kode_Dealer_Clean'] = kode_dealers
+    return df
 
 def load_employee_targets(fpath):
     t_exact, t_ns = dict(FIXED_COUNTER_TARGETS), dict(FIXED_COUNTER_TARGETS_NS)
@@ -532,7 +726,7 @@ def load_employee_targets(fpath):
     return t_exact, t_ns
 
 if menu_pilihan == '📁 UPLOAD FILE':
-    st.markdown('<div class="main-title">UPLOAD FILE MENTAH</div><div class="sub-title">Silakan unggah ke-6 kategori sumber data serta logo di bawah ini (tersimpan otomatis & permanen)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">UPLOAD FILE MENTAH</div><div class="sub-title">Silakan unggah ke-7 kategori sumber data serta logo di bawah ini (tersimpan otomatis & permanen)</div>', unsafe_allow_html=True)
     meta_info = load_json(RAW_META_FILE)
     logo_uf = st.file_uploader('🐺 Upload Logo AZURA Pojok Kiri Atas (.jpg / .png)', type=['jpg', 'jpeg', 'png'], key='azura_logo_up')
     if logo_uf: save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
@@ -567,8 +761,26 @@ if menu_pilihan == '📁 UPLOAD FILE':
         elif kp in meta_info and os.path.exists(meta_info[kp].get('saved_path', '')): st.info(f"📌 **{lbl} Aktif:** `{meta_info[kp]['original_name']}` ({meta_info[kp]['updated_at']})")
         else: st.warning(f"⚠️ Belum ada file {lbl}.")
 
+    rt_ups = st.file_uploader('7. Upload File Rating — Bisa Pilih 1 File Saja (Parsial) atau 6 File Sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='rating_up')
+    if rt_ups:
+        upd_rt_list, total_rt_active = save_rating_files(rt_ups)
+        st.success(f"✅ **Update Parsial Rating Berhasil!** File diperbarui: `{', '.join(upd_rt_list)}`. File dealer lainnya tetap aman (Total **{total_rt_active} File Rating** aktif).")
+    saved_rt_paths_now = get_saved_rating_paths()
+    if saved_rt_paths_now:
+        rt_ftimes = load_json(RAW_META_FILE).get('rating_multi', {}).get('file_times', {})
+        rt_badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({rt_ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_rt_paths_now]
+        c_rt_info, c_rt_rst = st.columns([4, 1])
+        with c_rt_info: st.info(f"📌 **File Rating Aktif ({len(saved_rt_paths_now)} File):** " + " | ".join(rt_badge_items))
+        with c_rt_rst:
+            if st.button('🗑️ Reset Semua Rating', key='btn_rst_all_rt', help='Hapus seluruh file rating jika ingin mulai dari 0'):
+                for old_p in saved_rt_paths_now:
+                    try: os.remove(old_p)
+                    except Exception: pass
+                meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
+    else: st.warning("⚠️ Belum ada file Rating.")
+
 path_faktur, path_nota, path_lookup = get_saved_file_path('faktur'), get_saved_file_path('nota'), get_saved_file_path('lookup')
-paths_database, path_spk = get_saved_database_paths(), get_saved_file_path('spk')
+paths_database, paths_rating, path_spk = get_saved_database_paths(), get_saved_rating_paths(), get_saved_file_path('spk')
 path_employee = get_saved_file_path('employee') or (glob.glob('*EMPLOYEE*.xls*')[0] if glob.glob('*EMPLOYEE*.xls*') else None)
 mapping_emp_target, mapping_emp_target_ns = load_employee_targets(path_employee)
 
@@ -591,7 +803,7 @@ def get_koor_or_counter_target(ent_name, saved_tk_dict):
     fix_c = get_fixed_counter_target(ent_name)
     return fix_c if fix_c is not None else safe_int(saved_tk_dict.get(ent_name, 0))
 
-mapping_salesman_koor, mapping_dealer_spk, mapping_type_lookup, mapping_type_lookup_nospace, daftar_kategori_type = {}, {}, {}, {}, []
+mapping_salesman_koor, mapping_salesman_dealer, mapping_dealer_spk, mapping_type_lookup, mapping_type_lookup_nospace, daftar_kategori_type = {}, {}, {}, {}, {}, []
 if path_lookup:
     try:
         xl_lk = pd.ExcelFile(path_lookup)
@@ -604,35 +816,70 @@ if path_lookup:
                 if ra and rb and ra not in skip_h and rb not in skip_h:
                     mapping_type_lookup[ra] = mapping_type_lookup_nospace[nospace_str(ra)] = rb
                     if rb not in daftar_kategori_type: daftar_kategori_type.append(rb)
-        sc, kc, hr = None, None, None
+        sc, kc, dc, hr = None, None, None, None
         for r in range(min(50, len(df_lk))):
             for c, val in enumerate(df_lk.iloc[r]):
                 vs = clean_str(val)
                 if any(k in vs for k in ['NAMA SALES', 'SALESMAN', 'PRAMUNIAGA', 'PEGAWAI']): sc = c
                 elif 'KOOR' in vs: kc = c
-            if sc is not None and kc is not None: hr = r; break
-        if sc is not None and kc is not None:
+                elif any(k in vs for k in ['DEALER', 'NAMA DEALER', 'CABANG', 'POINT NAME', 'OUTLET']): dc = c
+            if sc is not None: hr = r; break
+        if sc is not None:
             for i in range(hr + 1, len(df_lk)):
-                sm, kr = clean_str(df_lk.iloc[i, sc]), clean_str(df_lk.iloc[i, kc])
-                if sm and sm not in ['NAN', 'NONE']: mapping_salesman_koor[sm] = kr
+                sm = clean_str(df_lk.iloc[i, sc]) if sc is not None and sc < df_lk.shape[1] else ''
+                kr = clean_str(df_lk.iloc[i, kc]) if kc is not None and kc < df_lk.shape[1] else ''
+                dlr_lk = clean_str(df_lk.iloc[i, dc]) if dc is not None and dc < df_lk.shape[1] else ''
+                if sm and sm not in ['NAN', 'NONE']:
+                    if kr and kr not in ['NAN', 'NONE']: mapping_salesman_koor[sm] = kr
+                    if dlr_lk and dlr_lk not in ['NAN', 'NONE']:
+                        norm_dlr = normalize_dealer_name(dlr_lk)
+                        if norm_dlr in daftar_dealer:
+                            mapping_salesman_dealer[sm] = norm_dlr
         if df_lk.shape[1] > 9:
             for i in range(len(df_lk)):
                 ri, rj = clean_str(df_lk.iloc[i, 8]), clean_str(df_lk.iloc[i, 9])
+                if ri.endswith('.0'): ri = ri[:-2].strip()
+                if rj.endswith('.0'): rj = rj[:-2].strip()
                 if ri and rj and ri not in ['NAN', 'NONE'] and rj not in ['NAN', 'NONE']:
                     ni, nj = normalize_dealer_name(ri), normalize_dealer_name(rj)
-                    if nj in daftar_dealer: mapping_dealer_spk[ri] = nj
-                    elif ni in daftar_dealer: mapping_dealer_spk[rj] = ni
-                    else: mapping_dealer_spk[ri] = nj
+                    if nj in daftar_dealer:
+                        mapping_dealer_spk[ri] = mapping_dealer_spk[alnum_str(ri)] = nj
+                    elif ni in daftar_dealer:
+                        mapping_dealer_spk[rj] = mapping_dealer_spk[alnum_str(rj)] = ni
+                    else:
+                        mapping_dealer_spk[ri] = nj
+        for c_idx in range(df_lk.shape[1] - 1):
+            for r_idx in range(len(df_lk)):
+                v1, v2 = clean_str(df_lk.iloc[r_idx, c_idx]), clean_str(df_lk.iloc[r_idx, c_idx + 1])
+                if v1.endswith('.0'): v1 = v1[:-2].strip()
+                if v2.endswith('.0'): v2 = v2[:-2].strip()
+                if not v1 or not v2 or v1 in ['NAN', 'NONE'] or v2 in ['NAN', 'NONE']: continue
+                n1, n2 = normalize_dealer_name(v1), normalize_dealer_name(v2)
+                if n2 in daftar_dealer and v1 not in daftar_dealer:
+                    mapping_dealer_spk[v1] = mapping_dealer_spk[alnum_str(v1)] = n2
+                elif n1 in daftar_dealer and v2 not in daftar_dealer:
+                    mapping_dealer_spk[v2] = mapping_dealer_spk[alnum_str(v2)] = n1
     except Exception as e: st.error(f'Error Lookup: {e}')
 
-unmapped_types_all, sales_tanpa_koor, sales_tanpa_koor_db, sales_tanpa_koor_spk = set(), set(), set(), set()
+unmapped_types_all, sales_tanpa_koor, sales_tanpa_koor_db, sales_tanpa_koor_spk, sales_tanpa_koor_rating = set(), set(), set(), set(), set()
 
 def assign_koor_and_sales(df, col_idx_override=None, tracker=None, koor_col_name='Koor'):
-    if df is None or df.empty: return df
+    if df is None: return df
+    if df.empty:
+        df['Salesman_Clean'], df[koor_col_name] = None, 'LAIN-LAIN'
+        return df
     cu = [str(c).strip().upper() for c in df.columns]
+    ign_col_kw = {'CUSTOMER', 'KONSUMEN', 'PELANGGAN', 'RATING', 'REVIEW', 'STAR', 'BINTANG', 'SCORE', 'NILAI', 'KOMENTAR', 'TANGGAL', 'DATE', 'KODE', 'PHONE', 'TELP', 'ALAMAT'}
     sc_name = df.columns[col_idx_override] if (col_idx_override is not None and df.shape[1] > col_idx_override) else None
-    if sc_name is None: sc_name = next((df.columns[cu.index(x)] for x in ['NAMA PEGAWAI', 'NAMA SALES', 'NAMA PRAMUNIAGA', 'SALESMAN', 'PRAMUNIAGA', 'SALES', 'SALES NAME', 'NAMA SALESMAN', 'SALES PERSON', 'SALESPERSON', 'PIC', 'EMPLOYEE NAME', 'SALESMAN NAME', 'CREATED BY', 'USER INPUT'] if x in cu), None)
-    if sc_name is None and len(df.columns) > 7 and not str(df.iloc[0, 7]).strip().isdigit(): sc_name = df.columns[7]
+    if sc_name is None:
+        valid_cands = [x for x in ['NAMA PEGAWAI', 'NAMA SALES', 'NAMA PRAMUNIAGA', 'SALESMAN', 'PRAMUNIAGA', 'SALES', 'SALES NAME', 'NAMA SALESMAN', 'SALES PERSON', 'SALESPERSON', 'PIC', 'EMPLOYEE NAME', 'SALESMAN NAME', 'CREATED BY', 'USER INPUT'] if x in cu]
+        if valid_cands: sc_name = df.columns[cu.index(valid_cands[0])]
+    if sc_name is None:
+        # Search columns that don't match ignored keywords
+        for i, c_str in enumerate(cu):
+            if not any(kw in c_str for kw in ign_col_kw) and any(k in c_str for k in ['NAMA', 'SALES', 'PEGAWAI', 'PRAMUNIAGA', 'PIC']):
+                sc_name = df.columns[i]
+                break
     if sc_name is not None:
         s_s = df[sc_name].iloc[:, 0] if isinstance(df[sc_name], pd.DataFrame) else df[sc_name]
         s_cl = s_s.astype(str).str.split().str.join(' ').str.upper()
@@ -699,6 +946,163 @@ if path_spk:
             df_spk = assign_type_from_lookup(assign_koor_and_sales(df_spk, col_idx_override=25, tracker=sales_tanpa_koor_spk, koor_col_name='Koor_SPK'), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all)
     except Exception as e: st.error(f'Error SPK: {e}')
 
+# Lengkapi mapping_salesman_dealer dan mapping_koor_dealer dari seluruh sumber data (Database, Faktur, Nota, SPK)
+mapping_koor_dealer = {'ADI MOKHTAR': 'SIP BESUKI', 'COUNTER BESUKI': 'SIP BESUKI'}
+for _df_s, _dlr_c, _kr_c in [
+    (df_database, 'Nama_Dealer_Clean', 'Koor'),
+    (df_faktur, 'Nama Dealer', 'Koor'),
+    (df_nota, 'Nama Dealer' if (df_nota is not None and 'Nama Dealer' in df_nota.columns) else 'Dealer', 'Koor'),
+    (df_spk, 'Nama_Dealer_SPK', 'Koor_SPK')
+]:
+    if _df_s is not None and not _df_s.empty and _dlr_c in _df_s.columns:
+        if 'Salesman_Clean' in _df_s.columns:
+            _sub_sm = _df_s[_df_s['Salesman_Clean'].notna() & _df_s[_dlr_c].isin(daftar_dealer)][['Salesman_Clean', _dlr_c]].drop_duplicates()
+            for _, _r in _sub_sm.iterrows():
+                _sm_n, _dl_n = clean_str(_r['Salesman_Clean']), clean_str(_r[_dlr_c])
+                if _sm_n and _dl_n in daftar_dealer and _sm_n not in mapping_salesman_dealer:
+                    mapping_salesman_dealer[_sm_n] = _dl_n
+        if _kr_c in _df_s.columns:
+            _sub_kr = _df_s[_df_s[_kr_c].notna() & (_df_s[_kr_c] != 'LAIN-LAIN') & _df_s[_dlr_c].isin(daftar_dealer)][[_kr_c, _dlr_c]].drop_duplicates()
+            for _, _r in _sub_kr.iterrows():
+                _kr_n, _dl_n = clean_str(_r[_kr_c]), clean_str(_r[_dlr_c])
+                if _kr_n and _dl_n in daftar_dealer and _kr_n not in mapping_koor_dealer:
+                    mapping_koor_dealer[_kr_n] = _dl_n
+
+for _sm_k, _kr_v in mapping_salesman_koor.items():
+    _kr_c = clean_str(_kr_v)
+    if _sm_k not in mapping_salesman_dealer:
+        if _kr_c in mapping_koor_dealer:
+            mapping_salesman_dealer[_sm_k] = mapping_koor_dealer[_kr_c]
+        else:
+            _norm_k = normalize_dealer_name(_kr_c)
+            if _norm_k in daftar_dealer:
+                mapping_salesman_dealer[_sm_k] = _norm_k
+
+df_rating = None
+if paths_rating:
+    l_rt = [assign_type_from_lookup(assign_rating_dealer_and_koor(read_single_rating_file(p), mapping_dealer_spk), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all) for p in paths_rating]
+    l_rt = [d for d in l_rt if not d.empty]
+    if l_rt: df_rating = pd.concat(l_rt, ignore_index=True)
+
+def detect_customer_col(df, is_rating=False):
+    if df is None or df.empty: return None
+    cu = [str(c).strip().upper() for c in df.columns]
+    exact_cands = [
+        'NAMA KONSUMEN', 'NAMA CUSTOMER', 'CUSTOMER NAME', 'NAMA PELANGGAN',
+        'NAMA PEMILIK', 'NAMA STNK', 'NAMA BPKB', 'NAMA PEMBELI', 'KONSUMEN',
+        'CUSTOMER', 'PEMBELI', 'PEMILIK', 'NAMA USER', 'USER NAME'
+    ]
+    for cand in exact_cands:
+        if cand in cu:
+            return df.columns[cu.index(cand)]
+    ign_kw = {'DEALER', 'CABANG', 'OUTLET', 'SALES', 'PEGAWAI', 'PRAMUNIAGA', 'TEKNISI', 'TYPE', 'TIPE', 'BARANG', 'UNIT', 'FINCOY', 'LEASING', 'KOOR', 'KATEGORI', 'FILE', 'POINT', 'STATUS'}
+    for i, c_str in enumerate(cu):
+        if not any(kw in c_str for kw in ign_kw) and any(k in c_str for k in ['KONSUMEN', 'CUSTOMER', 'PELANGGAN', 'PEMBELI', 'PEMILIK', 'STNK', 'NAMA']):
+            return df.columns[i]
+    if is_rating and df.shape[1] > 4:
+        return df.columns[4]
+    return None
+
+def detect_phone_col(df):
+    if df is None or df.empty: return None
+    cu = [str(c).strip().upper() for c in df.columns]
+    for cand in ['NO HP', 'NO. HP', 'NO TELP', 'NO. TELP', 'TELEPON', 'TELP', 'HP', 'HANDPHONE', 'NO HANDPHONE', 'PHONE', 'MOBILE', 'MOBILE PHONE', 'PHONE NO', 'CONTACT', 'WA', 'NO WA']:
+        if cand in cu:
+            return df.columns[cu.index(cand)]
+    for i, c_str in enumerate(cu):
+        if any(k in c_str for k in ['HP', 'TELP', 'TELEPON', 'PHONE', 'MOBILE', 'WA', 'KONTAK']) and 'KODE' not in c_str:
+            return df.columns[i]
+    return None
+
+def detect_raw_type_col(df):
+    if df is None or df.empty: return None
+    tc = detect_type_col(df, mapping_type_lookup, mapping_type_lookup_nospace)
+    if tc is not None: return tc
+    cu = [str(c).strip().upper() for c in df.columns]
+    for cand in ['NAMA BARANG', 'DESKRIPSI UNIT', 'TIPE MOTOR', 'TYPE MOTOR', 'NAMA TYPE', 'NAMA TIPE', 'TYPE', 'TIPE', 'MODEL', 'UNIT']:
+        if cand in cu: return df.columns[cu.index(cand)]
+    return None
+
+def assign_faktur_rating_status(df_f, df_rt):
+    if df_f is None or df_f.empty:
+        if df_f is not None:
+            df_f['Nama_Konsumen_Clean'] = ''
+            df_f['No_HP_Clean'] = '-'
+            df_f['Tipe_Unit_Display'] = '-'
+            df_f['Status_Registrasi_Rating'] = 'BELUM REGISTRASI'
+        return df_f
+
+    cust_col_f = detect_customer_col(df_f, is_rating=False)
+    if cust_col_f is not None:
+        s_cf = df_f[cust_col_f].iloc[:, 0] if isinstance(df_f[cust_col_f], pd.DataFrame) else df_f[cust_col_f]
+        df_f['Nama_Konsumen_Clean'] = s_cf.apply(clean_str)
+    else:
+        df_f['Nama_Konsumen_Clean'] = ''
+
+    hp_col_f = detect_phone_col(df_f)
+    if hp_col_f is not None:
+        s_hp = df_f[hp_col_f].iloc[:, 0] if isinstance(df_f[hp_col_f], pd.DataFrame) else df_f[hp_col_f]
+        df_f['No_HP_Clean'] = s_hp.apply(lambda x: clean_str(x)[:-2] if clean_str(x).endswith('.0') else (clean_str(x) or '-'))
+    else:
+        df_f['No_HP_Clean'] = '-'
+
+    raw_tc = detect_raw_type_col(df_f)
+    if raw_tc is not None:
+        s_rt = df_f[raw_tc].iloc[:, 0] if isinstance(df_f[raw_tc], pd.DataFrame) else df_f[raw_tc]
+        df_f['Tipe_Unit_Display'] = s_rt.apply(lambda x: clean_str(x) or '-')
+    else:
+        df_f['Tipe_Unit_Display'] = df_f['Type_Clean'] if 'Type_Clean' in df_f.columns else '-'
+
+    rt_names_exact = set()
+    rt_names_alnum = set()
+    if df_rt is not None and not df_rt.empty:
+        cust_col_rt = detect_customer_col(df_rt, is_rating=True)
+        cols_to_scan = [cust_col_rt] if cust_col_rt is not None else []
+        # Tambahkan juga pengecekan pada seluruh kolom teks di file rating jika nama konsumen berada di kolom lain
+        for cn in df_rt.columns:
+            if cn not in cols_to_scan and str(cn).upper() not in {'NAMA_DEALER_CLEAN', 'SALESMAN_CLEAN', 'KOOR', 'KODE_DEALER_CLEAN', 'TANGGAL_PARSED', 'BULAN', 'HARI', 'TAHUN', 'TYPE_CLEAN'}:
+                cols_to_scan.append(cn)
+        if cust_col_rt is not None:
+            # Utamakan kolom konsumen utama terlebih dahulu
+            s_cr = df_rt[cust_col_rt].iloc[:, 0] if isinstance(df_rt[cust_col_rt], pd.DataFrame) else df_rt[cust_col_rt]
+            for val in s_cr.dropna():
+                c_v = clean_str(val)
+                if c_v and c_v not in {'NAN', 'NONE', '-', 'CUSTOMER NAME', 'NAMA KONSUMEN', 'NAMA CUSTOMER'}:
+                    rt_names_exact.add(c_v)
+                    a_v = alnum_str(c_v)
+                    if len(a_v) >= 3: rt_names_alnum.add(a_v)
+        # Jika hasil kecocokan dengan kolom utama masih 0, scan kolom potensial lainnya di df_rt
+        f_names_sample = {x for x in df_f['Nama_Konsumen_Clean'].unique() if x and len(x) >= 3}
+        if f_names_sample and not f_names_sample.intersection(rt_names_exact):
+            for cn in cols_to_scan:
+                s_c = df_rt[cn].iloc[:, 0] if isinstance(df_rt[cn], pd.DataFrame) else df_rt[cn]
+                cand_set = {clean_str(v) for v in s_c.dropna() if clean_str(v)}
+                if f_names_sample.intersection(cand_set):
+                    for c_v in cand_set:
+                        rt_names_exact.add(c_v)
+                        a_v = alnum_str(c_v)
+                        if len(a_v) >= 3: rt_names_alnum.add(a_v)
+
+    def check_reg_status(nm):
+        c_nm = clean_str(nm)
+        if not c_nm or c_nm in {'NAN', 'NONE', '-', ''}:
+            return 'BELUM REGISTRASI'
+        if c_nm in rt_names_exact:
+            return 'SUDAH REGISTRASI'
+        a_nm = alnum_str(c_nm)
+        if a_nm and len(a_nm) >= 3 and a_nm in rt_names_alnum:
+            return 'SUDAH REGISTRASI'
+        return 'BELUM REGISTRASI'
+
+    df_f['Status_Registrasi_Rating'] = df_f['Nama_Konsumen_Clean'].apply(check_reg_status)
+    return df_f
+
+if df_faktur is not None:
+    df_faktur = assign_faktur_rating_status(df_faktur, df_rating)
+if df_faktur_all is not None:
+    df_faktur_all = assign_faktur_rating_status(df_faktur_all, df_rating)
+
+
 def get_unmapped_salesman_details():
     details = {}
     def collect_from_df(df_src, koor_col, dlr_col, src_label):
@@ -716,6 +1120,7 @@ def get_unmapped_salesman_details():
     cd_nt = 'Nama Dealer' if (df_nota is not None and 'Nama Dealer' in df_nota.columns) else 'Dealer'
     collect_from_df(df_nota, 'Koor', cd_nt, 'Nota')
     collect_from_df(df_spk, 'Koor_SPK', 'Nama_Dealer_SPK', 'SPK')
+    collect_from_df(df_rating, 'Koor', 'Nama_Dealer_Clean', 'Rating')
     return details
 
 def render_unmapped_salesman_alert(key_prefix='sales'):
@@ -733,7 +1138,7 @@ def render_unmapped_salesman_alert(key_prefix='sales'):
         badges_html.append(f'<span class="unmapped-badge">{nm} <span style="color:#94A3B8;font-weight:400;">({dlrs} | {srcs})</span></span>')
         rows_detail.append({'NAMA SALESMAN (BELUM ADA KOORDINATOR)': nm, 'DEALER': dlrs, 'SUMBER DATA': srcs})
     st.markdown(f"""<div class="unmapped-sales-box">
-        <div>⚠️ <b> ditemukan {len(sorted_names)} Nama Salesman Belum Memiliki Koordinator di Data Lookup ({len(db_only_names)} dari Database):</b></div>
+        <div>⚠️ <b>Ditemukan {len(sorted_names)} Nama Salesman Belum Memiliki Koordinator di Data Lookup ({len(db_only_names)} dari Database):</b></div>
         <div style="margin-top:6px;">{''.join(badges_html)}</div>
     </div>""", unsafe_allow_html=True)
     with st.expander(f"📋 Klik untuk Salin / Lihat Tabel {len(sorted_names)} Nama Salesman Tanpa Koordinator (Untuk Update Data Lookup)"):
@@ -752,6 +1157,9 @@ for dc in [df_faktur_all, df_faktur, df_nota, df_spk, df_database]:
         current_month = int(dc[dc['tahun'] == current_year]['bulan'].dropna().max())
         break
 last_month, last_month_year = (current_month - 1, current_year) if current_month > 1 else (12, current_year - 1)
+NAMA_BULAN_ID = {1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April', 5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'}
+nama_bulan_curr = NAMA_BULAN_ID.get(current_month, 'Oktober')
+periode_bulan_tahun = f'{nama_bulan_curr} {current_year}'
 
 max_day_in_month = pycal.monthrange(current_year, current_month)[1]
 default_day_today = min(today_wib.day, max_day_in_month)
@@ -825,12 +1233,25 @@ df_fak_curr_g = df_faktur[(df_faktur['bulan'] == current_month) & (df_faktur['ta
 df_fak_lm_g = df_faktur[(df_faktur['bulan'] == last_month) & (df_faktur['tahun'] == last_month_year) & (df_faktur['hari'] <= tanggal_akhir)] if (df_faktur is not None and 'bulan' in df_faktur.columns) else pd.DataFrame()
 df_nota_curr_g = df_nota[(df_nota['bulan'] == current_month) & (df_nota['tahun'] == current_year) & (df_nota['hari'] <= tanggal_akhir)] if (df_nota is not None and 'bulan' in df_nota.columns) else pd.DataFrame()
 df_nota_tod_g = df_nota[(df_nota['bulan'] == current_month) & (df_nota['tahun'] == current_year) & (df_nota['hari'] == tanggal_akhir)] if (df_nota is not None and 'bulan' in df_nota.columns) else pd.DataFrame()
-df_db_curr_g = df_database[(df_database['hari'] >= 1) & (df_database['hari'] <= tanggal_akhir)] if (df_database is not None and 'hari' in df_database.columns and df_database['hari'].notna().any()) else (df_database.copy() if df_database is not None else pd.DataFrame())
+if df_database is not None and not df_database.empty and 'hari' in df_database.columns and df_database['hari'].notna().any():
+    if 'bulan' in df_database.columns and 'tahun' in df_database.columns and ((df_database['bulan'] == current_month) & (df_database['tahun'] == current_year)).any():
+        df_db_curr_g = df_database[(df_database['bulan'] == current_month) & (df_database['tahun'] == current_year) & (df_database['hari'] >= 1) & (df_database['hari'] <= tanggal_akhir)]
+    else:
+        df_db_curr_g = df_database[(df_database['hari'] >= 1) & (df_database['hari'] <= tanggal_akhir)]
+else:
+    df_db_curr_g = df_database.copy() if df_database is not None else pd.DataFrame()
+if df_rating is not None and not df_rating.empty and 'hari' in df_rating.columns and df_rating['hari'].notna().any():
+    if 'bulan' in df_rating.columns and 'tahun' in df_rating.columns and ((df_rating['bulan'] == current_month) & (df_rating['tahun'] == current_year)).any():
+        df_rating_curr_g = df_rating[(df_rating['bulan'] == current_month) & (df_rating['tahun'] == current_year) & (df_rating['hari'] >= 1) & (df_rating['hari'] <= tanggal_akhir)]
+    else:
+        df_rating_curr_g = df_rating[(df_rating['hari'] >= 1) & (df_rating['hari'] <= tanggal_akhir)]
+else:
+    df_rating_curr_g = df_rating.copy() if df_rating is not None else pd.DataFrame()
 df_spk_curr_g = df_spk[(df_spk['bulan'] == current_month) & (df_spk['tahun'] == current_year) & (df_spk['hari'] <= tanggal_akhir)] if (df_spk is not None and 'bulan' in df_spk.columns) else pd.DataFrame()
 df_spk_lm_g = df_spk[(df_spk['bulan'] == last_month) & (df_spk['tahun'] == last_month_year) & (df_spk['hari'] <= tanggal_akhir)] if (df_spk is not None and 'bulan' in df_spk.columns) else pd.DataFrame()
 
 if menu_pilihan == '📈 SALES':
-    st.markdown(f'<div class="main-title">DASHBOARD PENJUALAN (s.d Tgl {tanggal_akhir} Oktober 2026)</div><div class="sub-title">Sistem Monitoring Kinerja Dealer Terpadu</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="main-title">DASHBOARD PENJUALAN (s.d Tgl {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Sistem Monitoring Kinerja Dealer Terpadu</div>', unsafe_allow_html=True)
     kolom_dlr = ['NAMA DEALER', 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
     saved_td, saved_tk = load_json(TARGET_DEALER_FILE), load_json(TARGET_KOOR_FILE)
     cd_nota = 'Nama Dealer' if (df_nota is not None and 'Nama Dealer' in df_nota.columns) else 'Dealer'
@@ -843,7 +1264,7 @@ if menu_pilihan == '📈 SALES':
 
     k1, k2, k3, k4 = st.columns(4)
     k1.markdown(f"**🎯 Target vs Result**<br><span style='font-size:24px;font-weight:bold;'>{tot_r['TARGET']:,} / {tot_r['NOTA']:,}</span><br><b>{tot_r['_pct']:.2f}% tercapai</b>", unsafe_allow_html=True)
-    k2.markdown(f"**📅 Nota Hari Ini**<br><span style='font-size:24px;font-weight:bold;'>{tot_r['TODAY']:,} Unit</span><br><b>Tgl {tanggal_akhir} Oktober</b>", unsafe_allow_html=True)
+    k2.markdown(f"**📅 Nota Hari Ini**<br><span style='font-size:24px;font-weight:bold;'>{tot_r['TODAY']:,} Unit</span><br><b>Tgl {tanggal_akhir} {nama_bulan_curr}</b>", unsafe_allow_html=True)
     k3.markdown(f"**📊 AVG Nota (s.d Tgl {tanggal_akhir})**<br><span style='font-size:24px;font-weight:bold;'>{(tot_r['NOTA']/hari_aktif):.2f} / hari</span><br><b>Total {tot_r['NOTA']} nota</b>", unsafe_allow_html=True)
     k4.markdown(f"**📈 Forecast Total**<br><span style='font-size:24px;font-weight:bold;'>{tot_r['FORC']:,} Unit</span><br><b>Forecast vs Target: {(tot_r['FORC']/tot_r['TARGET']*100 if tot_r['TARGET']>0 else 0):.2f}%</b>", unsafe_allow_html=True)
 
@@ -870,7 +1291,7 @@ if menu_pilihan == '📈 SALES':
 
     st.divider()
     st.markdown('<div class="section-title">DASHBOARD PENJUALAN DEALER</div>', unsafe_allow_html=True)
-    render_editable_sales(df_full, kolom_dlr, 'NAMA DEALER', tot_r['_pct'], 'tbl_dlr', TARGET_DEALER_FILE, '💾 Simpan Target Manual Dealer', f'DASHBOARD PENJUALAN DEALER (1 s.d {tanggal_akhir} Oktober 2026)')
+    render_editable_sales(df_full, kolom_dlr, 'NAMA DEALER', tot_r['_pct'], 'tbl_dlr', TARGET_DEALER_FILE, '💾 Simpan Target Manual Dealer', f'DASHBOARD PENJUALAN DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})')
 
     ent_all = set(clean_str(v) for v in mapping_salesman_koor.values() if clean_str(v)) | set(k for k in saved_tk.keys() if k != 'TOTAL')
     for d_s in [df_faktur, df_nota]:
@@ -892,10 +1313,260 @@ if menu_pilihan == '📈 SALES':
             tp = (ts / tt * 100.0) if tt > 0 else 0.0
             tr = {nc: 'TOTAL', 'TARGET': tt, 'IDEAL': int(df_s['IDEAL'].sum()), 'STU': ts, 'NOTA': int(df_s['NOTA'].sum()), 'TODAY': int(df_s['TODAY'].sum()), col_name_pct: f'{tp:.2f}%', 'GAP TG': ts - tt, 'STU LM': tsl, '% LM': f'{(ts/tsl*100 if tsl>0 else 0):.2f}%', 'GAP LM': ts - tsl, 'FORC': int(df_s['FORC'].sum()), '_ideal': int(df_s['IDEAL'].sum()), '_pct': tp}
             cols_s = [nc, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
-            render_editable_sales(pd.concat([df_s, pd.DataFrame([tr])], ignore_index=True), cols_s, nc, tp, k_ed, TARGET_KOOR_FILE, btn_l, f'{sec_t} (1 s.d {tanggal_akhir} Oktober 2026)')
+            render_editable_sales(pd.concat([df_s, pd.DataFrame([tr])], ignore_index=True), cols_s, nc, tp, k_ed, TARGET_KOOR_FILE, btn_l, f'{sec_t} (1 s.d {tanggal_akhir} {periode_bulan_tahun})')
+
+elif menu_pilihan == '🎯 KPI':
+    st.markdown(f'<div class="main-title">DASHBOARD KPI (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Monitoring Target (T.) vs Result (R.) — KPI Dealer, KPI Koordinator & KPI Counter</div>', unsafe_allow_html=True)
+
+    saved_kpi = load_json(KPI_SAVED_FILE)
+    saved_td = load_json(TARGET_DEALER_FILE)
+    saved_tk = load_json(TARGET_KOOR_FILE)
+
+    KPI_METRIC_COLS = ['T. STU', 'R. STU', 'T. MAXI', 'R. MAXI', 'T. CLASSY', 'R. CLASSY', 'T. MP', 'R. MP', 'T. INC', 'R. INC', 'T. ACC%', 'R. ACC%', 'T. MYDR', 'R. MYDR', 'T. G REV', 'R. G REV']
+    KPI_EDITABLE_COLS = ['T. STU', 'T. MAXI', 'T. CLASSY', 'T. MP', 'T. INC', 'T. ACC%', 'T. G REV', 'R. G REV']
+
+    def compute_auto_kpi_results(df_f_sub, df_db_sub, df_spk_sub):
+        r_stu = len(df_f_sub) if df_f_sub is not None else 0
+        if df_f_sub is not None and not df_f_sub.empty and 'Type_Clean' in df_f_sub.columns:
+            r_maxi = int(df_f_sub['Type_Clean'].isin(['AT PREMIUM', 'MAXI', 'AT MAXI']).sum())
+            r_classy = int((df_f_sub['Type_Clean'] == 'AT CLASSY').sum())
+        else:
+            r_maxi, r_classy = 0, 0
+
+        mp_set = set()
+        for ds in [df_db_sub, df_f_sub, df_spk_sub]:
+            if ds is not None and not ds.empty and 'Salesman_Clean' in ds.columns:
+                mp_set.update(clean_str(x) for x in ds['Salesman_Clean'].dropna().unique() if clean_str(x) and clean_str(x) not in ['NAN', 'NONE', 'TOTAL'])
+        r_mp = len(mp_set)
+
+        r_inc = len(df_spk_sub) if df_spk_sub is not None else 0
+        acc_c = len(df_spk_sub[df_spk_sub['Status_SPK_Clean'] == 'DISETUJUI']) if (df_spk_sub is not None and not df_spk_sub.empty and 'Status_SPK_Clean' in df_spk_sub.columns) else 0
+        rej_c = len(df_spk_sub[df_spk_sub['Status_SPK_Clean'] == 'DITOLAK']) if (df_spk_sub is not None and not df_spk_sub.empty and 'Status_SPK_Clean' in df_spk_sub.columns) else 0
+        r_acc_pct = round((acc_c / (acc_c + rej_c) * 100.0), 1) if (acc_c + rej_c) > 0 else 0.0
+        return r_stu, r_maxi, r_classy, r_mp, r_inc, r_acc_pct, acc_c, rej_c
+
+    def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
+        sec_saved = saved_kpi.get(section_key, {})
+        rows = []
+        tot_acc_c, tot_rej_c = 0, 0
+        for ent in entity_list:
+            ent_saved = sec_saved.get(ent, {})
+            if filter_mode == 'dealer':
+                f_sub = df_fak_curr_g[df_fak_curr_g['Nama Dealer'] == ent] if not df_fak_curr_g.empty else pd.DataFrame()
+                db_sub = df_db_curr_g[df_db_curr_g['Nama_Dealer_Clean'] == ent] if not df_db_curr_g.empty else pd.DataFrame()
+                spk_sub = df_spk_curr_g[df_spk_curr_g['Nama_Dealer_SPK'] == ent] if not df_spk_curr_g.empty else pd.DataFrame()
+                rt_sub = df_rating_curr_g[df_rating_curr_g['Nama_Dealer_Clean'] == ent] if not df_rating_curr_g.empty else pd.DataFrame()
+                def_vals = DEFAULT_KPI_DEALER.get(ent, {})
+                def_t_stu = safe_int(saved_td.get(ent, def_vals.get('T. STU', 0)))
+                def_t_maxi = def_vals.get('T. MAXI', 0)
+                def_t_classy = def_vals.get('T. CLASSY', 0)
+                def_t_mp = def_vals.get('T. MP', 0)
+                def_t_inc = def_vals.get('T. INC', 0)
+                def_t_acc = def_vals.get('T. ACC%', 50.0)
+            else:
+                f_sub = df_fak_curr_g[df_fak_curr_g['Koor'] == ent] if not df_fak_curr_g.empty else pd.DataFrame()
+                db_sub = df_db_curr_g[df_db_curr_g['Koor'] == ent] if not df_db_curr_g.empty else pd.DataFrame()
+                spk_sub = df_spk_curr_g[df_spk_curr_g['Koor_SPK'] == ent] if not df_spk_curr_g.empty else pd.DataFrame()
+                rt_sub = df_rating_curr_g[df_rating_curr_g['Koor'] == ent] if not df_rating_curr_g.empty else pd.DataFrame()
+                def_t_stu = get_koor_or_counter_target(ent, saved_tk) or (20 if filter_mode == 'counter' else 25)
+                def_t_maxi = 8 if filter_mode == 'counter' else 10
+                def_t_classy = 3 if filter_mode == 'counter' else 5
+                def_t_mp = 1 if filter_mode == 'counter' else 6
+                def_t_inc = 15 if filter_mode == 'counter' else 18
+                def_t_acc = 50.0
+
+            r_stu, r_maxi, r_classy, r_mp, r_inc, r_acc_pct, acc_c, rej_c = compute_auto_kpi_results(f_sub, db_sub, spk_sub)
+            tot_acc_c += acc_c; tot_rej_c += rej_c
+
+            t_stu = safe_int(ent_saved.get('T. STU', def_t_stu))
+            t_maxi = safe_int(ent_saved.get('T. MAXI', def_t_maxi))
+            t_classy = safe_int(ent_saved.get('T. CLASSY', def_t_classy))
+            t_mp = safe_int(ent_saved.get('T. MP', def_t_mp))
+            t_inc = safe_int(ent_saved.get('T. INC', def_t_inc))
+            t_acc = safe_float(ent_saved.get('T. ACC%', def_t_acc))
+            t_mydr = int(round(r_stu * 0.30))
+            r_mydr = len(rt_sub) if (df_rating is not None and not df_rating.empty) else safe_int(ent_saved.get('R. MYDR', 0))
+            t_grev = safe_int(ent_saved.get('T. G REV', 0))
+            r_grev = safe_int(ent_saved.get('R. G REV', 0))
+
+            pct_stu = (r_stu / t_stu * 100.0) if t_stu > 0 else 0.0
+            rows.append({
+                name_col: ent,
+                'T. STU': t_stu, 'R. STU': r_stu,
+                'T. MAXI': t_maxi, 'R. MAXI': r_maxi,
+                'T. CLASSY': t_classy, 'R. CLASSY': r_classy,
+                'T. MP': t_mp, 'R. MP': r_mp,
+                'T. INC': t_inc, 'R. INC': r_inc,
+                'T. ACC%': round(t_acc, 1), 'R. ACC%': round(r_acc_pct, 1),
+                'T. MYDR': t_mydr, 'R. MYDR': r_mydr,
+                'T. G REV': t_grev, 'R. G REV': r_grev,
+                '_pct_stu': pct_stu
+            })
+        if not rows:
+            return pd.DataFrame(), pd.DataFrame()
+        df_items = pd.DataFrame(rows).reset_index(drop=True)
+        tot_t_acc = round(float(df_items['T. ACC%'].mean()), 1) if not df_items.empty else 50.0
+        tot_r_acc = round((tot_acc_c / (tot_acc_c + tot_rej_c) * 100.0), 1) if (tot_acc_c + tot_rej_c) > 0 else 0.0
+        tot_t_stu = int(df_items['T. STU'].sum())
+        tot_r_stu = int(df_items['R. STU'].sum())
+        tot_row = {
+            name_col: 'TOTAL',
+            'T. STU': tot_t_stu, 'R. STU': tot_r_stu,
+            'T. MAXI': int(df_items['T. MAXI'].sum()), 'R. MAXI': int(df_items['R. MAXI'].sum()),
+            'T. CLASSY': int(df_items['T. CLASSY'].sum()), 'R. CLASSY': int(df_items['R. CLASSY'].sum()),
+            'T. MP': int(df_items['T. MP'].sum()), 'R. MP': int(df_items['R. MP'].sum()),
+            'T. INC': int(df_items['T. INC'].sum()), 'R. INC': int(df_items['R. INC'].sum()),
+            'T. ACC%': tot_t_acc, 'R. ACC%': tot_r_acc,
+            'T. MYDR': int(df_items['T. MYDR'].sum()), 'R. MYDR': int(df_items['R. MYDR'].sum()),
+            'T. G REV': int(df_items['T. G REV'].sum()), 'R. G REV': int(df_items['R. G REV'].sum()),
+            '_pct_stu': (tot_r_stu / tot_t_stu * 100.0) if tot_t_stu > 0 else 0.0
+        }
+        return df_items, pd.concat([df_items, pd.DataFrame([tot_row])], ignore_index=True)
+
+    def build_kpi_capture_html(df_full, name_col, title_txt, dom_id):
+        cols_all = [name_col] + KPI_METRIC_COLS
+        pairs = [('T. STU', 'R. STU'), ('T. MAXI', 'R. MAXI'), ('T. CLASSY', 'R. CLASSY'), ('T. MP', 'R. MP'), ('T. INC', 'R. INC'), ('T. ACC%', 'R. ACC%'), ('T. MYDR', 'R. MYDR'), ('T. G REV', 'R. G REV')]
+        r_to_t = {r_c: t_c for t_c, r_c in pairs}
+        html = [f'<div id="{dom_id}" class="compact-table-wrap"><div class="cap-title-banner">🐺 {title_txt}</div><table class="compact-tbl"><thead><tr>']
+        for c in cols_all:
+            bg_th = 'background-color:#1E3A8A;color:#FFFFFF;' if c == name_col else ('background-color:#0F172A;color:#F8FAFC;' if c.startswith('T.') else 'background-color:#1E40AF;color:#FFFFFF;')
+            html.append(f'<th style="{bg_th}">{c}</th>')
+        html.append('</tr></thead><tbody>')
+        for _, row in df_full.iterrows():
+            nm = str(row[name_col])
+            is_tot = nm == 'TOTAL'
+            tr_style = 'background-color:#4318FF;color:#FFFFFF;font-weight:800;' if is_tot else ''
+            html.append(f'<tr style="{tr_style}">')
+            for c in cols_all:
+                val = row[c]
+                disp_v = f"{val:.1f}%" if c in ['T. ACC%', 'R. ACC%'] else str(val)
+                cell_st = ''
+                if not is_tot:
+                    if c == name_col:
+                        cell_st = 'color:#FFFFFF;font-weight:700;'
+                    elif c.startswith('T.'):
+                        cell_st = 'color:#CBD5E1;background-color:#111827;'
+                    elif c in r_to_t:
+                        t_col = r_to_t[c]
+                        tv, rv = safe_float(row[t_col]), safe_float(row[c])
+                        ideal_cmp = tv if c in ['R. MP', 'R. ACC%', 'R. MYDR'] else (tv * persen_desimal)
+                        if tv > 0 and rv >= ideal_cmp:
+                            cell_st = 'background-color:rgba(0,255,102,0.16);color:#00FF66;font-weight:800;'
+                        elif tv > 0:
+                            cell_st = 'background-color:rgba(255,0,127,0.22);color:#FF80AB;font-weight:800;'
+                        else:
+                            cell_st = 'color:#E2E8F0;'
+                html.append(f'<td style="{cell_st}">{disp_v}</td>')
+            html.append('</tr>')
+        html.append('</tbody></table></div>')
+        return ''.join(html)
+
+    def render_kpi_section(df_items, df_full, name_col, section_key, title_txt, btn_label):
+        if df_full is None or df_full.empty:
+            st.info(f"ℹ️ Belum ada data untuk {title_txt}.")
+            return
+        cols_show = [name_col] + KPI_METRIC_COLS
+        pairs = [('T. STU', 'R. STU'), ('T. MAXI', 'R. MAXI'), ('T. CLASSY', 'R. CLASSY'), ('T. MP', 'R. MP'), ('T. INC', 'R. INC'), ('T. ACC%', 'R. ACC%'), ('T. MYDR', 'R. MYDR'), ('T. G REV', 'R. G REV')]
+        r_to_t = {r_c: t_c for t_c, r_c in pairs}
+
+        def sty_kpi(row):
+            if str(row[name_col]) == 'TOTAL':
+                return ['background-color: #4318FF; color: #FFFFFF; font-weight: 800'] * len(row)
+            styles = []
+            for c in cols_show:
+                if c == name_col:
+                    styles.append('font-weight: 700; color: #FFFFFF')
+                elif c.startswith('T.'):
+                    styles.append('color: #CBD5E1; background-color: #141A26')
+                elif c in r_to_t:
+                    t_c = r_to_t[c]
+                    tv, rv = safe_float(row[t_c]), safe_float(row[c])
+                    ideal_cmp = tv if c in ['R. MP', 'R. ACC%', 'R. MYDR'] else (tv * persen_desimal)
+                    if tv > 0 and rv >= ideal_cmp:
+                        styles.append('background-color: rgba(0, 255, 102, 0.16); color: #00FF66; font-weight: 800')
+                    elif tv > 0:
+                        styles.append('background-color: rgba(255, 0, 127, 0.22); color: #FF4081; font-weight: 800')
+                    else:
+                        styles.append('color: #E2E8F0')
+                else:
+                    styles.append('')
+            return styles
+
+        col_cfg = {name_col: st.column_config.TextColumn(name_col, width="medium")}
+        for c in KPI_METRIC_COLS:
+            if c in ['T. ACC%', 'R. ACC%']:
+                col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%.1f%%")
+            else:
+                col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d")
+
+        disabled_cols = [c for c in cols_show if c not in KPI_EDITABLE_COLS]
+        ed_df = st.data_editor(
+            df_full[cols_show].style.apply(sty_kpi, axis=1),
+            hide_index=True,
+            use_container_width=True,
+            height=calc_table_height(df_full),
+            column_config=col_cfg,
+            disabled=disabled_cols,
+            key=f'editor_kpi_{section_key}'
+        )
+        c_b1, c_b2 = st.columns([1, 3])
+        with c_b1:
+            if st.button(btn_label, type='primary', key=f'btn_save_kpi_{section_key}'):
+                cur_all = load_json(KPI_SAVED_FILE)
+                sec_dict = cur_all.get(section_key, {})
+                td_sync = load_json(TARGET_DEALER_FILE) if section_key == 'dealer' else load_json(TARGET_KOOR_FILE)
+                for _, r in ed_df.iterrows():
+                    enm = str(r[name_col])
+                    if enm == 'TOTAL': continue
+                    sec_dict[enm] = {k_ed: (safe_float(r[k_ed]) if 'ACC%' in k_ed else safe_int(r[k_ed])) for k_ed in KPI_EDITABLE_COLS}
+                    td_sync[enm] = safe_int(r['T. STU'])
+                cur_all[section_key] = sec_dict
+                save_json(cur_all, KPI_SAVED_FILE)
+                save_json(td_sync, TARGET_DEALER_FILE if section_key == 'dealer' else TARGET_KOOR_FILE)
+                st.success(f'✅ Target & Data {title_txt} berhasil disimpan!')
+                st.rerun()
+        with c_b2:
+            cap_id = f'cap_kpi_{section_key}'
+            cap_html = build_kpi_capture_html(df_full, name_col, title_txt, cap_id)
+            render_table_image_buttons(cap_id, f'{title_txt}_Tgl_{tanggal_akhir}', standalone_html=cap_html)
+
+    df_kpi_dlr_items, df_kpi_dlr_full = build_kpi_section_df(daftar_dealer, 'NAMA DEALER', 'dealer', 'dealer')
+    if not df_kpi_dlr_full.empty:
+        tot_d = df_kpi_dlr_full.iloc[-1]
+        k1, k2, k3, k4 = st.columns(4)
+        k1.markdown(f"**🎯 KPI STU Dealer**<br><span style='font-size:24px;font-weight:bold;color:#00FF66;'>{int(tot_d['R. STU']):,} / {int(tot_d['T. STU']):,}</span><br><b>{(tot_d['R. STU']/tot_d['T. STU']*100 if tot_d['T. STU']>0 else 0):.1f}% Tercapai</b>", unsafe_allow_html=True)
+        k2.markdown(f"**🏍️ KPI MAXI & CLASSY**<br><span style='font-size:24px;font-weight:bold;color:#00E5FF;'>MAXI: {int(tot_d['R. MAXI'])}/{int(tot_d['T. MAXI'])}</span><br><b>CLASSY: {int(tot_d['R. CLASSY'])} / {int(tot_d['T. CLASSY'])} Unit</b>", unsafe_allow_html=True)
+        k3.markdown(f"**👥 KPI MP & INCOMING**<br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>MP: {int(tot_d['R. MP'])}/{int(tot_d['T. MP'])}</span><br><b>INC: {int(tot_d['R. INC'])} / {int(tot_d['T. INC'])} SPK</b>", unsafe_allow_html=True)
+        k4.markdown(f"**✅ KPI ACC% & MYDR/GREV**<br><span style='font-size:24px;font-weight:bold;color:#FF007F;'>ACC: {tot_d['R. ACC%']:.1f}% (T: {tot_d['T. ACC%']:.1f}%)</span><br><b>MYDR: {int(tot_d['R. MYDR'])}/{int(tot_d['T. MYDR'])} | G.REV: {int(tot_d['R. G REV'])}/{int(tot_d['T. G REV'])}</b>", unsafe_allow_html=True)
+
+    st.divider()
+    jdl_kpi_1 = f'1. TABEL KPI DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+    st.markdown(f'<div class="section-title">{jdl_kpi_1}</div>', unsafe_allow_html=True)
+    render_kpi_section(df_kpi_dlr_items, df_kpi_dlr_full, 'NAMA DEALER', 'dealer', jdl_kpi_1, '💾 Simpan KPI Dealer')
+
+    ent_all_kpi = set(clean_str(v) for v in mapping_salesman_koor.values() if clean_str(v)) | set(k for k in saved_tk.keys() if k != 'TOTAL')
+    for d_s, ck in [(df_faktur, 'Koor'), (df_nota, 'Koor'), (df_database, 'Koor'), (df_spk, 'Koor_SPK'), (df_rating, 'Koor')]:
+        if d_s is not None and ck in d_s.columns:
+            ent_all_kpi.update(clean_str(k) for k in d_s[ck].dropna().unique() if clean_str(k) and clean_str(k) not in ['LAIN-LAIN', 'NAN', 'NONE'])
+
+    koor_entities = sorted([e for e in ent_all_kpi if not e.upper().startswith('COUNTER')])
+    cnt_entities = sorted([e for e in ent_all_kpi if e.upper().startswith('COUNTER')])
+
+    st.divider()
+    jdl_kpi_2 = f'2. TABEL KPI KOORDINATOR (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+    st.markdown(f'<div class="section-title">{jdl_kpi_2}</div>', unsafe_allow_html=True)
+    render_unmapped_salesman_alert('kpi_koor')
+    df_kpi_kr_items, df_kpi_kr_full = build_kpi_section_df(koor_entities, 'NAMA KOORDINATOR', 'koor', 'koor')
+    render_kpi_section(df_kpi_kr_items, df_kpi_kr_full, 'NAMA KOORDINATOR', 'koor', jdl_kpi_2, '💾 Simpan KPI Koordinator')
+
+    st.divider()
+    jdl_kpi_3 = f'3. TABEL KPI COUNTER (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+    st.markdown(f'<div class="section-title">{jdl_kpi_3}</div>', unsafe_allow_html=True)
+    df_kpi_cnt_items, df_kpi_cnt_full = build_kpi_section_df(cnt_entities, 'NAMA COUNTER', 'counter', 'counter')
+    render_kpi_section(df_kpi_cnt_items, df_kpi_cnt_full, 'NAMA COUNTER', 'counter', jdl_kpi_3, '💾 Simpan KPI Counter')
 
 elif menu_pilihan == '🏍️ BY TYPE':
-    st.markdown(f'<div class="main-title">DASHBOARD PENJUALAN PER TYPE (1 s.d {tanggal_akhir} Oktober 2026)</div><div class="sub-title">Analisa Performa Unit Berdasarkan Kategori Type (Fokus: AT PREMIUM, AT CLASSY, AT LPM)</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="main-title">DASHBOARD PENJUALAN PER TYPE (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Analisa Performa Unit Berdasarkan Kategori Type (Fokus: AT PREMIUM, AT CLASSY, AT LPM)</div>', unsafe_allow_html=True)
     pil_dlr = st.selectbox('🏢 Filter Dealer (Tabel Rekap Per Type):', ['SEMUA DEALER'] + daftar_dealer, index=0)
     fc = df_fak_curr_g if pil_dlr == 'SEMUA DEALER' else (df_fak_curr_g[df_fak_curr_g['Nama Dealer'] == pil_dlr] if not df_fak_curr_g.empty else pd.DataFrame())
     fl = df_fak_lm_g if pil_dlr == 'SEMUA DEALER' else (df_fak_lm_g[df_fak_lm_g['Nama Dealer'] == pil_dlr] if not df_fak_lm_g.empty else pd.DataFrame())
@@ -912,20 +1583,20 @@ elif menu_pilihan == '🏍️ BY TYPE':
         c4.markdown(f"**📝 Total SPK (Ideal ACC 50%)**<br><span style='font-size:24px;font-weight:bold;color:#FFEA00;'>{tr_t['SPK']:,} ({tr_t['ACC%']})</span><br><b>SPK Quality</b>", unsafe_allow_html=True)
         c5.markdown(f"**📈 Konversi STU% (Ideal 10%)**<br><span style='font-size:24px;font-weight:bold;color:#FF007F;'>{tr_t['STU%']}</span><br><b>STU / DB</b>", unsafe_allow_html=True)
         st.divider()
-        jdl_rekap_tp = f'TABEL PENJUALAN PER TYPE — {pil_dlr} (1 s.d {tanggal_akhir} Oktober 2026)'
+        jdl_rekap_tp = f'TABEL PENJUALAN PER TYPE — {pil_dlr} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{jdl_rekap_tp}</div>', unsafe_allow_html=True)
         render_compact_html_table(df_ti, df_tf, kol_tp, 'TYPE', '_growth_val', key_suffix=f'Rekap_Type_{pil_dlr}', title_text=jdl_rekap_tp)
 
     kol_dt = ['NAMA DEALER', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF']
     for kt, jdl in [('AT PREMIUM', 'TABEL PENJUALAN AT PREMIUM PER DEALER'), ('AT CLASSY', 'TABEL PENJUALAN AT CLASSY PER DEALER'), ('AT LPM', 'TABEL PENJUALAN AT LPM PER DEALER')]:
         st.divider()
-        full_jdl_tp = f'{jdl} (1 s.d {tanggal_akhir} Oktober 2026)'
+        full_jdl_tp = f'{jdl} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{full_jdl_tp}</div>', unsafe_allow_html=True)
         di, df_d, _ = build_type_table(df_fak_curr_g[df_fak_curr_g['Type_Clean'] == kt] if not df_fak_curr_g.empty else pd.DataFrame(), df_fak_lm_g[df_fak_lm_g['Type_Clean'] == kt] if not df_fak_lm_g.empty else pd.DataFrame(), df_db_curr_g[df_db_curr_g['Type_Clean'] == kt] if not df_db_curr_g.empty else pd.DataFrame(), df_spk_curr_g[df_spk_curr_g['Type_Clean'] == kt] if not df_spk_curr_g.empty else pd.DataFrame(), [(d, 'Nama Dealer', 'Nama_Dealer_Clean', 'Nama_Dealer_SPK') for d in daftar_dealer], 'NAMA DEALER', sort_by_growth=True)
         render_compact_html_table(di, df_d, kol_dt, 'NAMA DEALER', '_growth_val', key_suffix=jdl, title_text=full_jdl_tp)
 
 elif menu_pilihan == '⚙️ PROCESS':
-    st.markdown(f'<div class="main-title">PROSES KERJA (1 s.d {tanggal_akhir} Oktober 2026)</div><div class="sub-title">Monitoring Database, Hot Prospect, Produktivitas MP, DB Quality (Ideal 30%) & Konversi STU (Ideal 10%)</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="main-title">PROSES KERJA (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Monitoring Database, Hot Prospect, Produktivitas MP, DB Quality (Ideal 30%) & Konversi STU (Ideal 10%)</div>', unsafe_allow_html=True)
     db_rows = [calc_proses_row(d, 'NAMA DEALER', df_db_curr_g[df_db_curr_g['Nama_Dealer_Clean'] == d] if not df_db_curr_g.empty else pd.DataFrame(), len(df_fak_curr_g[df_fak_curr_g['Nama Dealer'] == d]) if not df_fak_curr_g.empty else 0) for d in daftar_dealer]
     df_dbd = pd.DataFrame(db_rows).sort_values(by='_stu_pct', ascending=True).reset_index(drop=True)
     t_db, t_hot, t_mp, t_stu = int(df_dbd['DB'].sum()), int(df_dbd['HOT'].sum()), int(df_dbd['JML MP'].sum()), int(df_dbd['STU'].sum())
@@ -940,7 +1611,7 @@ elif menu_pilihan == '⚙️ PROCESS':
     c5.markdown(f"**📈 Total STU (Ideal STU% 10%)**<br><span style='font-size:24px;font-weight:bold;color:#FF007F;'>{t_stu:,} ({t_sp:.2f}%)</span>", unsafe_allow_html=True)
 
     st.divider()
-    jdl_pr_dlr = f'PROSES KERJA DEALER (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_pr_dlr = f'PROSES KERJA DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_pr_dlr}</div>', unsafe_allow_html=True)
     render_compact_html_table(df_dbd, pd.concat([df_dbd, tot_dbr], ignore_index=True), ['NAMA DEALER', 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%'], 'NAMA DEALER', '_stu_pct', key_suffix='Proses_Kerja_Dealer', title_text=jdl_pr_dlr)
 
@@ -956,7 +1627,7 @@ elif menu_pilihan == '⚙️ PROCESS':
 
     for sl, nc, st_lbl in [(pk_list, 'NAMA KOORDINATOR', 'PROSES KERJA KOORDINATOR'), (pc_list, 'NAMA COUNTER', 'PROSES KERJA COUNTER')]:
         st.divider()
-        full_st_lbl = f'{st_lbl} (1 s.d {tanggal_akhir} Oktober 2026)'
+        full_st_lbl = f'{st_lbl} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{full_st_lbl}</div>', unsafe_allow_html=True)
         if nc == 'NAMA KOORDINATOR':
             render_unmapped_salesman_alert('process_koor')
@@ -967,7 +1638,7 @@ elif menu_pilihan == '⚙️ PROCESS':
             render_compact_html_table(dfs, pd.concat([dfs, tr], ignore_index=True), [nc, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%'], nc, '_stu_pct', key_suffix=st_lbl, title_text=full_st_lbl)
 
 elif menu_pilihan == '🏦 LEASING':
-    st.markdown(f'<div class="main-title">DASHBOARD LEASING (1 s.d {tanggal_akhir} Oktober 2026)</div><div class="sub-title">Monitoring SPK, Growth, Approval Rate (Acuan Ideal ACC% = 50%), SPK Terbuka & Rincian Leasing</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="main-title">DASHBOARD LEASING (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Monitoring SPK, Growth, Approval Rate (Acuan Ideal ACC% = 50%), SPK Terbuka & Rincian Leasing</div>', unsafe_allow_html=True)
     kol_lsg = ['SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']
     def get_dlr_lsg(dlrs, lbl, nc='NAMA DEALER'):
         return calc_leasing_row(lbl, df_spk_curr_g[df_spk_curr_g['Nama_Dealer_SPK'].isin(dlrs)] if not df_spk_curr_g.empty else pd.DataFrame(), df_spk_lm_g[df_spk_lm_g['Nama_Dealer_SPK'].isin(dlrs)] if not df_spk_lm_g.empty else pd.DataFrame(), nc)
@@ -976,7 +1647,7 @@ elif menu_pilihan == '🏦 LEASING':
     df_sit = pd.DataFrame([get_dlr_lsg([d], d) for d in d_sit]).sort_values(by=['_acc_val', '_spk_val'], ascending=[True, True]).reset_index(drop=True)
     df_bwi = pd.DataFrame([get_dlr_lsg([d], d) for d in d_bwi]).sort_values(by=['_acc_val', '_spk_val'], ascending=[True, True]).reset_index(drop=True)
     df_lsg_full = pd.concat([df_sit, pd.DataFrame([get_dlr_lsg(d_sit, 'SUB SITUBONDO')]), df_bwi, pd.DataFrame([get_dlr_lsg(d_bwi, 'SUB BANYUWANGI')]), pd.DataFrame([get_dlr_lsg(daftar_dealer, 'TOTAL')])], ignore_index=True)
-    jdl_lsg_dlr = f'DASHBOARD LEASING DEALER (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_lsg_dlr = f'DASHBOARD LEASING DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_lsg_dlr}</div>', unsafe_allow_html=True)
     render_compact_html_table(pd.concat([df_sit, df_bwi], ignore_index=True), df_lsg_full, ['NAMA DEALER'] + kol_lsg, 'NAMA DEALER', '_acc_val', key_suffix='Leasing_Dealer', title_text=jdl_lsg_dlr)
 
@@ -984,7 +1655,7 @@ elif menu_pilihan == '🏦 LEASING':
     ent_s = sorted(list(set(clean_str(v) for v in mapping_salesman_koor.values() if clean_str(v)) | set(k for k in saved_tk.keys() if k != 'TOTAL') | (set(str(k) for k in df_spk['Koor_SPK'].dropna().unique() if str(k) != 'LAIN-LAIN') if (df_spk is not None and 'Koor_SPK' in df_spk.columns) else set())))
     for elist, nc, sec_t in [([e for e in ent_s if not e.upper().startswith('COUNTER')], 'NAMA KOORDINATOR', 'DASHBOARD LEASING KOORDINATOR'), ([e for e in ent_s if e.upper().startswith('COUNTER')], 'NAMA COUNTER', 'DASHBOARD LEASING COUNTER')]:
         st.divider()
-        full_sec_lsg = f'{sec_t} (1 s.d {tanggal_akhir} Oktober 2026)'
+        full_sec_lsg = f'{sec_t} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{full_sec_lsg}</div>', unsafe_allow_html=True)
         r_l, v_e = [], []
         for e in elist:
@@ -997,7 +1668,7 @@ elif menu_pilihan == '🏦 LEASING':
             render_compact_html_table(df_i, pd.concat([df_i, pd.DataFrame([tot_l])], ignore_index=True), [nc] + kol_lsg, nc, '_acc_val', key_suffix=sec_t, title_text=full_sec_lsg)
 
     st.divider()
-    jdl_stu_lsg_fak = f'STU PER LEASING — FAKTUR (1 s.d {tanggal_akhir} Oktober 2026 vs Bulan Lalu)'
+    jdl_stu_lsg_fak = f'STU PER LEASING — FAKTUR (1 s.d {tanggal_akhir} {periode_bulan_tahun} vs Bulan Lalu)'
     st.markdown(f'<div class="section-title">{jdl_stu_lsg_fak}</div>', unsafe_allow_html=True)
 
     AREA_DEALERS_STU_LEASING = [
@@ -1078,7 +1749,7 @@ elif menu_pilihan == '🏦 LEASING':
     st.divider()
     col_drop_rej, _ = st.columns([1, 3])
     with col_drop_rej: pil_lsg_reject = st.selectbox('🏦 Pilih Leasing (Rejection Analysis):', ['BAF', 'ADIRA', 'SOF'], index=0, key='sel_lsg_rej_analysis')
-    jdl_rej_analysis = f'REJECTION ANALYSIS — LEASING {pil_lsg_reject} (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_rej_analysis = f'REJECTION ANALYSIS — LEASING {pil_lsg_reject} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_rej_analysis}</div>', unsafe_allow_html=True)
 
     if not df_spk_curr_g.empty and 'Leasing_SPK_Clean' in df_spk_curr_g.columns:
@@ -1102,7 +1773,7 @@ elif menu_pilihan == '🏦 LEASING':
 
 elif menu_pilihan == '🏢 DETAIL DEALER':
     dlr_pil = st.selectbox('🏢 Pilih Dealer untuk Review:', daftar_dealer, index=0)
-    main_hdr_text = f'DETAIL DEALER — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    main_hdr_text = f'DETAIL DEALER — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     sub_hdr_text = f'Rekapitulasi Terpadu Penjualan, Proses Kerja, SPK Leasing, Penjualan Per Type & Detail Salesman Khusus Dealer {dlr_pil} (Acuan Ideal: DB Quality 30% | STU% 10% | ACC% 50%)'
     st.markdown(f'<div class="main-title">{main_hdr_text}</div><div class="sub-title">{sub_hdr_text}</div>', unsafe_allow_html=True)
 
@@ -1200,7 +1871,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     st.markdown(f"""<div class="focus-alert-box"><div>🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div><div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div></div>""", unsafe_allow_html=True)
 
     st.divider()
-    jdl_rev_1 = f'1. TABEL PENJUALAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_rev_1 = f'1. TABEL PENJUALAN — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_rev_1}</div>', unsafe_allow_html=True)
     kol_pj = [kol_nm, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM', 'FORC']
     df_p_full = pd.concat([df_p_it, pd.DataFrame([r_tot_p])], ignore_index=True)
@@ -1222,26 +1893,26 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     render_compact_html_table(df_p_it, df_p_full, kol_pj, kol_nm, '_pct', key_suffix=f'Review_1_Penjualan_{dlr_pil}', title_text=jdl_rev_1, custom_capture_html=custom_cap_tbl1)
 
     st.divider()
-    jdl_rev_2 = f'2. TABEL PROSES KERJA — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_rev_2 = f'2. TABEL PROSES KERJA — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_rev_2}</div>', unsafe_allow_html=True)
     kol_pr = [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%']
     render_compact_html_table(df_pr_it, pd.concat([df_pr_it, pd.DataFrame([r_tot_pr])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', key_suffix=f'Review_2_Proses_{dlr_pil}', title_text=jdl_rev_2)
 
     st.divider()
-    jdl_rev_3 = f'3. TABEL SPK & LEASING — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_rev_3 = f'3. TABEL SPK & LEASING — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_rev_3}</div>', unsafe_allow_html=True)
     kol_sp = [kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']
     render_compact_html_table(df_s_it, pd.concat([df_s_it, pd.DataFrame([r_tot_s])], ignore_index=True), kol_sp, kol_nm, '_acc_val', key_suffix=f'Review_3_Leasing_{dlr_pil}', title_text=jdl_rev_3)
 
     st.divider()
-    jdl_rev_4 = f'4. TABEL PENJUALAN PER TYPE — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_rev_4 = f'4. TABEL PENJUALAN PER TYPE — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_rev_4}</div>', unsafe_allow_html=True)
     kol_t_d = ['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF']
     df_td_i, df_td_f, _ = build_type_table(f_c, f_l, db_c, s_c, [(k, 'Type_Clean', 'Type_Clean', 'Type_Clean') for k in FOKUS_KATEGORI_TYPE], 'TYPE', tot_label=lbl_tot, sort_by_growth=True)
     if not df_td_f.empty: render_compact_html_table(df_td_i, df_td_f, kol_t_d, 'TYPE', '_growth_val', key_suffix=f'Review_4_Type_{dlr_pil}', title_text=jdl_rev_4)
 
     st.divider()
-    jdl_rev_5 = f'5. TABEL DETAIL SALESMAN — {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)'
+    jdl_rev_5 = f'5. TABEL DETAIL SALESMAN — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
     st.markdown(f'<div class="section-title">{jdl_rev_5}</div>', unsafe_allow_html=True)
     if len(mapping_emp_target) <= len(FIXED_COUNTER_TARGETS): st.warning('⚠️ File Master Employee belum diunggah. Silakan unggah di menu **📁 UPLOAD FILE** agar kolom TARGET otomatis terisi.')
     kol_sm = ['NAMA SALESMAN', 'TARGET', 'STU', col_name_pct, 'AVG DB', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']
@@ -1254,11 +1925,89 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     else: st.info(f'ℹ️ Belum ada data Salesman untuk dealer {dlr_pil}.')
 
     st.divider()
+    jdl_rev_unreg = f'6. TABEL KONSUMENFAKTUR BELUM REGISTRASI RATING (MYDR) — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+    jdl_rev_unreg = f'6. TABEL KONSUMEN BELUM REGISTRASI RATING (MYDR) — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+    st.markdown(f'<div class="section-title">{jdl_rev_unreg}</div>', unsafe_allow_html=True)
+    if not f_c.empty and 'Status_Registrasi_Rating' in f_c.columns:
+        tot_stu_dlr = len(f_c)
+        df_sudah_reg = f_c[f_c['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI'].copy()
+        df_belum_reg = f_c[f_c['Status_Registrasi_Rating'] == 'BELUM REGISTRASI'].copy()
+        jml_sudah, jml_belum = len(df_sudah_reg), len(df_belum_reg)
+        pct_reg_dlr = (jml_sudah / tot_stu_dlr * 100.0) if tot_stu_dlr > 0 else 0.0
+        st.markdown(f'''<div class="unmapped-sales-box" style="border-left-color:#00E5FF; background:linear-gradient(90deg, rgba(0,229,255,0.10) 0%, rgba(14,17,23,0.96) 100%); margin-bottom:10px;">
+            📊 <b>Rekapitulasi Status Registrasi Rating (MYDR) — {dlr_pil}:</b> Total Faktur (STU): <b>{tot_stu_dlr} Konsumen</b> &nbsp;|&nbsp;
+            <span style="color:#00FF66;font-weight:800;">✅ Sudah Registrasi: {jml_sudah} Konsumen ({pct_reg_dlr:.1f}%)</span> &nbsp;|&nbsp;
+            <span style="color:#FF007F;font-weight:800;">⚠️ Belum Registrasi: {jml_belum} Konsumen ({100.0 - pct_reg_dlr:.1f}%)</span>
+        </div>''', unsafe_allow_html=True)
+
+        if not df_belum_reg.empty:
+            df_belum_reg = df_belum_reg.sort_values(by=['Tanggal_Parsed', 'Salesman_Clean', 'Nama_Konsumen_Clean'], ascending=[True, True, True]).reset_index(drop=True)
+            rows_unreg = []
+            for idx_u, r_u in df_belum_reg.iterrows():
+                tgl_str = r_u['Tanggal_Parsed'].strftime('%d/%m/%Y') if (pd.notna(r_u.get('Tanggal_Parsed')) and hasattr(r_u.get('Tanggal_Parsed'), 'strftime')) else '-'
+                nm_kons = clean_str(r_u.get('Nama_Konsumen_Clean', '')) or '-'
+                no_hp = clean_str(r_u.get('No_HP_Clean', '')) or '-'
+                tp_unit = clean_str(r_u.get('Tipe_Unit_Display', '')) or clean_str(r_u.get('Type_Clean', '')) or '-'
+                lsg_u = clean_str(r_u.get('Leasing_Faktur_Clean', '')) or '-'
+                sm_u = clean_str(r_u.get('Salesman_Clean', '')) or '-'
+                kr_u = clean_str(r_u.get('Koor', '')) or '-'
+                st_u = clean_str(r_u.get('Status_Registrasi_Rating', 'BELUM REGISTRASI'))
+                rows_unreg.append({
+                    'NO': idx_u + 1,
+                    'TGL FAKTUR': tgl_str,
+                    'NAMA KONSUMEN': nm_kons,
+                    'NO. HP': no_hp,
+                    'TIPE UNIT': tp_unit,
+                    'PEMBAYARAN': lsg_u,
+                    'NAMA SALESMAN': sm_u,
+                    'KOORDINATOR': kr_u,
+                    'STATUS REGISTRASI': st_u,
+                    '_sort_val': 0.0
+                })
+            df_unreg_items = pd.DataFrame(rows_unreg)
+            tot_unreg_row = {
+                'NO': f'TOTAL ({jml_belum} BELUM REG)',
+                'TGL FAKTUR': f'SUDAH: {jml_sudah}',
+                'NAMA KONSUMEN': f'{jml_belum} KONSUMEN BELUM REGISTRASI',
+                'NO. HP': '-',
+                'TIPE UNIT': f'TOTAL STU: {tot_stu_dlr}',
+                'PEMBAYARAN': '-',
+                'NAMA SALESMAN': '-',
+                'KOORDINATOR': '-',
+                'STATUS REGISTRASI': f'{pct_reg_dlr:.1f}% TERCAPAI',
+                '_sort_val': 0.0
+            }
+            kol_unreg = ['NO', 'TGL FAKTUR', 'NAMA KONSUMEN', 'NO. HP', 'TIPE UNIT', 'PEMBAYARAN', 'NAMA SALESMAN', 'KOORDINATOR', 'STATUS REGISTRASI']
+            df_unreg_full = pd.concat([df_unreg_items, pd.DataFrame([tot_unreg_row])], ignore_index=True)
+            render_compact_html_table(df_unreg_items, df_unreg_full, kol_unreg, 'NO', '_sort_val', key_suffix=f'Review_6_Belum_Registrasi_{dlr_pil}', title_text=jdl_rev_unreg)
+
+            with st.expander(f"📋 Lihat Seluruh Data Faktur ({tot_stu_dlr} Konsumen: Sudah & Belum Registrasi) — {dlr_pil}"):
+                all_f_rows = []
+                for idx_a, r_a in f_c.sort_values(by=['Status_Registrasi_Rating', 'Tanggal_Parsed', 'Nama_Konsumen_Clean']).reset_index(drop=True).iterrows():
+                    tgl_a = r_a['Tanggal_Parsed'].strftime('%d/%m/%Y') if (pd.notna(r_a.get('Tanggal_Parsed')) and hasattr(r_a.get('Tanggal_Parsed'), 'strftime')) else '-'
+                    all_f_rows.append({
+                        'NO': idx_a + 1,
+                        'TGL FAKTUR': tgl_a,
+                        'NAMA KONSUMEN': clean_str(r_a.get('Nama_Konsumen_Clean', '')) or '-',
+                        'NO. HP': clean_str(r_a.get('No_HP_Clean', '')) or '-',
+                        'TIPE UNIT': clean_str(r_a.get('Tipe_Unit_Display', '')) or '-',
+                        'PEMBAYARAN': clean_str(r_a.get('Leasing_Faktur_Clean', '')) or '-',
+                        'NAMA SALESMAN': clean_str(r_a.get('Salesman_Clean', '')) or '-',
+                        'KOORDINATOR': clean_str(r_a.get('Koor', '')) or '-',
+                        'STATUS REGISTRASI': clean_str(r_a.get('Status_Registrasi_Rating', ''))
+                    })
+                st.dataframe(pd.DataFrame(all_f_rows), hide_index=True, use_container_width=True)
+        else:
+            st.success(f'🎉 Luar Biasa! Seluruh konsumen faktur ({tot_stu_dlr} konsumen) di {dlr_pil} SUDAH melakukan registrasi rating (MYDR).')
+    else:
+        st.info(f'ℹ️ Belum ada data Faktur untuk dealer {dlr_pil} pada periode ini.')
+
+    st.divider()
     tgl_sasaran = 30 if tanggal_akhir > 21 else min(30, tanggal_akhir + 7)
     sisa_hari = max(1, tgl_sasaran - tanggal_akhir)
-    horizon_lbl = f"Optimalisasi Closing s.d Tgl 30 Oktober 2026 ({sisa_hari} Hari Kerja)" if tanggal_akhir > 21 else f"Akselerasi 7 Hari ke Depan s.d Tgl {tgl_sasaran} Oktober 2026 ({sisa_hari} Hari Kerja)"
+    horizon_lbl = f"Optimalisasi Closing s.d Tgl 30 {periode_bulan_tahun} ({sisa_hari} Hari Kerja)" if tanggal_akhir > 21 else f"Akselerasi 7 Hari ke Depan s.d Tgl {tgl_sasaran} {periode_bulan_tahun} ({sisa_hari} Hari Kerja)"
 
-    jdl_rev_6 = f'6. TABEL ANALISA & ACTION PLAN — {dlr_pil} ({horizon_lbl})'
+    jdl_rev_6 = f'7. TABEL ANALISA & ACTION PLAN — {dlr_pil} ({horizon_lbl})'
     st.markdown(f'<div class="section-title">{jdl_rev_6}</div>', unsafe_allow_html=True)
 
     dlr_targ, dlr_ideal, dlr_stu, dlr_nota, dlr_stulm = safe_int(r_tot_p.get('TARGET', 0)), safe_int(r_tot_p.get('IDEAL', 0)), safe_int(r_tot_p.get('STU', 0)), safe_int(r_tot_p.get('NOTA', 0)), safe_int(r_tot_p.get('STU LM', 0))
@@ -1403,7 +2152,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
                     active_api_key = clean_inp
                     st.success('✅ API Key disimpan & aktif!')
             with c_k2:
-                st.markdown('<a href="[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#1E293B;color:#00E5FF;border:1px solid #334155;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Ambil Key AIzaSy Gratis (Google AI Studio)</a>', unsafe_allow_html=True)
+                st.markdown('<a href="https://aistudio.google.com/app/apikey" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#1E293B;color:#00E5FF;border:1px solid #334155;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Ambil Key AIzaSy Gratis (Google AI Studio)</a>', unsafe_allow_html=True)
             st.code(f'GEMINI_API_KEY = "{inp_api_key.strip() or active_api_key}"', language='toml')
 
     if gen_ai_clicked:
@@ -1413,7 +2162,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
             raw_t3 = df_s_it[[kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']].to_string(index=False) if not df_s_it.empty else "Kosong"
             raw_t4 = df_td_i[['TYPE', 'STU', 'STU LM', 'GROWTH', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'STU%']].to_string(index=False) if not df_td_i.empty else "Kosong"
             raw_context_for_ai = (
-                f"Dealer: {dlr_pil} | Periode: 1 s.d {tanggal_akhir} Oktober 2026 | Horizon Action Plan: {horizon_lbl}.\n"
+                f"Dealer: {dlr_pil} | Periode: 1 s.d {tanggal_akhir} {periode_bulan_tahun} | Horizon Action Plan: {horizon_lbl}.\n"
                 f"ACUAN TARGET RASIONAL 7 HARI KE DEPAN (WAJIB DIPAKAI AI AGAR TARGET MASUK AKAL & MENANTANG):\n"
                 f"- Dealer {dlr_pil} (STU saat ini {dlr_stu} dari target bulanan {dlr_targ}, Ideal tgl {tanggal_akhir}={dlr_ideal}): Target Rasional s.d tgl {tgl_sasaran} adalah tambahan +{tambahan_stu_wajib} STU (sehingga total mencapai {stu_sasaran_rasional} unit, atau {target_stu_per_hari:.1f} STU/hari), input {target_db_per_mp_hari:.1f} DB/MP/hari.\n"
                 f"- {wt_rational_str}\n- {wk_rational_str}\n- {wc_rational_str}\n"
@@ -1446,7 +2195,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
     tabel_analisa_dom_id = f"Capture_Analisa_{re.sub(r'[^a-zA-Z0-9]', '_', dlr_pil)}"
     copy_payload_json, safe_dlr_fname = json.dumps(copy_texts_dict), re.sub(r'[^a-zA-Z0-9_-]', '_', f"Analisa_ActionPlan_{dlr_pil}_Tgl_{tanggal_akhir}")
 
-    components.html(f"""<html><head><script src="[https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js](https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js)"></script><style>
+    components.html(f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
         body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #E2E8F0; }}
         .compact-table-wrap {{ width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }}
         .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
@@ -1532,7 +2281,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
         tblClone.querySelectorAll('.capture-only-banner').forEach(el => el.remove());
         const w = window.open('', '_blank', 'width=1100,height=800');
         w.document.write(`
-            <html><head><title>Print Review Analisa — DEALER {dlr_pil} (1 s.d {tanggal_akhir} Oktober 2026)</title>
+            <html><head><title>Print Review Analisa — DEALER {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</title>
             <style>
                 @page {{ size: A4 landscape; margin: 12mm; }}
                 body {{ font-family: Arial, sans-serif; color: #111827; background: #FFFFFF; margin: 0; padding: 10px; }}
@@ -1552,7 +2301,7 @@ elif menu_pilihan == '🏢 DETAIL DEALER':
                 <button onclick="window.print()">🖨️ Cetak Sekarang / Simpan PDF</button>
             </div>
             <h2>TABEL ANALISA & ACTION PLAN — DEALER {dlr_pil}</h2>
-            <div class="sub">Periode Analisa: 1 s.d {tanggal_akhir} Oktober 2026 | Fokus Horizon: {horizon_lbl} | Acuan Ideal: DB Quality 30%, STU% 10%, ACC% 50%</div>
+            <div class="sub">Periode Analisa: 1 s.d {tanggal_akhir} {periode_bulan_tahun} | Fokus Horizon: {horizon_lbl} | Acuan Ideal: DB Quality 30%, STU% 10%, ACC% 50%</div>
             ` + tblClone.innerHTML + `
             <script>setTimeout(() => window.print(), 400);<\\/script></body></html>
         `);
