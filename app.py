@@ -2445,12 +2445,21 @@ elif menu_pilihan == '🏢 STU':
             ratio_c = ((v_p - min_p_tbl) / (max_p_tbl - min_p_tbl)) if max_p_tbl > min_p_tbl else 0.0
             return (ratio_c <= 0.15) or (v_p < target_persen_harian)
         df_sm_non_cnt = df_sm_eval[(~df_sm_eval['NAMA SALESMAN'].apply(is_counter_personnel)) & (df_sm_eval['_db_val'] >= 2)].copy()
-        df_kritis_with_target = df_sm_non_cnt[(df_sm_non_cnt['TARGET'] > 0) & (df_sm_non_cnt.apply(is_zona_kritis, axis=1))].sort_values(by=['TARGET', '_pct_val', '_stu_val', '_db_val'], ascending=[False, True, True, True])
+        # FIX: DataFrame.apply(axis=1) pada DataFrame KOSONG mengembalikan Series kosong (pandas 3.x),
+        # sehingga df[mask] kehilangan semua kolom -> KeyError saat sort_values. Dibuat mask yang aman.
+        if df_sm_non_cnt.empty:
+            df_sm_non_cnt['_is_kritis'] = pd.Series(dtype=bool)
+        else:
+            df_sm_non_cnt['_is_kritis'] = df_sm_non_cnt.apply(is_zona_kritis, axis=1).astype(bool)
+        _kritis_sort_cols, _kritis_sort_asc = ['TARGET', '_pct_val', '_stu_val', '_db_val'], [False, True, True, True]
+        df_kritis_all = df_sm_non_cnt[df_sm_non_cnt['_is_kritis']].sort_values(by=_kritis_sort_cols, ascending=_kritis_sort_asc)
+        df_kritis_with_target = df_kritis_all[df_kritis_all['TARGET'] > 0]
+        top_bad = df_kritis_all.head(0)
         if not df_kritis_with_target.empty:
             max_kritis_target = int(df_kritis_with_target['TARGET'].max())
             top_bad = df_kritis_with_target[df_kritis_with_target['TARGET'] == max_kritis_target].head(4)
             if len(top_bad) < 3: top_bad = df_kritis_with_target.head(4)
-        else: top_bad = df_sm_non_cnt[df_sm_non_cnt.apply(is_zona_kritis, axis=1)].sort_values(by=['TARGET', '_pct_val', '_stu_val', '_db_val'], ascending=[False, True, True, True]).head(4)
+        else: top_bad = df_kritis_all.head(4)
         if not top_bad.empty:
             cnt_kritis = len(top_bad)
             names_kritis = ", ".join([f"{rb['NAMA SALESMAN']} (STU {safe_int(rb['STU'])}/{safe_int(rb['TARGET'])}, DB {safe_int(rb['DB'])}, SPK {safe_int(rb['SPK'])})" for _, rb in top_bad.iterrows()])
