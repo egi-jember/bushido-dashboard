@@ -179,13 +179,14 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:26px}
 .rk:hover .rk-t{background:#242E45}
 .rk:hover .rk-n{color:#fff}"""
 
-def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False):
-    """rows: list dict(name, val, label=None, tip=None). Warna otomatis terhadap ideal (hijau ≥ ideal, kuning ≥ 85%, merah di bawahnya)."""
+def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None):
+    """rows: list dict(name, val, label=None, tip=None). Warna otomatis terhadap ideal (hijau ≥ ideal, kuning ≥ 85%, merah di bawahnya).
+    parts=True → kembalikan (inner_html, css, tinggi) untuk digabung ke panel; False → (dokumen_iframe, tinggi)."""
     rows = [r for r in rows if r is not None]
     if not rows: return None
     rows = sorted(rows, key=lambda r: r['val'], reverse=not ascending)
     if max_rows: rows = rows[:max_rows]
-    mx = max([r['val'] for r in rows] + ([ideal * 1.15] if ideal else []) + [1.0])
+    mx = float(scale_max) if scale_max else max([r['val'] for r in rows] + ([ideal * 1.15] if ideal else []) + [1.0])
     def _c(v):
         if fixed_color: return fixed_color
         if ideal is None: return BSG_CYN
@@ -205,6 +206,7 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
                f'<span class="lg"><span class="dot" style="background:{BSG_YEL}"></span>85–99%</span><span class="lg"><span class="dot" style="background:{BSG_RED}"></span>&lt; 85%</span>')
     inner = f'<div class="card">{_hdr(title, subtitle)}{leg}{body}</div>'
     h = 59 + (22 if leg else 0) + (14 if subtitle else 0) + 26 * len(rows)
+    if parts: return inner, _RANK_CSS, h
     return _bsg_frame(inner, css=_RANK_CSS), h
 
 # ---------------------------------------------------------------- 2. funnel ----
@@ -267,11 +269,15 @@ def bsg_chart_heat(title, subtitle, row_names, col_names, cells, max_rows=24):
     return _bsg_frame(inner, css=css), 67 + (14 if subtitle else 0) + 30 * (len(row_names) + 1)
 
 # ---------------------------------------------------------------- 4. donut ----
-def bsg_chart_donut(title, subtitle, items, center_label='Total'):
-    """items: list (label, value, color)."""
-    its = [(l, float(v), c) for l, v, c in items if v is not None and float(v) > 0]
+BSG_PAL = ['#4318FF', '#00E5FF', '#FFB020', '#FF4D8D', '#00E676', '#B388FF', '#FF8A65', '#4DD0E1', '#FFD54F', '#90A4AE', '#F06292', '#AED581']
+
+def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, keep_zero=False):
+    """items: list (label, value, color). keep_zero=True → item bernilai 0 tetap tampil di legenda (0 · 0%)."""
+    all_its = [(l, float(v or 0), c) for l, v, c in items]
+    its = [t for t in all_its if t[1] > 0]
     total = sum(v for _, v, _ in its)
-    if total <= 0: return None
+    if total <= 0 and not keep_zero: return None
+    if not keep_zero: all_its = its
     R, SW = 44.0, 16.0; C = 2 * 3.141592653589793 * R; off = 0.0; segs = ''
     for l, v, c in its:
         ln = v / total * C; gap = 0.8 if len(its) > 1 else 0.0
@@ -279,15 +285,18 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total'):
         segs += (f'<circle class="sg" cx="60" cy="60" r="{R}" fill="none" stroke="{c}" stroke-width="{SW}" stroke-dasharray="{max(ln - gap, 0.1):.3f} {C - max(ln - gap, 0.1):.3f}" '
                  f'stroke-dashoffset="{-off:.3f}" data-tip="{_esc(tip)}"/>')
         off += ln
-    leg = ''.join(f'<div class="dl"><span class="dot" style="background:{c}"></span><span class="dn">{_esc(l)}</span><b>{int(v):,}</b><i>{v / total * 100.0:.0f}%</i></div>' for l, v, c in its)
+    leg = ''.join(f'<div class="dl"><span class="dot" style="background:{c}"></span><span class="dn" title="{_esc(l)}">{_esc(l)}</span><b>{int(v):,}</b><i>{(v / total * 100.0 if total > 0 else 0.0):.0f}%</i></div>' for l, v, c in all_its)
     css = (".dw{display:flex;align-items:center;gap:14px}.dc{flex:0 0 132px}.sg{transition:stroke-width .12s}.sg:hover{stroke-width:20}"
-           ".dlg{flex:1;min-width:0}.dl{display:flex;align-items:center;gap:7px;font-size:12px;height:22px}.dn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#CBD5E1}"
+           ".dlg{flex:1;min-width:0}.dl{display:flex;align-items:center;gap:7px;font-size:12px;min-height:22px}.dn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#CBD5E1}"
            ".dl b{font-weight:800}.dl i{font-style:normal;color:#94A3B8;width:34px;text-align:right}")
+    ff = 'font-family="Source Sans Pro,Segoe UI,Arial,sans-serif"'
     svg = (f'<svg class="dc" viewBox="0 0 120 120" width="132" height="132"><circle cx="60" cy="60" r="{R}" fill="none" stroke="#1B2336" stroke-width="{SW}"/>'
-           f'<g transform="rotate(-90 60 60)">{segs}</g><text x="60" y="61" text-anchor="middle" font-size="17" font-weight="800" fill="#E2E8F0">{int(total):,}</text>'
-           f'<text x="60" y="76" text-anchor="middle" font-size="9" fill="#94A3B8">{_esc(center_label)}</text></svg>')
+           f'<g transform="rotate(-90 60 60)">{segs}</g><text {ff} x="60" y="61" text-anchor="middle" font-size="17" font-weight="800" fill="#E2E8F0">{int(total):,}</text>'
+           f'<text {ff} x="60" y="76" text-anchor="middle" font-size="9" fill="#94A3B8">{_esc(center_label)}</text></svg>')
     inner = f'<div class="card">{_hdr(title, subtitle)}<div class="dw">{svg}<div class="dlg">{leg}</div></div></div>'
-    return _bsg_frame(inner, css=css), 60 + (14 if subtitle else 0) + max(132, 22 * len(its))
+    h = 60 + (14 if subtitle else 0) + max(132, 22 * len(all_its))
+    if parts: return inner, css, h
+    return _bsg_frame(inner, css=css), h
 
 # ---------------------------------------------------------------- 5. kurva target ideal vs realisasi (JS, responsif) ----
 _CURVE_JS = """<script>(function(){
@@ -422,35 +431,6 @@ def bsg_celebrate(key, achieved, msg='🎉 Target tercapai!'):
         try: st.balloons()
         except Exception: pass
         bsg_toast(msg, '🏆')
-
-# ---------------------------------------------------------------- tabel interaktif (alternatif tabel capture) ----
-_PROG_METRIC = {'_pct': 'Progress', '_pct_val': 'Progress', '_stu_pct': 'Progress STU%', '_acc_val': 'Progress ACC%'}
-
-def bsg_render_interactive_table(df_items, df_full, columns, name_col, metric_col, key_suffix, title_text):
-    try:
-        cols = [c for c in columns if c in df_full.columns]
-        if name_col not in cols or not hasattr(st, 'column_config'): return False
-        d = df_full[cols].copy(); cfg = {}
-        for c in cols:
-            if c == name_col: continue
-            s = d[c]
-            if s.dtype == object:
-                ss = s.astype(str).str.strip()
-                if ss.str.endswith('%').all():
-                    d[c] = pd.to_numeric(ss.str.rstrip('%'), errors='coerce'); cfg[c] = st.column_config.NumberColumn(c, format='%.2f%%')
-                else:
-                    num = pd.to_numeric(ss.str.replace(',', '', regex=False), errors='coerce')
-                    if num.notna().all(): d[c] = num
-        if metric_col in _PROG_METRIC and metric_col in df_full.columns:
-            lbl = _PROG_METRIC[metric_col]; pv = pd.to_numeric(df_full[metric_col], errors='coerce').fillna(0.0)
-            d.insert(1, lbl, pv.values)
-            cfg[lbl] = st.column_config.ProgressColumn(lbl, format='%.1f%%', min_value=0.0, max_value=float(max(100.0, pv.max())))
-        h = min(max(120, calc_table_height(d)), 900)
-        st.dataframe(d, hide_index=True, use_container_width=True, column_config=cfg, height=h, key=f'itbl_{re.sub(r"[^a-zA-Z0-9]", "_", key_suffix)}')
-        st.caption('⚡ Mode interaktif: klik header kolom untuk mengurutkan, ikon kaca pembesar untuk mencari. Pilih **🖼️ Capture** di sidebar bila ingin menyalin tabel sebagai gambar.')
-        return True
-    except Exception:
-        return False
 
 # ---------------------------------------------------------------- drill-down (fragment: tidak me-rerun seluruh halaman) ----
 @_bsg_fragment
@@ -691,6 +671,280 @@ def bsg_render_master_kpi_cards(tot_d, ideal):
     k3.markdown(bsg_card('👥', 'KPI MP & INCOMING', f"MP: {int(g('R. MP'))}/{int(g('T. MP'))}", f"<b>INC: {int(g('R. INC'))} / {int(g('T. INC'))} SPK</b> · MP {p_mp:.0f}%", pace(p_mp), min(p_mp, 100.0), idl), unsafe_allow_html=True)
     k4.markdown(bsg_card('✅', 'KPI ACC% & MYDR/GREV', f"ACC: {g('R. ACC%'):.1f}%", f"<b>Target ACC {g('T. ACC%'):.1f}% · MYDR: {int(g('R. MYDR'))}/{int(g('T. MYDR'))} | G.REV: {int(g('R. G REV'))}/{int(g('T. G REV'))}</b>", bsg_stat_color(p_acc, 100, 85), min(p_acc, 100.0), None), unsafe_allow_html=True)
 
+# ====================================================================================================
+# ============ PANEL GABUNGAN: tabel (kiri/atas) + grafik pendamping + tombol Copy/Download HD ========
+# ====================================================================================================
+_BSG_BASE_CSS = _BSG_FRAME.split('<style>')[1].split('__CSS__')[0]
+_BSG_TIPJS = '<script>' + _BSG_FRAME.split('<div id="tip"></div>')[1].split('<script>')[1].split('</script>')[0] + '</script>'
+
+_PN_CSS = """
+.pn-grid{display:grid;gap:12px;align-items:start}
+.pn-charts{display:grid;gap:12px;min-width:0;grid-template-columns:minmax(0,1fr)}
+.pn-table{min-width:0;overflow:hidden;border-radius:8px;border:1px solid #2D3748;background:#0E1117}
+.pn-table div{margin:0;border:0;border-radius:0;overflow:visible}
+.pn-table table{border-collapse:collapse;table-layout:auto;width:max-content;background:#0E1117;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif}
+.pn-table th{background:#1A202C;color:#CBD5E1;font-weight:800;padding:5px 4px;border-bottom:1px solid #2D3748;border-right:1px solid #1E293B;text-align:right;white-space:normal;line-height:1.15;font-size:10.5px;width:auto}
+.pn-table td{padding:4px 4px;border-bottom:1px solid #1E293B;border-right:1px solid #1E293B;text-align:right;white-space:nowrap;font-weight:700;font-size:12px;overflow:visible;width:auto}
+.pn-table th:first-child,.pn-table td:first-child{text-align:left;white-space:normal;min-width:110px;max-width:135px;line-height:1.2;padding-left:7px;font-size:11.5px;width:auto;overflow:visible;text-overflow:clip}
+.pn-table tr:hover td{background:rgba(255,255,255,.05)}
+.L-side .pn-grid{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}
+.L-stack .pn-grid{grid-template-columns:minmax(0,1fr)}
+.L-stack .pn-charts{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.L-eq .pn-charts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.L-stack3 .pn-grid{grid-template-columns:minmax(0,1fr)}
+.L-stack3 .pn-charts{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr)}
+.L-stack3 .dw{flex-direction:column;align-items:center;gap:6px}
+.L-stack3 .dlg{width:100%}
+.L-charts .pn-grid{grid-template-columns:minmax(0,1fr)}
+.L-charts .pn-charts{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.narrow .pn-grid{grid-template-columns:minmax(0,1fr) !important}
+.narrow .pn-charts{grid-template-columns:minmax(0,1fr) !important}
+.cap-only{display:none}.cap .cap-only{display:block}
+.cap *{animation:none !important;transition:none !important}
+.pn-banner{background:linear-gradient(90deg,#4318FF 0%,#1E293B 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:12px;letter-spacing:.3px}
+.tb{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.btn{background:#1E293B;color:#E2E8F0;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:hover{background:#4318FF;border-color:#4318FF;color:#fff}
+#st{font-size:12px;font-weight:600;margin-left:4px}
+#hold{position:fixed;left:-99999px;top:0;width:__CAPW__px;background:#0E1117;padding:14px;z-index:-1}
+"""
+
+_PN_DOC = """<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>__BASE__
+__PNCSS__
+__CHARTCSS__</style></head><body>
+<div id="fit"><div id="pn" class="pn __LAYOUT__">__CAPHDR__<div class="cap-only pn-banner">🐺 __TITLE__</div><div class="pn-grid">__TABLE__<div class="pn-charts">__CHARTS__</div></div></div>
+<div class="tb"><button class="btn" onclick="pnCap('copy')">📸 Copy (Tabel + Grafik · HD)</button><button class="btn" onclick="pnCap('jpg')">📥 Download JPG</button><span id="st"></span></div></div>
+<div id="hold"></div><div id="tip"></div>__TIPJS__
+<script>(function(){
+var FN="__FNAME__";
+function fitTables(root){root.querySelectorAll('.pn-table').forEach(function(w){var t=w.querySelector('table');if(!t)return;t.style.zoom=1;t.style.width='max-content';
+ var nat=t.getBoundingClientRect().width,av=w.clientWidth;if(nat>av+1){t.style.zoom=(av/nat).toFixed(4);}else{t.style.width=av+'px';}});}
+function fitHeight(){try{var c=document.getElementById('fit');var h=Math.ceil(c.getBoundingClientRect().height)+8;var fe=window.frameElement;
+ if(fe&&Math.abs(fe.getBoundingClientRect().height-h)>2){fe.style.height=h+'px';fe.setAttribute('height',h);}}catch(e){}}
+function layout(){var pn=document.getElementById('pn');var W=document.getElementById('fit').clientWidth;pn.classList.toggle('narrow',W<820);fitTables(pn);fitHeight();}
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(layout,80);});
+layout();setTimeout(layout,250);setTimeout(layout,900);
+window.pnCap=async function(mode){
+ var st=document.getElementById('st');st.style.color='#FFEA00';st.textContent='Memproses gambar HD...';
+ try{
+  if(typeof html2canvas==='undefined')throw new Error('html2canvas belum termuat (cek koneksi internet)');
+  var hold=document.getElementById('hold');hold.innerHTML='';
+  var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
+  hold.appendChild(c);fitTables(c);await new Promise(function(r){setTimeout(r,120);});
+  var canvas=await html2canvas(hold,{backgroundColor:'#0E1117',scale:2,useCORS:true,logging:false});hold.innerHTML='';
+  function dl(){var a=document.createElement('a');a.href=canvas.toDataURL('image/jpeg',0.95);a.download=FN+'.jpg';a.click();}
+  if(mode==='copy'){canvas.toBlob(async function(blob){try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    st.style.color='#00FF66';st.textContent='✅ Tabel + grafik disalin (HD). Siap Ctrl+V di WA/Word/Excel';}catch(e){dl();st.style.color='#00E5FF';st.textContent='📥 Browser membatasi clipboard, gambar diunduh sebagai JPG.';}
+    setTimeout(function(){st.textContent='';},5000);},'image/png');}
+  else{dl();st.style.color='#00FF66';st.textContent='✅ '+FN+'.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
+ }catch(e){st.style.color='#FF4D8D';st.textContent='Gagal membuat gambar: '+e.message;}
+};
+})();</script></body></html>"""
+
+def bsg_panel(table_html, charts, layout, title, file_label, cap_header='', n_rows=0, cap_width=1480):
+    """charts: list (inner_html, css, tinggi). layout: 'side' (tabel kiri, grafik kanan) | 'stack' (tabel atas, grafik bawah) | 'charts' (hanya grafik)."""
+    charts = [c for c in (charts or []) if c]
+    css_all = '\n'.join(dict.fromkeys(c[1] for c in charts))
+    ch_html = ''.join(c[0] for c in charts)
+    tbl = f'<div class="pn-table">{table_html}</div>' if table_html else ''
+    th = 44 + 31 * max(1, n_rows) if table_html else 0
+    if layout == 'side': body_h = max(th, sum(c[2] + 12 for c in charts))
+    elif layout.startswith('stack'): body_h = th + 12 + (max([c[2] for c in charts]) if charts else 0)
+    else: body_h = max([c[2] for c in charts]) if charts else 0
+    doc = (_PN_DOC.replace('__BASE__', _BSG_BASE_CSS).replace('__PNCSS__', _PN_CSS.replace('__CAPW__', str(int(cap_width)))).replace('__CHARTCSS__', css_all)
+           .replace('__LAYOUT__', {'side': 'L-side', 'stack': 'L-stack', 'stack_eq': 'L-stack L-eq', 'stack3': 'L-stack3', 'charts': 'L-charts'}.get(layout, 'L-stack')).replace('__CAPHDR__', f'<div class="cap-only" style="margin-bottom:12px">{cap_header}</div>' if cap_header else '')
+           .replace('__TITLE__', _esc(title)).replace('__TABLE__', tbl).replace('__CHARTS__', ch_html).replace('__TIPJS__', _BSG_TIPJS)
+           .replace('__FNAME__', re.sub(r'[^a-zA-Z0-9_-]', '_', file_label)))
+    return doc, int(body_h + 70)
+
+def bsg_panel_table(df_items, df_full, columns, name_col, metric_col, key_suffix, title_text, chart_fn=None, chart_args=(), layout='side', wrap_first=False, highlight_names=None, cap_header=''):
+    """Tabel ringkas + grafik pendamping dalam SATU panel; tombol Copy/Download menangkap tabel dan semua grafik (HD)."""
+    if df_full is None or df_full.empty: return
+    charts = []
+    if chart_fn is not None:
+        try: charts = [c for c in (chart_fn(*chart_args) or []) if c]
+        except Exception as e: st.caption(f'⚠️ Grafik pendamping tidak dapat ditampilkan ({type(e).__name__}: {str(e)[:80]}).')
+    dom_id = 'PN_' + re.sub(r'[^a-zA-Z0-9]', '_', key_suffix)
+    tbl = build_compact_html_string(df_items, df_full, columns, name_col, metric_col, dom_id, ultra_compact=True, title_text=None, highlight_names=highlight_names, wrap_first=wrap_first)
+    doc, h = bsg_panel(tbl, charts, layout if charts else 'stack', title_text, key_suffix, cap_header, n_rows=len(df_full))
+    components.html(doc, height=h, scrolling=False)
+
+def bsg_panel_charts(title, charts, file_label):
+    charts = [c for c in charts if c]
+    if not charts: return
+    doc, h = bsg_panel('', charts, 'charts', title, file_label)
+    components.html(doc, height=h, scrolling=False)
+
+# ---------------------------------------------------------------- grafik pendamping tiap tabel ----
+def _pn_items(rows_iter):
+    items = []
+    for n, v in rows_iter:
+        if v > 0: items.append((n, v, BSG_PAL[len(items) % len(BSG_PAL)]))
+    return items
+
+def bsg_pn_sales_charts(df_p, kol_nm, ideal, who):
+    items = _pn_items((str(r[kol_nm]), bsg_num(r.get('STU'))) for _, r in df_p.iterrows())
+    rows = []
+    for _, r in df_p.iterrows():
+        n, stu, targ, pct, idu = str(r[kol_nm]), bsg_num(r.get('STU')), bsg_num(r.get('TARGET')), bsg_num(r.get('_pct')), bsg_num(r.get('IDEAL'))
+        if targ > 0: rows.append({'name': n, 'val': pct, 'label': f'{pct:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>STU <b>{int(stu):,}</b> / Target {int(targ):,}<br>Ideal {int(idu):,} → <b>{stu - idu:+,.0f}</b><br>Pencapaian <b>{pct:.1f}%</b>"})
+    return [bsg_chart_rank('Pencapaian vs Target', f'% STU terhadap target bulanan · putih = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
+            bsg_chart_donut(f'Kontribusi Penjualan per {who}', 'Porsi unit STU terhadap total', items, 'STU', parts=True)]
+
+def bsg_pn_process_charts(df_pr, kol_nm):
+    dbq, stup = [], []
+    for _, r in df_pr.iterrows():
+        if bsg_num(r.get('DB')) <= 0: continue
+        n = str(r[kol_nm]); db, hot, stu = int(bsg_num(r.get('DB'))), int(bsg_num(r.get('HOT'))), int(bsg_num(r.get('STU')))
+        dbq.append({'name': n, 'val': bsg_num(r.get('DB Q')), 'tip': f"<b>{_esc(n)}</b><br>DB Q <b>{bsg_num(r.get('DB Q')):.2f}%</b><br>HOT {hot:,} / DB {db:,}"})
+        stup.append({'name': n, 'val': bsg_num(r.get('_stu_pct')), 'tip': f"<b>{_esc(n)}</b><br>STU% <b>{bsg_num(r.get('_stu_pct')):.2f}%</b><br>STU {stu:,} / DB {db:,}"})
+    return [bsg_chart_rank('Database Quality (DB Q)', 'HOT ÷ DB · putih = ideal 30%', dbq, ideal=30.0, parts=True),
+            bsg_chart_rank('STU Ratio (STU%)', 'STU ÷ DB · putih = ideal 10%', stup, ideal=10.0, parts=True)]
+
+def bsg_pn_activity_charts(df_pt, ideal):
+    items = _pn_items((str(r['PROSPECT TYPE']), bsg_num(r.get('STU'))) for _, r in df_pt.iterrows())
+    rows = []
+    for _, r in df_pt.iterrows():
+        n, tg, stu = str(r['PROSPECT TYPE']), bsg_num(r.get('TARGET')), bsg_num(r.get('STU'))
+        if tg > 0:
+            ach = bsg_num(r.get('ACHIEV')); rows.append({'name': n, 'val': ach, 'label': f'{ach:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>STU <b>{int(stu):,}</b> / Target {int(tg):,}<br>Capaian <b>{ach:.1f}%</b>"})
+    return [bsg_chart_rank('Pencapaian Aktifitas vs Target', f'% STU terhadap target aktifitas · putih = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
+            bsg_chart_donut('Kontribusi Penjualan per Aktifitas', 'Porsi unit STU terhadap total', items, 'STU', parts=True)]
+
+def bsg_pn_sub_charts(df_sub, sel_pt):
+    items = _pn_items((str(r['SUB PROSPECT TYPE']), bsg_num(r.get('STU'))) for _, r in df_sub.iterrows())
+    return [bsg_chart_donut(f'Kontribusi Penjualan per Sub Prospect — {sel_pt}', 'Porsi unit STU terhadap total tipe ini', items, 'STU', parts=True)]
+
+def bsg_pn_leasing_charts(df_s, r_tot_s, kol_nm, f_c=None):
+    rows = []
+    for _, r in df_s.iterrows():
+        if bsg_num(r.get('_spk_val')) <= 0: continue
+        n, acc = str(r[kol_nm]), bsg_num(r.get('_acc_val'))
+        rows.append({'name': n, 'val': acc, 'tip': f"<b>{_esc(n)}</b><br>ACC% <b>{acc:.1f}%</b><br>SPK {int(bsg_num(r.get('_spk_val'))):,} (LM {int(bsg_num(r.get('_spk_lm_val'))):,}) · Terbuka {int(bsg_num(r.get('TERBUKA'))):,}"})
+    items = [(k, bsg_num(r_tot_s.get(k)), c) for k, c in [('BAF', '#4318FF'), ('ADIRA', '#00E5FF'), ('SOF', '#FFB020'), ('IMFI', '#FF4D8D')]]
+    out = [bsg_chart_rank('Approval Rate (ACC%) per baris', 'Putih = acuan ideal ACC% 50%', rows, ideal=50.0, parts=True),
+           bsg_chart_donut('Porsi SPK per Leasing', f'BAF, ADIRA, SOF, IMFI · dari total {int(bsg_num(r_tot_s.get("SPK"))):,} SPK', items, 'SPK 4 leasing', parts=True)]
+    if f_c is not None and not f_c.empty and 'Leasing_Faktur_Clean' in f_c.columns:
+        vc = f_c['Leasing_Faktur_Clean'].value_counts()
+        baf, adr, sof = int(vc.get('BAF', 0)), int(vc.get('ADIRA', 0)), int(vc.get('SOF', 0))
+        kredit = int(sum(v for k, v in vc.items() if k not in ('CASH', '', None)))
+        lain = max(0, kredit - baf - adr - sof)
+        its = [('BAF', baf, '#4318FF'), ('ADIRA', adr, '#00E5FF'), ('SOF', sof, '#FFB020')] + ([('Leasing lain', lain, '#94A3B8')] if lain > 0 else [])
+        out.append(bsg_chart_donut('Kontribusi STU Kredit per Leasing', f'Dari {kredit:,} faktur kredit (cash {int(vc.get("CASH", 0)):,} tidak dihitung)', its, 'Faktur kredit', parts=True))
+    return out
+
+def bsg_pn_type_charts(df_td_i, ideal):
+    pal = {'AT PREMIUM': '#4318FF', 'AT CLASSY': '#00E5FF', 'AT LPM': '#FFB020', 'MOPED': '#FF4D8D', 'OTHERS': '#94A3B8'}
+    items = [(str(r['TYPE']), bsg_num(r.get('STU')), pal.get(str(r['TYPE']), '#64748B')) for _, r in df_td_i.iterrows()]
+    rows = []
+    for _, r in df_td_i.iterrows():
+        tg = bsg_num(r.get('TARGET'))
+        if tg <= 0: continue
+        ach = bsg_num(r.get('ACHIEV'))
+        rows.append({'name': str(r['TYPE']), 'val': ach, 'tip': f"<b>{_esc(r['TYPE'])}</b><br>STU <b>{int(bsg_num(r.get('STU'))):,}</b> / Target {int(tg):,}<br>Capaian <b>{ach:.1f}%</b> · LM {int(bsg_num(r.get('LM'))):,}"})
+    return [bsg_chart_rank('Capaian per Type vs Target Type', f'Putih = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
+            bsg_chart_donut('Komposisi STU per Type', 'Porsi unit terjual periode berjalan', items, 'STU', parts=True)]
+
+def bsg_render_salesman_panel(df_smi, ideal, title, n=10):
+    """Top-N & N salesman perlu dorongan + tombol Copy/Download HD."""
+    if df_smi is None or df_smi.empty or '_pct_val' not in df_smi.columns: return
+    rows = []
+    for _, r in df_smi.iterrows():
+        tg = bsg_num(r.get('TARGET'))
+        if tg <= 0: continue
+        pc = bsg_num(r.get('_pct_val'))
+        rows.append({'name': str(r['NAMA SALESMAN']), 'val': pc, 'tip': f"<b>{_esc(r['NAMA SALESMAN'])}</b><br>STU <b>{int(bsg_num(r.get('STU'))):,}</b> / Target {int(tg):,} ({pc:.1f}%)<br>DB {int(bsg_num(r.get('DB'))):,} · DB Q {_esc(r.get('DB Q', '-'))} · STU% {_esc(r.get('STU%', '-'))}"})
+    if not rows: return
+    k = min(n, len(rows))
+    bsg_panel_charts(f'Top & Low Performance Salesman — {title}', [
+        bsg_chart_rank(f'Top {k} Salesman', f'% STU terhadap target · ideal {ideal:.0f}%', rows, ideal=float(ideal), max_rows=n, parts=True),
+        bsg_chart_rank(f'{k} Salesman Perlu Dorongan', 'Capaian terendah (hanya yang punya target)', rows, ideal=float(ideal), max_rows=n, ascending=True, parts=True)], 'Top_Low_Salesman_' + str(title))
+
+def bsg_render_reg_panel(sudah, belum, f_c, title):
+    """Donut sudah vs belum registrasi rating + ranking koordinator dengan % registrasi tertinggi."""
+    donut = bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Persentase konsumen faktur yang sudah vs belum registrasi', [('Sudah Registrasi', sudah, '#00E676'), ('Belum Registrasi', belum, '#FF4D8D')], 'Konsumen', parts=True, keep_zero=True)
+    rows = []
+    if f_c is not None and not f_c.empty and 'Koor' in f_c.columns and 'Status_Registrasi_Rating' in f_c.columns:
+        for nm, g in f_c.groupby('Koor'):
+            n = clean_str(nm)
+            if not n or n in ('NAN', 'NONE', 'LAIN-LAIN'): continue
+            tot, sdh = len(g), int((g['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI').sum())
+            pc = sdh / tot * 100.0 if tot else 0.0
+            rows.append({'name': n, 'val': pc, 'label': f'{pc:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>Sudah registrasi <b>{sdh:,}</b> dari {tot:,} konsumen<br><b>{pc:.1f}%</b>"})
+    rank = bsg_chart_rank('Koordinator dengan Registrasi Rating Tertinggi', 'Persentase konsumen yang sudah registrasi (10 teratas)', rows, ideal=None, fixed_color='#00E676', max_rows=10, scale_max=100.0, parts=True)
+    bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [donut, rank], 'Registrasi_MYDR_' + str(title))
+
+
+# ====================================================================================================
+# ============ ARSIP DATA: EXPORT (semua data & pengaturan → 1 file .zip) & IMPORT (buka dashboard lama) ===
+# ====================================================================================================
+_ARSIP_JSON = ['dealer_targets_saved.json', 'koor_targets_saved.json', 'kpi_targets_saved.json', 'libur_nasional.json', 'kpi_dashboard_manual.json']
+
+def _wib_now(): return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=7)
+
+def bsg_build_export_zip(info):
+    """Kemas seluruh file sumber (saved_raw_files) + pengaturan target/libur/KPI manual + manifest ke 1 file zip.
+    API key (ai_config.json) SENGAJA tidak ikut diekspor."""
+    import io, zipfile
+    buf, n_files, now = io.BytesIO(), 0, _wib_now()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for root, _d, files in os.walk(UPLOAD_DIR):
+            for fn in files:
+                fp = os.path.join(root, fn)
+                z.write(fp, 'saved_raw_files/' + os.path.relpath(fp, UPLOAD_DIR).replace(os.sep, '/')); n_files += 1
+        for nm in _ARSIP_JSON:
+            fp = _ABS(nm)
+            if os.path.exists(fp): z.write(fp, nm); n_files += 1
+        man = {'app': 'BUSHIDO ANALYSIS', 'format': 1, 'exported_at': now.strftime('%d %b %Y, %H:%M WIB'), 'jumlah_file': n_files}
+        man.update(info or {})
+        z.writestr('manifest.json', json.dumps(man, ensure_ascii=False, indent=2))
+    name = f"BUSHIDO_Arsip_{re.sub(r'[^A-Za-z0-9]+', '_', str(man.get('periode', 'Data')))}_Tgl{man.get('tanggal_akhir', '')}_{now.strftime('%Y%m%d_%H%M')}.zip"
+    return buf.getvalue(), name
+
+def bsg_import_archive(upfile, max_bytes=1_500_000_000):
+    """Ekstrak arsip ke folder sementara (aman dari zip-slip) lalu arahkan path metadata ke folder itu. Return (folder, manifest)."""
+    import zipfile, tempfile, shutil
+    with zipfile.ZipFile(upfile) as z:
+        if 'manifest.json' not in z.namelist(): raise ValueError('bukan file arsip BUSHIDO (manifest.json tidak ditemukan)')
+        man = json.loads(z.read('manifest.json').decode('utf-8'))
+        if sum(m.file_size for m in z.infolist()) > max_bytes: raise ValueError('ukuran arsip terlalu besar')
+        dest = tempfile.mkdtemp(prefix='bushido_arsip_'); root = os.path.normpath(dest) + os.sep
+        for m in z.infolist():
+            if m.is_dir(): continue
+            target = os.path.normpath(os.path.join(dest, m.filename))
+            if not target.startswith(root): continue
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with z.open(m) as src, open(target, 'wb') as out: shutil.copyfileobj(src, out)
+    mp = os.path.join(dest, 'saved_raw_files', 'metadata.json')
+    if os.path.exists(mp):
+        try:
+            with open(mp, 'r') as fp: meta = json.load(fp)
+            for k, v in meta.items():
+                if not isinstance(v, dict): continue
+                if v.get('saved_path'): v['saved_path'] = os.path.join(dest, 'saved_raw_files', os.path.basename(str(v['saved_path']).replace('\\', '/')))
+                if isinstance(v.get('saved_paths'), list):
+                    sub = 'database_files' if k == 'database_multi' else ('rating_files' if k == 'rating_multi' else '')
+                    v['saved_paths'] = [os.path.join(dest, 'saved_raw_files', sub, os.path.basename(str(p).replace('\\', '/'))) for p in v['saved_paths']]
+            with open(mp, 'w') as fp: json.dump(meta, fp)
+        except Exception: pass
+    return dest, man
+
+def bsg_arsip_reset():
+    import shutil
+    old = st.session_state.get('arsip_dir')
+    if old and os.path.isdir(old): shutil.rmtree(old, ignore_errors=True)
+    for k in ('arsip_dir', 'arsip_meta', 'arsip_sig', 'arsip_name'): st.session_state.pop(k, None)
+
+def bsg_arsip_activate(upfile):
+    import shutil
+    dest, man = bsg_import_archive(upfile)
+    old = st.session_state.get('arsip_dir')
+    if old and old != dest and os.path.isdir(old): shutil.rmtree(old, ignore_errors=True)
+    st.session_state.update({'arsip_dir': dest, 'arsip_meta': man, 'arsip_sig': f'{upfile.name}_{upfile.size}', 'arsip_name': upfile.name, 'arsip_show_import': False})
+    bsg_toast('Arsip dibuka: ' + str(man.get('periode', '')), '📦')
+
 
 DEFAULT_SHARED_API_KEY = ""   # JANGAN isi key di kode. Pakai st.secrets["GEMINI_API_KEY"] / env GEMINI_API_KEY / kolom API Key di menu Analisa.
 IDEAL_DBQ_PCT, IDEAL_STU_PCT, IDEAL_ACC_PCT, MAX_NARRATIVE_WORDS = 30.0, 10.0, 50.0, 35
@@ -699,7 +953,10 @@ tabel_target_harian = {1:0.0, 2:1.0, 3:2.0, 4:5.0, 5:8.0, 6:12.0, 7:18.0, 8:21.0
 FIXED_COUNTER_TARGETS = {'IIN BARIROH': 25, 'SITI NURJANAH': 25, 'TRIA DAMAYANTI': 25, 'MUHAMMAD HAMDAN WAHDI': 15, 'DESVIN NURUL PRISTANTINI': 15, 'RIKA DWI ASTUTI': 15, 'NURUL FADILAH': 15}
 FOKUS_KATEGORI_TYPE = ['AT PREMIUM', 'AT CLASSY', 'AT LPM']
 daftar_dealer = ['SIP PANJI', 'SIP BESUKI', 'SIP A. YANI', 'SIP SRONO', 'SIP SIAGA', 'SIP SOBO', 'SIP GIRI']
-TARGET_DEALER_FILE, TARGET_KOOR_FILE, KPI_SAVED_FILE, AI_CONFIG_FILE, UPLOAD_DIR = 'dealer_targets_saved.json', 'koor_targets_saved.json', 'kpi_targets_saved.json', 'ai_config.json', 'saved_raw_files'
+ARCHIVE_DIR = st.session_state.get('arsip_dir') if (st.session_state.get('arsip_dir') and os.path.isdir(st.session_state.get('arsip_dir'))) else None   # MODE ARSIP: baca data dari folder arsip hasil IMPORT
+ARCHIVE_MODE, ARCHIVE_META = bool(ARCHIVE_DIR), (st.session_state.get('arsip_meta') or {})
+_ABS = (lambda f_: os.path.join(ARCHIVE_DIR, f_)) if ARCHIVE_DIR else (lambda f_: f_)
+TARGET_DEALER_FILE, TARGET_KOOR_FILE, KPI_SAVED_FILE, AI_CONFIG_FILE, UPLOAD_DIR = _ABS('dealer_targets_saved.json'), _ABS('koor_targets_saved.json'), _ABS('kpi_targets_saved.json'), 'ai_config.json', _ABS('saved_raw_files')
 DB_Multi_DIR, RATING_Multi_DIR, RAW_META_FILE = os.path.join(UPLOAD_DIR, 'database_files'), os.path.join(UPLOAD_DIR, 'rating_files'), os.path.join(UPLOAD_DIR, 'metadata.json')
 os.makedirs(DB_Multi_DIR, exist_ok=True)
 os.makedirs(RATING_Multi_DIR, exist_ok=True)
@@ -844,7 +1101,6 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
 
 def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, key_suffix='tbl', header_labels=None, ultra_compact=False, title_text=None, custom_capture_html=None, highlight_names=None, wrap_first=False):
     if df_full is None or df_full.empty: return
-    if st.session_state.get('tbl_mode') == 'interaktif' and bsg_render_interactive_table(df_items, df_full, columns, name_col, metric_col, key_suffix, title_text): return
     dom_id = f"Capture_{re.sub(r'[^a-zA-Z0-9]', '_', key_suffix)}"
     html_display_str = build_compact_html_string(df_items, df_full, columns, name_col, metric_col, dom_id, header_labels=header_labels, ultra_compact=ultra_compact, title_text=None, highlight_names=highlight_names, wrap_first=wrap_first)
     cap_title = title_text if title_text else key_suffix.replace('_', ' ')
@@ -1103,10 +1359,24 @@ st.sidebar.radio('Menu Bushido Analysis:', MAIN_TABS, index=MAIN_TABS.index(st.s
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
 st.sidebar.radio('Menu Upload File:', UPLOAD_MENU, index=UPLOAD_MENU.index(st.session_state['active_menu_tab']) if st.session_state['active_menu_tab'] in UPLOAD_MENU else None, key='nav_upload_radio', on_change=on_upload_nav_change, label_visibility='collapsed')
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
-st.sidebar.markdown('### 🧰 Tampilan Tabel')
-st.sidebar.radio('Mode tabel:', ['🖼️ Capture (gambar)', '⚡ Interaktif'], key='tbl_mode_radio', label_visibility='collapsed', help='Capture: tabel statis + tombol salin/unduh gambar. Interaktif: tabel yang bisa diurutkan & dicari.')
-st.session_state['tbl_mode'] = 'interaktif' if str(st.session_state.get('tbl_mode_radio', '')).startswith('⚡') else 'capture'
+st.sidebar.markdown('### 🗄️ Arsip Data')
+_arsip_do_export = st.sidebar.button('📤 EXPORT', use_container_width=True, key='btn_arsip_export', help='Simpan seluruh data & pengaturan ke 1 file arsip (.zip) agar dashboard bulan ini bisa dibuka lagi kapan saja.')
+if st.sidebar.button('📥 IMPORT', use_container_width=True, key='btn_arsip_import', help='Buka kembali dashboard dari file arsip hasil EXPORT.'): st.session_state['arsip_show_import'] = not st.session_state.get('arsip_show_import', False)
+_arsip_slot = st.sidebar.container()
+with _arsip_slot:
+    if ARCHIVE_MODE:
+        st.markdown(f'<div style="font-size:12px;font-weight:700;color:#FFEA00;line-height:1.5;">📦 MODE ARSIP aktif<br>{ARCHIVE_META.get("periode", "-")}</div>', unsafe_allow_html=True)
+        if st.button('↩️ Kembali ke data terkini', use_container_width=True, key='btn_arsip_back'):
+            bsg_arsip_reset(); st.rerun()
+    if st.session_state.get('arsip_show_import'):
+        _arsip_up = st.file_uploader('Pilih file arsip (.zip) hasil EXPORT', type=['zip'], key='arsip_uploader')
+        if _arsip_up is not None and st.session_state.get('arsip_sig') != f'{_arsip_up.name}_{_arsip_up.size}':
+            try:
+                bsg_arsip_activate(_arsip_up); st.rerun()
+            except Exception as _e_arsip: st.error(f'Gagal membuka arsip: {_e_arsip}')
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
+if ARCHIVE_MODE:
+    st.markdown(f'<div style="margin:0 0 12px 0;padding:10px 14px;border:1px solid #2D3748;border-left:5px solid #FFEA00;border-radius:8px;background:linear-gradient(90deg,rgba(255,234,0,0.12) 0%,rgba(14,17,23,0.96) 100%);font-size:13.5px;line-height:1.6;color:#E2E8F0;">📦 <b>MODE ARSIP</b> — dashboard periode <b>{ARCHIVE_META.get("periode", "-")}</b> · diekspor {ARCHIVE_META.get("exported_at", "-")} · file <code>{st.session_state.get("arsip_name", "")}</code>. Data terkini Anda <b>tidak berubah</b>. Klik <b>↩️ Kembali ke data terkini</b> di sidebar untuk keluar dari mode ini.</div>', unsafe_allow_html=True)
 menu_pilihan = st.session_state['active_menu_tab']
 
 def smart_parse_datetime(s):
@@ -1404,6 +1674,9 @@ def load_employee_targets(fpath):
     return t_exact, t_ns
 
 if menu_pilihan == '📁 UPLOAD FILE':
+    if ARCHIVE_MODE:
+        st.warning('📦 MODE ARSIP aktif — menu Upload dinonaktifkan agar data terkini tidak tertimpa. Klik ↩️ Kembali ke data terkini di sidebar untuk mengunggah file baru.')
+        st.stop()
     st.markdown('<div class="main-title">UPLOAD FILE</div><div class="sub-title">Unggah file sumber data sesuai kelompoknya (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
     meta_info = load_json(RAW_META_FILE)
 
@@ -1882,6 +2155,7 @@ periode_bulan_tahun = f'{nama_bulan_curr} {current_year}'
 
 max_day_in_month = pycal.monthrange(current_year, current_month)[1]
 default_day_today = min(today_wib.day, max_day_in_month)
+if ARCHIVE_MODE and ARCHIVE_META.get('tanggal_akhir'): default_day_today = min(max(1, int(ARCHIVE_META['tanggal_akhir'])), max_day_in_month)
 st.sidebar.markdown('### 📅 Periode Analisa')
 tgl_kal_pilihan = st.sidebar.date_input('Pilih Tanggal Akhir Periode (Kalender):', value=datetime.date(current_year, current_month, default_day_today), min_value=datetime.date(current_year, current_month, 1), max_value=datetime.date(current_year, current_month, max_day_in_month), format='DD/MM/YYYY')
 tanggal_akhir = int(tgl_kal_pilihan[-1].day) if isinstance(tgl_kal_pilihan, (tuple, list)) and len(tgl_kal_pilihan) > 0 else (int(tgl_kal_pilihan.day) if hasattr(tgl_kal_pilihan, 'day') else default_day_today)
@@ -1889,7 +2163,7 @@ tanggal_akhir = int(tgl_kal_pilihan[-1].day) if isinstance(tgl_kal_pilihan, (tup
 target_persen_harian = tabel_target_harian.get(tanggal_akhir, 0.0)
 persen_desimal = target_persen_harian / 100.0
 col_name_pct = f'{target_persen_harian:.0f}%' if target_persen_harian.is_integer() else f'{target_persen_harian}%'
-LIBUR_FILE = 'libur_nasional.json'
+LIBUR_FILE = _ABS('libur_nasional.json')
 DEFAULT_LIBUR_NASIONAL = ['2026-01-01', '2026-01-16', '2026-02-17', '2026-03-19', '2026-03-21', '2026-03-22', '2026-04-03', '2026-04-05', '2026-05-01', '2026-05-14', '2026-05-27', '2026-05-31', '2026-06-01', '2026-06-16', '2026-08-17', '2026-08-25', '2026-12-25']
 def _parse_libur(lst):
     out = set()
@@ -1905,6 +2179,17 @@ WORKDAYS_UPTO = [d_n for d_n in range(1, tanggal_akhir + 1) if is_workday_day(d_
 SISA_HARI_KERJA = sum(1 for d_n in range(tanggal_akhir + 1, max_day_in_month + 1) if is_workday_day(d_n))
 hari_aktif = max(1, len(WORKDAYS_UPTO))
 st.sidebar.markdown(f'<div class="target-ideal-caption">🎯 Target Ideal Tgl {tanggal_akhir}: {col_name_pct}</div>', unsafe_allow_html=True)
+if _arsip_do_export:
+    try:
+        _arsip_bytes, _arsip_name = bsg_build_export_zip({'bulan': int(current_month), 'tahun': int(current_year), 'periode': periode_bulan_tahun, 'tanggal_akhir': int(tanggal_akhir)})
+        st.session_state['arsip_export'] = (_arsip_name, _arsip_bytes); bsg_toast('Arsip siap diunduh', '📦')
+    except Exception as _e_exp:
+        st.session_state['arsip_export'] = None
+        with _arsip_slot: st.error(f'Gagal membuat arsip: {_e_exp}')
+if st.session_state.get('arsip_export'):
+    with _arsip_slot:
+        st.download_button('⬇️ Unduh file arsip', data=st.session_state['arsip_export'][1], file_name=st.session_state['arsip_export'][0], mime='application/zip', use_container_width=True, key='dl_arsip')
+        st.caption(f"{st.session_state['arsip_export'][0]} · {len(st.session_state['arsip_export'][1]) / 1048576:.1f} MB")
 
 # ===================== ALARM HARIAN — hanya notifikasi popup tepat di jam alarm (tanpa checklist / rekap / alarm susulan) =====================
 DEFAULT_REMINDERS = [('briefing', 'Sudah Kirim Laporan Briefing Pagi ?', '08:30'), ('rekrutmen', 'Sudah Kirim Laporan Rekrutmen ?', '11:00'),
@@ -2043,7 +2328,7 @@ import math
 saved_kpi = load_json(KPI_SAVED_FILE)
 saved_td = load_json(TARGET_DEALER_FILE)
 saved_tk = load_json(TARGET_KOOR_FILE)
-KPI_MANUAL_FILE = 'kpi_dashboard_manual.json'
+KPI_MANUAL_FILE = _ABS('kpi_dashboard_manual.json')
 DEFAULT_T_DB = {'koor': 200, 'counter': 100}   # default T. DB (masih bisa diedit & disimpan di MASTER KPI)
 DEFAULT_T_WALKIN = 25                           # default T. Walk In counter (masih bisa diedit & disimpan)
 
@@ -3116,7 +3401,7 @@ elif menu_pilihan == '🏢 STU':
         _tbl_counter[0] += 1
         return _tbl_counter[0]
 
-    tab_rk, tab_pp, tab_sl, tab_sm, tab_an = st.tabs(['📌 Ringkasan Visual', '💼 Penjualan & Proses', '🏦 SPK, Leasing & Type', '👤 Salesman & Konsumen', '🧠 Analisa & Action Plan'])
+    tab_pp, tab_sl, tab_sm, tab_rk, tab_an = st.tabs(['💼 Penjualan & Proses', '🏦 SPK, Leasing & Type', '👤 Salesman & Konsumen', '📌 Ringkasan Visual', '🧠 Analisa & Action Plan'])
     with tab_rk:
         bsg_safe(bsg_render_ringkasan, dict(kol_nm=kol_nm, ideal_pct=target_persen_harian, tanggal_akhir=tanggal_akhir, max_day=max_day_in_month, df_p_disp=df_p_disp, df_pr_disp=df_pr_disp,
                  df_s_disp=df_s_disp, r_tot_p=r_tot_p, r_tot_pr=r_tot_pr, r_tot_s=r_tot_s, f_c=f_c, s_c=s_c, is_total=is_total, scope_key=dlr_pil,
@@ -3142,7 +3427,10 @@ elif menu_pilihan == '🏢 STU':
         <div style="font-size:21px;font-weight:700;color:#4318FF;margin-bottom:10px;">{jdl_rev_1}</div>
         {tbl1_only_html}
     </div>"""
-        render_compact_html_table(df_p_disp, df_p_full, kol_pj, kol_nm, '_pct', key_suffix=f'Review_1_Penjualan_{dlr_pil}', title_text=jdl_rev_1, custom_capture_html=custom_cap_tbl1)
+        _cap_hdr_tbl1 = (f'<div style="font-size:30px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{main_hdr_text}</div><div style="font-size:13px;font-weight:600;color:#64748B;margin-bottom:14px;">{sub_hdr_text}</div>{kpi_cards_html}'
+                         f'<div style="margin-top:12px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,rgba(14,17,23,0.95) 100%);border-left:4px solid #FF007F;border-top:1px solid #2D3748;border-right:1px solid #2D3748;border-bottom:1px solid #2D3748;border-radius:6px;font-size:13.5px;line-height:1.65;color:#E2E8F0;">'
+                         f'<div>🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div><div style="margin-top:4px;">🏪 <b>Focus Counter :</b> {focus_cnt_html}</div><div style="margin-top:4px;">🚶 <b>Focus Walk In :</b> {focus_walk_html}</div><div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div></div>')
+        bsg_panel_table(df_p_disp, df_p_full, kol_pj, kol_nm, '_pct', f'Review_1_Penjualan_{dlr_pil}', jdl_rev_1, bsg_pn_sales_charts, (df_p_disp, kol_nm, target_persen_harian, 'Dealer' if is_total else 'Koordinator / Counter'), layout='stack', cap_header=_cap_hdr_tbl1)
 
         if is_total:
             st.divider()
@@ -3176,7 +3464,7 @@ elif menu_pilihan == '🏢 STU':
         jdl_rev_2 = f'{nxt_no()}. TABEL PROSES KERJA — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{jdl_rev_2}</div>', unsafe_allow_html=True)
         kol_pr = [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'SPK LM', 'GROWTH', 'STU', 'STU%', 'AVG NOTA', 'AVG 7', 'AVG 3'] if is_total else [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%', 'AVG NOTA', 'AVG 7', 'AVG 3']
-        render_compact_html_table(df_pr_disp, pd.concat([df_pr_disp, pd.DataFrame([r_tot_pr_disp])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', key_suffix=f'Review_2_Proses_{dlr_pil}', title_text=jdl_rev_2)
+        bsg_panel_table(df_pr_disp, pd.concat([df_pr_disp, pd.DataFrame([r_tot_pr_disp])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', f'Review_2_Proses_{dlr_pil}', jdl_rev_2, bsg_pn_process_charts, (df_pr_disp, kol_nm), layout='stack_eq')
 
         with st.expander('🔍 Rekonsiliasi Jumlah Database (cek selisih KPI vs Tabel Proses vs file asli)', expanded=False):
             _rc_rows = []
@@ -3244,7 +3532,7 @@ elif menu_pilihan == '🏢 STU':
             _pt_g = db_c.iloc[:, 6].apply(lambda v: clean_str(v) or '(KOSONG)')   # kolom G = Prospect Type
             _st_g = db_c.iloc[:, 7].apply(lambda v: strip_sub_code(v) or '(KOSONG)')   # kolom H = Sub Prospect Type (tanpa kode di depan)
             _df_pt_i, _df_pt_f = _act_table(db_c, _pt_g, 'PROSPECT TYPE', lbl_tot, with_target=True)
-            render_compact_html_table(_df_pt_i, _df_pt_f, ['PROSPECT TYPE'] + _kol_act_pt, 'PROSPECT TYPE', '_stu_pct', key_suffix=f'Review_Aktifitas_PT_{dlr_pil}', title_text=jdl_rev_pt)
+            bsg_panel_table(_df_pt_i, _df_pt_f, ['PROSPECT TYPE'] + _kol_act_pt, 'PROSPECT TYPE', '_stu_pct', f'Review_Aktifitas_PT_{dlr_pil}', jdl_rev_pt, bsg_pn_activity_charts, (_df_pt_i, target_persen_harian), layout='stack')
 
             st.divider()
             st.markdown(f'<div class="section-title">{_jdl_sub_base}</div>', unsafe_allow_html=True)
@@ -3252,14 +3540,19 @@ elif menu_pilihan == '🏢 STU':
             _sel_pt = st.selectbox('📂 Pilih Prospect Type:', _opt_pt, index=0, key=f'sel_sub_pt_{dlr_pil}')
             _db_sel = db_c[_pt_g == _sel_pt]
             _df_sub_i, _df_sub_f = _act_table(_db_sel, _st_g[_pt_g == _sel_pt], 'SUB PROSPECT TYPE', f'TOTAL {_sel_pt}')
-            render_compact_html_table(_df_sub_i, _df_sub_f, ['SUB PROSPECT TYPE'] + _kol_act, 'SUB PROSPECT TYPE', '_stu_pct', key_suffix=f'Review_Aktifitas_Sub_{dlr_pil}_{_sel_pt}', title_text=f'{_jdl_sub_base} — {_sel_pt}', wrap_first=True)
+            bsg_panel_table(_df_sub_i, _df_sub_f, ['SUB PROSPECT TYPE'] + _kol_act, 'SUB PROSPECT TYPE', '_stu_pct', f'Review_Aktifitas_Sub_{dlr_pil}_{_sel_pt}', f'{_jdl_sub_base} — {_sel_pt}', bsg_pn_sub_charts, (_df_sub_i, _sel_pt), layout='side', wrap_first=True)
 
     with tab_sl:
         jdl_rev_3 = f'{nxt_no()}. TABEL SPK & LEASING — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{jdl_rev_3}</div>', unsafe_allow_html=True)
         kol_sp = [kol_nm, 'SPK', 'SPK LM', 'GROWTH', 'ACC%', 'TERBUKA', 'BAF', '%BAF', 'ADIRA', '%ADIRA', 'SOF', '%SOF', 'IMFI', '%IMFI']
-        render_compact_html_table(df_s_disp, pd.concat([df_s_disp, pd.DataFrame([r_tot_s])], ignore_index=True), kol_sp, kol_nm, '_acc_val', key_suffix=f'Review_3_Leasing_{dlr_pil}', title_text=jdl_rev_3)
-        bsg_safe(bsg_render_leasing_charts, df_s_disp, r_tot_s, kol_nm, label="Grafik leasing")
+        _lsg_grp = 'Nama Dealer' if is_total else 'Koor'
+        def _stu_lsg(df_x, l_x): return int((df_x['Leasing_Faktur_Clean'] == l_x).sum()) if (df_x is not None and not df_x.empty and 'Leasing_Faktur_Clean' in df_x.columns) else 0
+        df_s_tbl, r_tot_s_tbl = df_s_disp.copy(), dict(r_tot_s)
+        for _l in ['BAF', 'ADIRA', 'SOF']:
+            df_s_tbl[f'STU {_l}'] = [_stu_lsg(f_c[f_c[_lsg_grp] == str(n_x)] if (not f_c.empty and _lsg_grp in f_c.columns) else None, _l) for n_x in df_s_tbl[kol_nm]]
+            r_tot_s_tbl[f'STU {_l}'] = _stu_lsg(f_c, _l)
+        bsg_panel_table(df_s_tbl, pd.concat([df_s_tbl, pd.DataFrame([r_tot_s_tbl])], ignore_index=True), kol_sp + ['STU BAF', 'STU ADIRA', 'STU SOF'], kol_nm, '_acc_val', f'Review_3_Leasing_{dlr_pil}', jdl_rev_3, bsg_pn_leasing_charts, (df_s_tbl, r_tot_s_tbl, kol_nm, f_c), layout='stack3')
 
         st.divider()
         sfx4 = ' & PER DEALER' if is_total else ''
@@ -3300,9 +3593,8 @@ elif menu_pilihan == '🏢 STU':
                     rows_t_full.append(rd_t)
             r_tot_type = df_td_f.iloc[-1].to_dict(); r_tot_type['_row_ratio'] = float('nan')
             rows_t_full.append(r_tot_type)
-            render_compact_html_table(df_td_i, pd.DataFrame(rows_t_full), kol_t_d, 'TYPE', '_growth_val', key_suffix=f'Review_4_Type_{dlr_pil}', title_text=jdl_rev_4, highlight_names=set(TYPE_ORDER))
-        elif not df_td_f.empty: render_compact_html_table(df_td_i, df_td_f, kol_t_d, 'TYPE', '_growth_val', key_suffix=f'Review_4_Type_{dlr_pil}', title_text=jdl_rev_4)
-        bsg_safe(bsg_render_type_charts, df_td_i, target_persen_harian, label="Grafik type")
+            bsg_panel_table(df_td_i, pd.DataFrame(rows_t_full), kol_t_d, 'TYPE', '_growth_val', f'Review_4_Type_{dlr_pil}', jdl_rev_4, bsg_pn_type_charts, (df_td_i, target_persen_harian), layout='stack', highlight_names=set(TYPE_ORDER))
+        elif not df_td_f.empty: bsg_panel_table(df_td_i, df_td_f, kol_t_d, 'TYPE', '_growth_val', f'Review_4_Type_{dlr_pil}', jdl_rev_4, bsg_pn_type_charts, (df_td_i, target_persen_harian), layout='stack')
 
     with tab_sm:
         jdl_rev_5 = f'{nxt_no()}. TABEL DETAIL SALESMAN — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
@@ -3321,7 +3613,7 @@ elif menu_pilihan == '🏢 STU':
             tot_sm = {'NAMA SALESMAN': lbl_tot, 'TARGET': tt, 'STU': ts, col_name_pct: f'{tpct_sm:.2f}%', 'AVG DB': f'{(tdb/n_sm/hari_aktif if n_sm>0 else 0):.2f}', 'DB': tdb, 'HOT': thot, 'DB Q': f'{(thot/tdb*100 if tdb>0 else 0):.2f}%', 'SPK': tspk, 'ACC%': f'{(t_sa/(t_sa+t_sr)*100 if (t_sa+t_sr)>0 else 0):.2f}%', 'STU%': f'{(ts/tdb*100 if tdb>0 else 0):.2f}%', '_stu_val': ts, '_pct_val': tpct_sm}
             tot_sm['LM'] = int(df_smi['LM'].sum())
             render_compact_html_table(df_smi, pd.concat([df_smi, pd.DataFrame([tot_sm])], ignore_index=True), kol_sm, 'NAMA SALESMAN', '_pct_val', key_suffix=f'Review_5_Salesman_{dlr_pil}', title_text=jdl_rev_5)
-            bsg_safe(bsg_render_salesman_charts, df_smi, target_persen_harian, label="Grafik salesman")
+            bsg_safe(bsg_render_salesman_panel, df_smi, target_persen_harian, dlr_pil, label="Grafik salesman")
         else: st.info(f'ℹ️ Belum ada data Salesman untuk dealer {dlr_pil}.')
 
         st.divider()
@@ -3338,7 +3630,7 @@ elif menu_pilihan == '🏢 STU':
             <span style="color:#00FF66;font-weight:800;">✅ Sudah Registrasi: {jml_sudah} Konsumen ({pct_reg_dlr:.1f}%)</span> &nbsp;|&nbsp;
             <span style="color:#FF007F;font-weight:800;">⚠️ Belum Registrasi: {jml_belum} Konsumen ({100.0 - pct_reg_dlr:.1f}%)</span>
         </div>''', unsafe_allow_html=True)
-            bsg_safe(bsg_render_reg_donut, jml_sudah, jml_belum, label="Donut registrasi")
+            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, f_c, dlr_pil, label="Grafik registrasi")
 
             if not df_belum_reg.empty:
                 df_belum_reg = df_belum_reg.sort_values(by=['Tanggal_Parsed', 'Salesman_Clean', 'Nama_Konsumen_Clean'], ascending=[True, True, True]).reset_index(drop=True)
