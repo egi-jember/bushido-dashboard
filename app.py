@@ -154,8 +154,8 @@ e.addEventListener('mousemove',function(ev){t.innerHTML=e.getAttribute('data-tip
 if(x+t.offsetWidth>window.innerWidth-6)x=Math.max(4,ev.clientX-t.offsetWidth-14);if(y+t.offsetHeight>window.innerHeight-4)y=Math.max(4,ev.clientY-t.offsetHeight-10);
 t.style.left=x+'px';t.style.top=y+'px';});
 e.addEventListener('mouseleave',function(){t.style.opacity=0;});});})();</script>
-<script>(function(){function fit(){try{var c=document.querySelector('.card');if(!c)return;var h=Math.ceil(c.getBoundingClientRect().height)+4;var fe=window.frameElement;
-if(fe&&Math.abs(fe.getBoundingClientRect().height-h)>2){fe.style.height=h+'px';fe.setAttribute('height',h);}}catch(e){}}
+<script>(function(){function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&i<4){if(Math.abs(el.getBoundingClientRect().height-old)<=3)els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
+function fit(){try{var c=document.querySelector('.card');if(!c)return;setFrameH(Math.ceil(c.getBoundingClientRect().height)+4);}catch(e){}}
 fit();window.addEventListener('resize',function(){setTimeout(fit,60);});setTimeout(fit,200);setTimeout(fit,800);})();</script>
 __JS__</body></html>"""
 
@@ -296,7 +296,7 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
            f'<text {ff} x="60" y="76" text-anchor="middle" font-size="9" fill="#94A3B8">{_esc(center_label)}</text></svg>')
     inner = f'<div class="card">{_hdr(title, subtitle)}<div class="dw">{svg}<div class="dlg">{leg}</div></div></div>'
     h = 60 + (14 if subtitle else 0) + max(132, 22 * len(all_its))
-    if parts: return inner, css, h
+    if parts: return inner, css, h + 22 * len(all_its) + 6   # +legenda: pada layar sempit/stack3 legenda berada di bawah donut
     return _bsg_frame(inner, css=css), h
 
 # ---------------------------------------------------------------- 5. kurva target ideal vs realisasi (JS, responsif) ----
@@ -722,11 +722,12 @@ __CHARTCSS__</style></head><body>
 var FN="__FNAME__";
 function fitTables(root){root.querySelectorAll('.pn-table').forEach(function(w){var t=w.querySelector('table');if(!t)return;t.style.zoom=1;t.style.width='max-content';
  var nat=t.getBoundingClientRect().width,av=w.clientWidth;if(nat>av+1){t.style.zoom=(av/nat).toFixed(4);}else{t.style.width=av+'px';}});}
-function fitHeight(){try{var c=document.getElementById('fit');var h=Math.ceil(c.getBoundingClientRect().height)+8;var fe=window.frameElement;
- if(fe&&Math.abs(fe.getBoundingClientRect().height-h)>2){fe.style.height=h+'px';fe.setAttribute('height',h);}}catch(e){}}
+function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&i<4){if(Math.abs(el.getBoundingClientRect().height-old)<=3)els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
+function fitHeight(){try{var c=document.getElementById('fit');setFrameH(Math.ceil(c.getBoundingClientRect().height)+8);}catch(e){}}
 function layout(){var pn=document.getElementById('pn');var W=document.getElementById('fit').clientWidth;pn.classList.toggle('narrow',W<820);fitTables(pn);fitHeight();}
 var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(layout,80);});
-layout();setTimeout(layout,250);setTimeout(layout,900);
+layout();setTimeout(layout,250);setTimeout(layout,900);setTimeout(layout,2000);
+try{if(window.ResizeObserver){var ro=new ResizeObserver(function(){clearTimeout(rt);rt=setTimeout(fitHeight,60);});ro.observe(document.getElementById('fit'));}}catch(e){}
 window.pnCap=async function(mode){
  var st=document.getElementById('st');st.style.color='#FFEA00';st.textContent='Memproses gambar HD...';
  try{
