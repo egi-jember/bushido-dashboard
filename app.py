@@ -1561,7 +1561,7 @@ def _ppt_scope(dlist, koor=None, label='', total_view=False):
     db_c = _sel(g.get('df_db_curr_g'), 'Nama_Dealer_Clean')
     s_c, s_l = _sel(g.get('df_spk_curr_g'), 'Nama_Dealer_SPK', 'Koor_SPK'), _sel(g.get('df_spk_lm_g'), 'Nama_Dealer_SPK', 'Koor_SPK')
     def _ek(df, e, col='Koor'): return df[df[col] == e] if (df is not None and not df.empty and col in df.columns) else pd.DataFrame()
-    tgt = get_koor_or_counter_target(koor, saved_tk) if koor else sum(safe_int(saved_td.get(d_, 0)) for d_ in dlist)
+    tgt = get_koor_or_counter_target(koor, saved_tk) if koor else sum((safe_int(saved_td.get(d_, 0)) if d_ in daftar_dealer else safe_int(_tj_nonkor().get(_nrm_dlr(d_), 0))) for d_ in dlist)
     r_p = calc_sales_row(label, _TP_KN, tgt, f_c, f_l, n_c, n_t); r_pr = calc_proses_row(label, _TP_KN, db_c, len(f_c), n_c); r_s = calc_leasing_row(label, s_c, s_l, _TP_KN)
     # --- entitas (koordinator / counter) ---
     ents = set()
@@ -2635,10 +2635,10 @@ CEK_TAB = '🔎 CEK DATA'
 JEMBER_TARGET_FILE = _ABS('jember_targets_saved.json')
 def jember_dealer_ok(n_x):
     u_x = str(n_x).strip().upper(); return u_x.startswith('SIP') or u_x.startswith('SENTRAL YAMAHA')
-MAIN_TABS, UPLOAD_TAB, MASTER_TAB = ['📊 DASHBOARD KPI', JEMBER_TAB, DEALER_TAB, CEK_TAB], '📁 UPLOAD FILE', '🎯 MASTER KPI'
+MAIN_TABS, UPLOAD_TAB, MASTER_TAB = [JEMBER_TAB, DEALER_TAB, '📊 DASHBOARD KPI', CEK_TAB], '📁 UPLOAD FILE', '🎯 MASTER KPI'
 UPLOAD_MENU = [UPLOAD_TAB, MASTER_TAB]
 if st.session_state.get('active_menu_tab') not in MAIN_TABS + UPLOAD_MENU:
-    st.session_state['active_menu_tab'] = '📊 DASHBOARD KPI'
+    st.session_state['active_menu_tab'] = DEALER_TAB   # default saat aplikasi dibuka
 if st.session_state.get('nav_main_radio') not in MAIN_TABS + [None]:
     del st.session_state['nav_main_radio']
 
@@ -3900,9 +3900,10 @@ def kpi_entity_dealer(ent):
     """Dealer (dari 7 dealer fokus) tempat koordinator/counter bertugas; None jika di luar 7 dealer fokus."""
     e = clean_str(ent)
     d = mapping_koor_dealer.get(e)
-    if d in daftar_dealer: return d
+    _dl_k = _kpi_dealers()
+    if d in _dl_k: return d
     n = normalize_dealer_name(e)
-    return n if n in daftar_dealer else None
+    return n if n in _dl_k else None
 
 _ACTIVE_DB_SM = None
 def get_active_db_salesmen():
@@ -3951,7 +3952,7 @@ _DLR_ROW_CACHE = {}
 def get_dealer_master_row(dealer):
     """T./R. MYDR & T./R. G REV dari baris dealer induk di tabel MASTER KPI Dealer (dipakai Koordinator & Counter)."""
     zero = {'T. MYDR': 0, 'R. MYDR': 0, 'T. G REV': 0, 'R. G REV': 0}
-    if not dealer or dealer not in daftar_dealer: return zero
+    if not dealer or dealer not in _kpi_dealers(): return zero
     ck = (dealer, json.dumps(saved_kpi.get('dealer', {}).get(dealer, {}), sort_keys=True), tanggal_akhir)
     if ck not in _DLR_ROW_CACHE:
         df_d, _ = build_kpi_section_df([dealer], 'NAMA DEALER', 'dealer', 'dealer')
@@ -3983,6 +3984,14 @@ def get_mds_dealer_list():
         if a_ in seen: continue
         seen.add(a_); out.append(n_)
     return out
+
+_KPI_DLR_CACHE = {}
+def _kpi_dealers():
+    """Seluruh dealer MDS (7 SIP inti + dealer MDS lain) — dipakai Dashboard KPI, Dashboard Dealer & CREATE PPT. Dihitung sekali per proses rerun."""
+    if 'v' not in _KPI_DLR_CACHE:
+        try: _KPI_DLR_CACHE['v'] = list(get_mds_dealer_list())
+        except Exception: _KPI_DLR_CACHE['v'] = list(daftar_dealer)
+    return list(_KPI_DLR_CACHE['v'])
 
 def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
     sec_saved = saved_kpi.get(section_key, {})
@@ -4115,14 +4124,11 @@ def kpi_point_generic(achv, min_acv, weight, split=0.5):
         return 0
 
 def kpi_point_grt(target, result, weight, scheme):
-    if scheme == 'DEALER':
-        if target >= 4.8 and result >= 4.8: return weight
-        if target >= 4.8 and result < target and result > 0: return int(math.ceil(weight * 0.5 - 1e-9))
-        if target < 4.8 and target > 0 and result >= target: return weight
-        return 0
+    """Google Rating — satu aturan untuk skema MDS & Dealer (dulu skema MDS salah: rating 0 / target 0 tetap dapat poin, dan rating >=4.8 dianggap setengah)."""
+    if target <= 0 or result <= 0: return 0
+    if target >= 4.8 and result >= 4.8: return weight
     if target >= 4.8 and result < target: return int(math.ceil(weight * 0.5 - 1e-9))
-    if result >= 4.8 and target >= 4.8: return weight
-    if result < 4.8 and result >= target: return weight
+    if target < 4.8 and result >= target: return weight
     return 0
 
 def kpi_score_entity(tr, scheme='MDS'):
@@ -4146,13 +4152,14 @@ def kpi_note(process): return '' if process >= 45 else ('CUT 30%' if process >= 
 
 def get_dashboard_kpi_inputs():
     """Target & Result per KPI. STU/MAX/CLS/SAL/APV/INC/MYD/GRV dari MASTER KPI; OPR/MYM/GRT/OPS dari input manual."""
-    df_it, df_fl = build_kpi_section_df(daftar_dealer, 'NAMA DEALER', 'dealer', 'dealer')
+    _dl_all = _kpi_dealers()
+    df_it, df_fl = build_kpi_section_df(_dl_all, 'NAMA DEALER', 'dealer', 'dealer')
     man = load_json(KPI_MANUAL_FILE)
     man_d, man_ops = man.get('dealers', {}), {**DEFAULT_KPI_OPS, **man.get('ops', {})}
     ops_pair = (safe_float(man_ops.get('T. OPS')), safe_float(man_ops.get('R. OPS')))
     inputs = {}
     def _g(r_x, k_x): return safe_float(r_x[k_x]) if r_x is not None else 0.0
-    for d in daftar_dealer:
+    for d in _dl_all:
         mv = {**DEFAULT_KPI_MANUAL.get(d, {}), **man_d.get(d, {})}
         r = df_it[df_it['NAMA DEALER'] == d].iloc[0] if (df_it is not None and not df_it.empty and d in df_it['NAMA DEALER'].values) else None
         inputs[d] = {'STU': (_g(r, 'T. STU'), _g(r, 'R. STU')), 'MAX': (_g(r, 'T. MAXI'), _g(r, 'R. MAXI')), 'CLS': (_g(r, 'T. CLASSY'), _g(r, 'R. CLASSY')),
@@ -4161,10 +4168,11 @@ def get_dashboard_kpi_inputs():
                      'MYM': (safe_float(mv.get('T. MYM')) / 100.0, safe_float(mv.get('R. MYM')) / 100.0), 'MYD': (_g(r, 'T. MYDR'), _g(r, 'R. MYDR')),
                      'GRT': (safe_float(mv.get('T. GRT')), safe_float(mv.get('R. GRT'))), 'GRV': (_g(r, 'T. G REV'), _g(r, 'R. G REV')), 'OPS': ops_pair}
     rt = df_fl[df_fl['NAMA DEALER'] == 'TOTAL'].iloc[0] if (df_fl is not None and not df_fl.empty and 'TOTAL' in df_fl['NAMA DEALER'].values) else None
-    ds = list(daftar_dealer)
-    stu_w = [max(inputs[d]['STU'][1], 0.0) for d in ds]
-    def _mean(idx, pos): return sum(inputs[d][idx][pos] for d in ds) / len(ds)
-    mym_r = (sum(inputs[d]['MYM'][1] * w for d, w in zip(ds, stu_w)) / sum(stu_w)) if sum(stu_w) > 0 else _mean('MYM', 1)
+    ds = list(_dl_all)
+    ds_t = [d for d in ds if inputs[d]['GRT'][0] > 0 or inputs[d]['MYM'][0] > 0] or ds   # rata-rata MYM & GRT hanya dari dealer yang punya target
+    stu_w = [max(inputs[d]['STU'][1], 0.0) for d in ds_t]
+    def _mean(idx, pos): return sum(inputs[d][idx][pos] for d in ds_t) / len(ds_t)
+    mym_r = (sum(inputs[d]['MYM'][1] * w for d, w in zip(ds_t, stu_w)) / sum(stu_w)) if sum(stu_w) > 0 else _mean('MYM', 1)
     inputs['TOTAL BUSHIDO'] = {'STU': (_g(rt, 'T. STU'), _g(rt, 'R. STU')), 'MAX': (_g(rt, 'T. MAXI'), _g(rt, 'R. MAXI')), 'CLS': (_g(rt, 'T. CLASSY'), _g(rt, 'R. CLASSY')),
                      'OPR': (sum(inputs[d]['OPR'][0] for d in ds), sum(inputs[d]['OPR'][0] for d in ds)), 'SAL': (_g(rt, 'T. MP'), _g(rt, 'R. MP')),
                      'APV': (_g(rt, 'T. ACC%') / 100.0, _g(rt, 'R. ACC%') / 100.0), 'INC': (_g(rt, 'T. INC'), _g(rt, 'R. INC')),
@@ -4183,7 +4191,7 @@ def bsg_kpi_capture_html(sel_dash):
     """HTML Dashboard KPI (tanpa tabel ranking) — sama dengan isi tombol Download JPG di menu DASHBOARD KPI."""
     scheme = 'MDS' if sel_dash == 'TOTAL BUSHIDO' else 'DEALER'
     inputs = get_dashboard_kpi_inputs(); rows_s, s_s, p_s, t_s = kpi_score_entity(inputs[sel_dash], scheme); d_tbl = []
-    for d_k in daftar_dealer:
+    for d_k in _kpi_dealers():
         r_k, s_k, p_k, t_k = kpi_score_entity(inputs[d_k], scheme)
         d_tbl.append({'name': d_k, 'code': KPI_DEALER_CODES.get(d_k, '-'), 'point': t_k, 'grade': kpi_grade(t_k), 'sales': s_k, 'process': p_k, 'achv': {c: r_k[c]['achv'] for c in KPI_CODES}, 'note': kpi_note(p_k)})
     d_tbl.sort(key=lambda x_d: (-x_d['point'], -x_d['process']))
@@ -4280,7 +4288,7 @@ def bsg_ppt_kpi_payload(sel_dash):
     inputs = get_dashboard_kpi_inputs()
     rows_s, s_s, p_s, t_s = kpi_score_entity(inputs[sel_dash], scheme)
     d_tbl = []
-    for d_k in daftar_dealer:
+    for d_k in _kpi_dealers():
         r_k, s_k, p_k, t_k = kpi_score_entity(inputs[d_k], scheme)
         d_tbl.append({'name': d_k, 'code': KPI_DEALER_CODES.get(d_k, '-'), 'point': t_k, 'grade': kpi_grade(t_k), 'sales': s_k, 'process': p_k, 'achv': {c: r_k[c]['achv'] for c in KPI_CODES}, 'note': kpi_note(p_k)})
     d_tbl.sort(key=lambda x_d: (-x_d['point'], -x_d['process']))
@@ -4301,7 +4309,7 @@ def bsg_ppt_for_dealer(sel_dash, tpl_bytes=None, images=None):
     """Bangun PPT dari TEMPLATE_PPT_BUSHIDO.pptx untuk dealer terpilih (atau TOTAL BUSHIDO). Return (bytes, nama_file, daftar_peringatan)."""
     src = tpl_bytes or _tp_find_template()
     if src is None: raise FileNotFoundError(f'File template {_TPL_NAME} tidak ditemukan. Letakkan di folder yang sama dengan app.py (root repo GitHub) atau unggah lewat kotak "Template PPT" di bawah tombol.')
-    is_total = (sel_dash == 'TOTAL BUSHIDO'); dlist = list(daftar_dealer) if is_total else [sel_dash]
+    is_total = (sel_dash == 'TOTAL BUSHIDO'); dlist = _kpi_dealers() if is_total else [sel_dash]
     tgl = int(tanggal_akhir); tgl_s = 30 if tgl > 21 else min(30, tgl + 7)
     sisa = max(1, sum(1 for d_n in range(tgl + 1, min(tgl_s, max_day_in_month) + 1) if is_workday_day(d_n))); pct_s = tabel_target_harian.get(tgl_s, 100.0) / 100.0
     H = dict(tgl_sasaran=tgl_s, timeline=f'S.d Tgl {tgl_s} {periode_bulan_tahun} ({sisa} hari kerja)')
@@ -4542,7 +4550,7 @@ def get_focus_entities():
         if d_s is not None and ck in d_s.columns:
             ent_all.update(clean_str(k) for k in d_s[ck].dropna().unique() if clean_str(k) and clean_str(k) not in ['LAIN-LAIN', 'NAN', 'NONE'])
     focus = [e for e in ent_all - get_resigned_koor() if kpi_entity_dealer(e)]
-    key_fn = lambda e: (daftar_dealer.index(kpi_entity_dealer(e)), e)
+    _dl_f = _kpi_dealers(); key_fn = lambda e: (_dl_f.index(kpi_entity_dealer(e)), e)
     return sorted([e for e in focus if not e.upper().startswith('COUNTER')], key=key_fn), sorted([e for e in focus if e.upper().startswith('COUNTER')], key=key_fn)
 
 def render_entity_kpi_dashboard(kind, entities, title_txt, sel_key, date_lbl, date_short):
@@ -4635,7 +4643,7 @@ def bsg_render_stu_per_leasing_faktur():
             full_rows_stu_lsg.append(calc_stu_per_leasing_row(area_name, d_list))
 
         full_rows_stu_lsg.append(calc_stu_per_leasing_row('TOTAL JEMBER', ALL_28_DEALERS))
-        row_tot_bushido = calc_stu_per_leasing_row('TOTAL BUSHIDO', daftar_dealer)
+        row_tot_bushido = calc_stu_per_leasing_row('TOTAL BUSHIDO', _kpi_dealers())
         full_rows_stu_lsg.append(row_tot_bushido)
 
         kredit_bushido_c, kredit_bushido_l = safe_int(row_tot_bushido.get('KREDIT', 0)), safe_int(row_tot_bushido.get('KREDIT LM', 0))
@@ -4706,7 +4714,7 @@ def _jb_read_nota(path_x, mt_x, lk_mt_x=0.0):   # lk_mt_x = waktu ubah Data Look
 DD_V_DASH, DD_V_PPT, DD_V_AN = '📊 DASHBOARD', '📑 CREATE PPT', '🧠 ANALISA PROBLEM & PERBAIKAN'
 _dd_view = DD_V_DASH
 if menu_pilihan == DEALER_TAB:   # sub menu Dashboard Dealer: CREATE PPT (semua pengguna) & Analisa Problem dan Perbaikan (hanya kode akses SPV)
-    _dd_opts = [DD_V_DASH, DD_V_PPT] + ([DD_V_AN] if IS_SPV else [])
+    _dd_opts = [DD_V_DASH] + ([DD_V_PPT] if st.session_state.get('dd_view_sel') == DD_V_PPT else []) + ([DD_V_AN] if IS_SPV else [])   # CREATE PPT kini tab di samping MAN POWER; halaman lengkap hanya muncul bila dibuka dari tab itu
     if st.session_state.get('dd_view_sel') not in _dd_opts: st.session_state.pop('dd_view_sel', None)
     _dd_view = bsg_segmented('Sub menu Dashboard Dealer', _dd_opts, 'dd_view_sel')
     if _dd_view == DD_V_AN and not IS_SPV: _dd_view = DD_V_DASH
@@ -4911,7 +4919,7 @@ if menu_pilihan == '🎯 MASTER KPI':
 elif menu_pilihan == '📊 DASHBOARD KPI':
     st.markdown(f'<div class="main-title">DASHBOARD KPI (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Laporan Key Performance Indicator — poin, grade & capaian tiap KPI (Target & Result dari MASTER KPI)</div>', unsafe_allow_html=True)
     col_d1, col_d2 = st.columns([1, 2])
-    with col_d1: sel_dash = st.selectbox('🏢 Pilih Dealer:', ['TOTAL BUSHIDO'] + daftar_dealer, index=0, key='sel_dash_kpi')
+    with col_d1: sel_dash = st.selectbox('🏢 Pilih Dealer:', ['TOTAL BUSHIDO'] + _kpi_dealers(), index=0, key='sel_dash_kpi')
     # Bobot otomatis: TOTAL BUSHIDO -> bobot MDS (sesuai gambar) | pilih dealer -> bobot Dealer (sesuai Excel R-MDS)
     scheme_dash = 'MDS' if sel_dash == 'TOTAL BUSHIDO' else 'DEALER'
     with col_d2:
@@ -4923,7 +4931,7 @@ elif menu_pilihan == '📊 DASHBOARD KPI':
     man_ops_cur = {**DEFAULT_KPI_OPS, **man_cur.get('ops', {})}
     with st.expander('✏️ Input KPI Manual — OPR, MYM, GRT & OPS (belum ada di MASTER KPI)'):
         st.caption('Nilai awal diambil dari file KPI Report (15 Okt 2026). Update sesuai data terbaru lalu klik Simpan. MYM dalam persen (contoh 97.5). OPS bersifat level supervisor dan dipakai untuk semua pilihan.')
-        df_man = pd.DataFrame([{'DEALER': d, **{k: safe_float(({**DEFAULT_KPI_MANUAL.get(d, {}), **man_d_cur.get(d, {})}).get(k, 0)) for k in KPI_MANUAL_COLS}} for d in daftar_dealer])
+        df_man = pd.DataFrame([{'DEALER': d, **{k: safe_float(({**DEFAULT_KPI_MANUAL.get(d, {}), **man_d_cur.get(d, {})}).get(k, 0)) for k in KPI_MANUAL_COLS}} for d in _kpi_dealers()])
         cfg_man = {'DEALER': st.column_config.TextColumn('DEALER', width='medium')}
         for k in KPI_MANUAL_COLS: cfg_man[k] = st.column_config.NumberColumn(k, format='%.2f' if ('MYM' in k or 'GRT' in k) else '%d')
         ed_man = st.data_editor(df_man, hide_index=True, use_container_width=True, disabled=['DEALER'], column_config=cfg_man, key='editor_kpi_manual')
@@ -4960,7 +4968,7 @@ elif menu_pilihan == '📊 DASHBOARD KPI':
     inputs_dash = get_dashboard_kpi_inputs()
     rows_sel, s_sel, p_sel, t_sel = kpi_score_entity(inputs_dash[sel_dash], scheme_dash)
     dealer_tbl = []
-    for d_k in daftar_dealer:
+    for d_k in _kpi_dealers():
         r_k, s_k, p_k, t_k = kpi_score_entity(inputs_dash[d_k], scheme_dash)
         dealer_tbl.append({'name': d_k, 'code': KPI_DEALER_CODES.get(d_k, '-'), 'point': t_k, 'grade': kpi_grade(t_k), 'sales': s_k, 'process': p_k, 'achv': {c: r_k[c]['achv'] for c in KPI_CODES}, 'note': kpi_note(p_k)})
     dealer_tbl.sort(key=lambda x_d: (-x_d['point'], -x_d['process']))
@@ -5055,7 +5063,11 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB) and _dd_view == DD_V_DASH:
                 return d_
             _dd_srcs = [(_jf_unf, '_jb', False), (df_database_alldlr, 'Nama_Dealer_Clean', True), (df_spk_alldlr, 'Nama_Dealer_SPK', True)]
             _dd_c1, _dd_c2, _dd_c3 = st.columns(3)
-            with _dd_c1: _dd_dealer = st.selectbox('🏢 Pilih Dealer:', ['SEMUA DEALER'] + sorted(_jf_unf['_jb'].unique()), index=0, key='dd_sel_dealer')
+            _dd_all_dlr, _dd_seen = [], set()   # semua dealer MDS: Data Lookup (STATUS=MDS) + 7 SIP inti + dealer yang ada di Faktur/Database/SPK
+            for _n_dd in list(get_mds_dealer_list()) + list(_jf_unf['_jb'].unique()):
+                _n_dd = _nrm_dlr(_n_dd); _a_dd = alnum_str(_n_dd)
+                if _n_dd and _a_dd not in _dd_seen and is_mds_dealer(_n_dd): _dd_seen.add(_a_dd); _dd_all_dlr.append(_n_dd)
+            with _dd_c1: _dd_dealer = st.selectbox('🏢 Pilih Dealer:', ['SEMUA DEALER'] + sorted(_dd_all_dlr), index=0, key='dd_sel_dealer')
             _dd_ent = set()
             for ds_, dc_, pm_ in _dd_srcs:
                 d_ = _dd_rows(ds_, dc_, pm_)
@@ -5162,7 +5174,8 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB) and _dd_view == DD_V_DASH:
         if not rows_jb:
             st.info('ℹ️ Tidak ada data dealer SIP / SENTRAL YAMAHA pada periode ini.')
         else:
-            jt_pj, jt_pr, jt_ak, jt_sl, jt_mp = st.tabs(['💰 PENJUALAN', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '👥 MAN POWER'])   # sub-menu Dashboard Jember
+            _jt_all = st.tabs(['💰 PENJUALAN', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '👥 MAN POWER'] + (['📑 CREATE PPT'] if _dd_mode else []))   # sub-menu Dashboard Jember / Dealer (+ CREATE PPT di samping MAN POWER)
+            jt_pj, jt_pr, jt_ak, jt_sl, jt_mp = _jt_all[:5]; jt_ppt = _jt_all[5] if _dd_mode else None
             for r_ in rows_jb: r_['_lm_val'] = (r_['STU'] / r_['STU LM'] * 100.0) if r_['STU LM'] > 0 else -1.0
             df_jb = pd.DataFrame(rows_jb); df_jb['_nt0'] = (df_jb['TARGET'] <= 0)
             df_jb = df_jb.sort_values(by=['_nt0', '_pct', 'STU'], ascending=[True, True, True]).reset_index(drop=True)   # tabel: STU/TARGET terjelek -> terbaik (tanpa target di bawah)
@@ -5733,16 +5746,48 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB) and _dd_view == DD_V_DASH:
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
                 bsg_panel_table(df_mp_jb_i, df_mp_jb_f, kol_mp_jb, _NM_COL, '_mph', 'Jember_Man_Power_MDS', jdl_jb_mp, _jb_mp_charts, (), layout='sidecmx', chart_cols='repeat(2,minmax(0,1fr))', grid_cols='max-content minmax(0,1fr)', bottom_fn=lambda: [_jb_mp_grade_pies()], bottom_cols='minmax(0,1fr)')
                 st.caption('ℹ️ Result STU = STU dealer periode berjalan. Productivity = Result STU ÷ Jumlah MP. MP Health = Target STU MP ÷ Target Dealer (ideal 120%). Productivity Health = Productivity ÷ (Target STU MP ÷ Jumlah MP) (ideal 80%). Grading MP dari file Master Employee kolom Posisi (PLATINUM / GOLD / TRAINING); counter tidak dihitung dan MP yang posisinya bukan ketiga grade itu tidak masuk pie.')
+            if jt_ppt is not None:
+                with jt_ppt:
+                    _pp_dealer = 'TOTAL BUSHIDO' if _dd_dealer == 'SEMUA DEALER' else _dd_dealer
+                    st.markdown(f'<div class="section-title">CREATE PPT — {"SEMUA DEALER MDS" if _pp_dealer == "TOTAL BUSHIDO" else _pp_dealer} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
+                    st.caption(f'PowerPoint review dibuat untuk **{"seluruh dealer MDS (TOTAL BUSHIDO)" if _pp_dealer == "TOTAL BUSHIDO" else _pp_dealer}** mengikuti dropdown 🏢 Pilih Dealer di atas — semua dealer MDS bisa dipilih. Template: {_TPL_NAME}.')
+                    _pp_c1, _pp_c2 = st.columns([1, 3])
+                    with _pp_c1: _pp_click = st.button('📑 CREATE PPT', key='btn_create_ppt_tab', type='primary', use_container_width=True, help=f'Buat PowerPoint untuk: {_pp_dealer}')
+                    _pp_slot = st.container()
+                    _pp_tpl = st.file_uploader(f'Template PPT tidak ditemukan di folder app — unggah {_TPL_NAME}', type=['pptx'], key='ppt_tpl_up_tab') if _tp_find_template() is None else None
+                    with st.expander('🖼️ Opsional — gambar dashboard agar tampilan PPT identik dengan dashboard'):
+                        st.caption('Tanpa gambar, slide memakai tabel otomatis. Untuk gambar dashboard lengkap (ZIP hasil Download SEMUA gambar) buka halaman lengkap di bawah, unduh ZIP-nya, lalu unggah di sini.')
+                        _pp_imgs = st.file_uploader('Unggah file ZIP (atau JPG/PNG)', type=['zip', 'jpg', 'jpeg', 'png'], accept_multiple_files=True, key='ppt_imgs_up_tab')
+                        st.button('🖼️ Buka halaman lengkap (Download SEMUA gambar)', key='btn_open_ppt_full', on_click=lambda: st.session_state.update({'dd_view_sel': DD_V_PPT}))
+                    if _pp_click:
+                        with _pp_slot:
+                            with st.spinner(f'Menyusun PowerPoint {_pp_dealer}…'):
+                                try:
+                                    _pp_b, _pp_n, _pp_w = bsg_ppt_for_dealer(_pp_dealer, _pp_tpl.getvalue() if _pp_tpl is not None else None, _ppt_collect_images(_pp_imgs))
+                                    st.session_state['ppt_file_tab'] = (_pp_n, _pp_b, _pp_dealer, _pp_w)
+                                except ImportError as _e_imp:
+                                    st.session_state['ppt_file_tab'] = None
+                                    st.error(f'Library untuk membuat PowerPoint belum bisa dimuat: **{_e_imp}**. Pasang `python-pptx` (di Streamlit Cloud: tambahkan ke requirements.txt lalu Reboot app).')
+                                except FileNotFoundError as _e_nf:
+                                    st.session_state['ppt_file_tab'] = None; st.error(str(_e_nf))
+                                except Exception as _e_ppt:
+                                    st.session_state['ppt_file_tab'] = None; st.error(f'Gagal membuat PPT: {_e_ppt}')
+                    _pp_saved = st.session_state.get('ppt_file_tab')
+                    if _pp_saved and len(_pp_saved) > 2 and _pp_saved[2] == _pp_dealer:
+                        with _pp_slot:
+                            st.download_button('⬇️ Unduh PPT', data=_pp_saved[1], file_name=_pp_saved[0], mime='application/vnd.openxmlformats-officedocument.presentationml.presentation', use_container_width=True, key='dl_ppt_tab')
+                            st.caption(_pp_saved[0])
+                            for _w in (_pp_saved[3] if len(_pp_saved) > 3 else []): (st.info if _w.startswith('ℹ️') else st.warning)(_w)
 
 
 
 elif menu_pilihan == DEALER_TAB and _dd_view in (DD_V_PPT, DD_V_AN):   # fasilitas CREATE PPT & Analisa (dulu di menu STU) kini di Dashboard Dealer
     bsg_render_running_text()
     col_sel_d, col_sel_k, col_sel_s = st.columns(3)
-    with col_sel_d: dlr_pil = st.selectbox('🏢 Pilih Dealer untuk Review:', ['TOTAL BUSHIDO'] + daftar_dealer, index=0)
+    with col_sel_d: dlr_pil = st.selectbox('🏢 Pilih Dealer untuk Review:', ['TOTAL BUSHIDO'] + _kpi_dealers(), index=0)
     _ppt_dealer = dlr_pil   # dealer murni dari dropdown (sebelum label ditambah koordinator) → dasar isi PPT
     is_total = (dlr_pil == 'TOTAL BUSHIDO')
-    dlr_list = daftar_dealer if is_total else [dlr_pil]
+    dlr_list = _kpi_dealers() if is_total else [dlr_pil]
 
     # --- Dropdown ke-2: filter Koordinator / Counter (default ALL = seluruh tim dealer) ---
     _opt_ent = set()
@@ -5864,11 +5909,11 @@ elif menu_pilihan == DEALER_TAB and _dd_view in (DD_V_PPT, DD_V_AN):   # fasilit
     # Frame tampilan Tabel 1-3: jika TOTAL BUSHIDO, baris = per Dealer (kolom sama dengan tabel Koordinator)
     if is_total:
         def _dsub(df_x, col_x, d_x): return df_x[df_x[col_x] == d_x] if (df_x is not None and not df_x.empty and col_x in df_x.columns) else pd.DataFrame()
-        rp_d = [calc_sales_row(d, kol_nm, safe_int(saved_td.get(d, 0)), _dsub(f_c, 'Nama Dealer', d), _dsub(f_l, 'Nama Dealer', d), _dsub(n_c, cd_nota, d), _dsub(n_t, cd_nota, d)) for d in daftar_dealer]
+        rp_d = [calc_sales_row(d, kol_nm, safe_int(saved_td.get(d, 0)), _dsub(f_c, 'Nama Dealer', d), _dsub(f_l, 'Nama Dealer', d), _dsub(n_c, cd_nota, d), _dsub(n_t, cd_nota, d)) for d in _kpi_dealers()]
         df_p_disp = pd.DataFrame(rp_d).sort_values(by=['_pct', 'STU'], ascending=[True, True]).reset_index(drop=True)
-        rpr_d = [calc_proses_row(d, kol_nm, _dsub(db_c, 'Nama_Dealer_Clean', d), len(_dsub(f_c, 'Nama Dealer', d)), _dsub(n_c, cd_nota, d)) for d in daftar_dealer]
+        rpr_d = [calc_proses_row(d, kol_nm, _dsub(db_c, 'Nama_Dealer_Clean', d), len(_dsub(f_c, 'Nama Dealer', d)), _dsub(n_c, cd_nota, d)) for d in _kpi_dealers()]
         df_pr_disp = pd.DataFrame(rpr_d).sort_values(by=['_stu_pct', 'STU'], ascending=[True, True]).reset_index(drop=True)
-        rs_d = [calc_leasing_row(d, _dsub(s_c, 'Nama_Dealer_SPK', d), _dsub(s_l, 'Nama_Dealer_SPK', d), kol_nm) for d in daftar_dealer]
+        rs_d = [calc_leasing_row(d, _dsub(s_c, 'Nama_Dealer_SPK', d), _dsub(s_l, 'Nama_Dealer_SPK', d), kol_nm) for d in _kpi_dealers()]
         df_s_disp = pd.DataFrame(rs_d).sort_values(by=['_acc_val', '_spk_val'], ascending=[True, True]).reset_index(drop=True)
     else:
         df_p_disp, df_pr_disp, df_s_disp = df_p_it, df_pr_it, df_s_it
@@ -5883,12 +5928,12 @@ elif menu_pilihan == DEALER_TAB and _dd_view in (DD_V_PPT, DD_V_AN):   # fasilit
         return n_spk, f'{acc_x:.2f}%'
     r_tot_pr_disp = dict(r_tot_pr)
     if is_total:
-        _pr_spk = {d_x: _spk_acc_vals(_dsub(s_c, 'Nama_Dealer_SPK', d_x)) for d_x in daftar_dealer}
+        _pr_spk = {d_x: _spk_acc_vals(_dsub(s_c, 'Nama_Dealer_SPK', d_x)) for d_x in _kpi_dealers()}
         df_pr_disp = df_pr_disp.copy()
         df_pr_disp['SPK'] = df_pr_disp[kol_nm].map(lambda x_n: _pr_spk.get(x_n, (0, '0.00%'))[0])
         df_pr_disp['ACC%'] = df_pr_disp[kol_nm].map(lambda x_n: _pr_spk.get(x_n, (0, '0.00%'))[1])
         r_tot_pr_disp['SPK'], r_tot_pr_disp['ACC%'] = _spk_acc_vals(s_c)
-        _lm_d = {d_x: len(_dsub(s_l, 'Nama_Dealer_SPK', d_x)) for d_x in daftar_dealer}
+        _lm_d = {d_x: len(_dsub(s_l, 'Nama_Dealer_SPK', d_x)) for d_x in _kpi_dealers()}
         _grw = lambda a_c, a_l: f'{(a_c / a_l * 100.0):.2f}%' if a_l > 0 else '0.00%'
         df_pr_disp['SPK LM'] = df_pr_disp[kol_nm].map(lambda x_n: _lm_d.get(x_n, 0))
         df_pr_disp['GROWTH'] = df_pr_disp[kol_nm].map(lambda x_n: _grw(_pr_spk.get(x_n, (0, ''))[0], _lm_d.get(x_n, 0)))
@@ -6323,7 +6368,7 @@ elif menu_pilihan == DEALER_TAB and _dd_view in (DD_V_PPT, DD_V_AN):   # fasilit
                 kt_n = str(tr_row['TYPE'])
                 r_type = tr_row.to_dict(); r_type['_row_ratio'] = float('nan')
                 rows_t_full.append(r_type)
-                di_t, _, _ = build_type_table(f_cg[f_cg['Type_Grp'] == kt_n] if not f_cg.empty else pd.DataFrame(), f_lg[f_lg['Type_Grp'] == kt_n] if not f_lg.empty else pd.DataFrame(), db_cg[db_cg['Type_Grp'] == kt_n] if not db_cg.empty else pd.DataFrame(), s_cg[s_cg['Type_Grp'] == kt_n] if not s_cg.empty else pd.DataFrame(), [(d_x, 'Nama Dealer', 'Nama_Dealer_Clean', 'Nama_Dealer_SPK') for d_x in daftar_dealer], 'TYPE', sort_by_growth=True)
+                di_t, _, _ = build_type_table(f_cg[f_cg['Type_Grp'] == kt_n] if not f_cg.empty else pd.DataFrame(), f_lg[f_lg['Type_Grp'] == kt_n] if not f_lg.empty else pd.DataFrame(), db_cg[db_cg['Type_Grp'] == kt_n] if not db_cg.empty else pd.DataFrame(), s_cg[s_cg['Type_Grp'] == kt_n] if not s_cg.empty else pd.DataFrame(), [(d_x, 'Nama Dealer', 'Nama_Dealer_Clean', 'Nama_Dealer_SPK') for d_x in _kpi_dealers()], 'TYPE', sort_by_growth=True)
                 if di_t.empty: continue
                 di_t = _add_tgt(di_t, lambda nm, _k=kt_n: int(round(safe_int(saved_td.get(nm, 0)) * TYPE_TGT_PCT.get(_k, 0) / 100.0)))
                 g_min, g_max = float(di_t['_growth_val'].min()), float(di_t['_growth_val'].max())
