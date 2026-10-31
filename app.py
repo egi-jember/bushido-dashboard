@@ -2844,9 +2844,27 @@ def smart_text_to_columns(df):
                     return df_split
     return df
 
+def _read_table_safe(fpath):
+    """Baca file Excel/CSV dengan beberapa cara; file kosong / rusak / bukan Excel (mis. file sementara ~$) -> DataFrame kosong, bukan membuat aplikasi error."""
+    import os as _os
+    try:
+        if _os.path.basename(fpath).startswith('~$') or _os.path.getsize(fpath) == 0: return pd.DataFrame()
+    except Exception: return pd.DataFrame()
+    low = fpath.lower()
+    attempts = ([lambda: pd.read_csv(fpath, header=None), lambda: pd.read_csv(fpath, header=None, sep=None, engine='python', encoding='latin-1')] if low.endswith(('.csv', '.txt'))
+                else [lambda: pd.read_excel(fpath, header=None), lambda: pd.read_excel(fpath, header=None, engine='openpyxl'), lambda: pd.read_excel(fpath, header=None, engine='xlrd'),
+                      lambda: pd.read_csv(fpath, header=None, sep=None, engine='python', encoding='latin-1'), lambda: pd.read_html(fpath, header=None)[0]])
+    for fn_ in attempts:
+        try:
+            d_ = fn_()
+            if d_ is not None and not d_.empty: return d_
+        except Exception: continue
+    return pd.DataFrame()
+
 @st.cache_data(show_spinner=False)
 def read_single_rating_file_cached(fpath, mtime):
-    df_raw = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+    df_raw = _read_table_safe(fpath)
+    if df_raw is None or df_raw.empty: return pd.DataFrame()
     df_raw = smart_text_to_columns(df_raw)
     if df_raw is None or df_raw.empty: return pd.DataFrame()
     rating_markers = ['KODE DEALER', 'DEALER CODE', 'POINT CODE', 'POINT NAME', 'CUSTOMER NAME', 'NAMA CUSTOMER', 'NAMA KONSUMEN', 'RATING', 'REVIEW', 'STAR', 'BINTANG', 'SCORE', 'NILAI', 'SALESMAN', 'NAMA SALES', 'NAMA PEGAWAI', 'PRAMUNIAGA', 'TANGGAL', 'DATE', 'PROSPECT DATE']
