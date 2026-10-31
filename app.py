@@ -256,14 +256,14 @@ _BSG_FRAME = """<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:transparent;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;color:#1E3A8A}
 .card{background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-radius:12px;padding:12px 14px 10px 14px;width:100%}
-.ttl{font-size:14px;font-weight:800;color:#1E3A8A;line-height:1.25}
-.sub{font-size:11.5px;color:#3B5BC8;margin:2px 0 8px 0;line-height:1.4}
-.lg{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#3B5BC8;margin:0 12px 6px 0}
+.ttl{font-size:15px;font-weight:800;color:#1E3A8A;line-height:1.25}
+.sub{font-size:12.5px;color:#3B5BC8;margin:2px 0 8px 0;line-height:1.4}
+.lg{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#3B5BC8;margin:0 12px 6px 0}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .mk{display:inline-block;width:3px;height:11px;background:#DC2626;opacity:1}
 .ds{display:inline-block;width:16px;height:0;border-top:2px dashed #94A3B8}
-.chip{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#EAF0FF;border:1px solid #8FA8F0;margin:0 6px 6px 0;color:#1E3A8A}
-#tip{position:fixed;left:0;top:0;pointer-events:none;background:#FFFFFF;border:1px solid #8FA8F0;border-radius:8px;padding:6px 9px;font-size:12px;line-height:1.5;opacity:0;transition:opacity .08s;z-index:99;max-width:280px;color:#1E3A8A}
+.chip{display:inline-block;font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#EAF0FF;border:1px solid #8FA8F0;margin:0 6px 6px 0;color:#1E3A8A}
+#tip{position:fixed;left:0;top:0;pointer-events:none;background:#FFFFFF;border:1px solid #8FA8F0;border-radius:8px;padding:6px 9px;font-size:13px;line-height:1.5;opacity:0;transition:opacity .08s;z-index:99;max-width:280px;color:#1E3A8A}
 @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 __CSS__
 </style></head><body>__INNER__<div id="tip"></div>
@@ -295,13 +295,13 @@ def _hdr(title, subtitle=''):
     return f'<div class="ttl">{_esc(title)}</div>' + (f'<div class="sub">{_esc(subtitle)}</div>' if subtitle else '<div style="height:8px"></div>')
 
 # ---------------------------------------------------------------- 1. ranking bar horizontal ----
-_RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:26px}
-.rk-n{flex:0 0 36%;max-width:215px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1E3A8A}
+_RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
+.rk-n{flex:0 0 36%;max-width:215px;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1E3A8A}
 .rk-t{position:relative;flex:1;height:14px;border-radius:7px;background:#EAF0FF}
 .rk-f{height:100%;border-radius:7px;transform-origin:left center;animation:grow .7s ease-out both}
 .rk-m{position:absolute;top:-3px;bottom:-3px;width:3px;background:#DC2626;opacity:1;border-radius:1px;z-index:2}
-.rk-v{flex:0 0 58px;text-align:right;font-size:12px;font-weight:800}
-.rk-x{flex:0 0 24px;text-align:right;font-size:12px;font-weight:800;color:#F97316}
+.rk-v{flex:0 0 64px;text-align:right;font-size:13.5px;font-weight:800}
+.rk-x{flex:0 0 26px;text-align:right;font-size:13px;font-weight:800;color:#F97316}
 .rk:hover .rk-t{background:#EAF0FF}
 .rk:hover .rk-n{color:#4318FF}
 .ttl-r{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
@@ -339,7 +339,7 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
         hdr = (f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div>'
                + (f'<div class="sub">{_esc(subtitle)}</div>' if subtitle else '<div style="height:8px"></div>'))
     inner = f'<div class="card">{hdr}{leg}{body}</div>'
-    h = 59 + (22 if leg else 0) + (14 if subtitle else 0) + 26 * len(rows)
+    h = 62 + (24 if leg else 0) + (14 if subtitle else 0) + 28 * len(rows)
     if parts: return inner, _RANK_CSS, h
     return _bsg_frame(inner, css=_RANK_CSS), h
 
@@ -360,15 +360,15 @@ def bsg_chart_funnel(title, subtitle, stages):
         body += (f'<div class="fn-r" data-tip="{_esc(tip)}"><div class="fn-l" title="{_esc(l)}">{_esc(l)}</div><div class="fn-t">'
                  f'<div class="fn-b" style="width:{w:.1f}%;background:linear-gradient(90deg,{c},{c}CC);animation-delay:{i * 90}ms">{int(v):,}</div></div></div>')
     css = (".fn-r{display:flex;align-items:center;gap:8px;height:28px}"
-           ".fn-l{flex:0 0 38%;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1E3A8A}"
+           ".fn-l{flex:0 0 38%;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1E3A8A}"
            ".fn-t{flex:1;display:flex;justify-content:center}"
-           ".fn-b{height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#FFFFFF;font-size:12.5px;font-weight:900;"
+           ".fn-b{height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#FFFFFF;font-size:14px;font-weight:900;"
            "transform-origin:center;animation:grow .6s ease-out both;white-space:nowrap;min-width:46px}"
            ".fn-r:hover .fn-b{filter:brightness(1.18)}"
-           ".fn-c{margin-left:calc(38% + 8px);text-align:center;font-size:10.5px;color:#3B5BC8;height:16px;line-height:16px}")
+           ".fn-c{margin-left:calc(38% + 8px);text-align:center;font-size:12px;color:#3B5BC8;height:18px;line-height:18px}")
     inner = f'<div class="card">{_hdr(title, subtitle)}{body}</div>'
     n = len(st_)
-    return _bsg_frame(inner, css=css), 60 + (14 if subtitle else 0) + n * 28 + (n - 1) * 16
+    return _bsg_frame(inner, css=css), 62 + (14 if subtitle else 0) + n * 28 + (n - 1) * 18
 
 # ---------------------------------------------------------------- 3. heatmap ----
 def _bsg_heat_color(s):
@@ -386,9 +386,9 @@ def bsg_chart_heat(title, subtitle, row_names, col_names, cells, max_rows=24):
     subtitle = ''   # keterangan di bawah judul grafik dihapus
     row_names = list(row_names)[:max_rows]
     if not row_names: return None
-    css = (".ht{width:100%;border-collapse:separate;border-spacing:3px}.ht th{font-size:11.5px;font-weight:800;color:#1E3A8A;padding:4px 2px;text-align:center}"
-           ".ht td.n{font-size:12px;font-weight:700;color:#1E3A8A;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis;padding-right:6px}"
-           ".ht td.c{height:26px;text-align:center;font-size:12.5px;font-weight:800;border-radius:6px;color:#FFFFFF}.ht td.c:hover{filter:brightness(1.15);outline:1px solid #1E3A8A}"
+    css = (".ht{width:100%;border-collapse:separate;border-spacing:3px}.ht th{font-size:12.5px;font-weight:800;color:#1E3A8A;padding:4px 2px;text-align:center}"
+           ".ht td.n{font-size:13px;font-weight:700;color:#1E3A8A;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis;padding-right:6px}"
+           ".ht td.c{height:28px;text-align:center;font-size:13.5px;font-weight:800;border-radius:6px;color:#FFFFFF}.ht td.c:hover{filter:brightness(1.15);outline:1px solid #1E3A8A}"
            ".ht td.na{background:#EAF0FF;color:#3B5BC8}")
     th = '<tr><th></th>' + ''.join(f'<th>{_esc(c)}</th>' for c in col_names) + '</tr>'
     rows_html = ''
@@ -399,10 +399,10 @@ def bsg_chart_heat(title, subtitle, row_names, col_names, cells, max_rows=24):
             if sc is None: tds += f'<td class="c na" data-tip="{_esc(tip or "Tidak ada data")}">–</td>'
             else: tds += f'<td class="c" style="background:{_bsg_heat_color(sc)}" data-tip="{_esc(tip)}">{_esc(lab)}</td>'
         rows_html += f'<tr>{tds}</tr>'
-    leg = ('<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10.5px;color:#3B5BC8;">Skor vs ideal:'
+    leg = ('<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:#3B5BC8;">Skor vs ideal:'
            f'<span style="width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,{_bsg_heat_color(0)},{_bsg_heat_color(50)},{_bsg_heat_color(100)})"></span>0% → 100%+</div>')
     inner = f'<div class="card">{_hdr(title, subtitle)}<table class="ht">{th}{rows_html}</table>{leg}</div>'
-    return _bsg_frame(inner, css=css), 67 + (14 if subtitle else 0) + 30 * (len(row_names) + 1)
+    return _bsg_frame(inner, css=css), 69 + (14 if subtitle else 0) + 32 * (len(row_names) + 1)
 
 # ---------------------------------------------------------------- 4. donut ----
 BSG_PAL = ['#2563EB', '#12A150', '#DC2626', '#F97316'] * 3   # hanya 4 warna: biru, hijau, merah, orange
@@ -415,7 +415,7 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
     its = [t for t in all_its if t[1] > 0]
     total = sum(v for _, v, _ in its)
     if total <= 0 and not keep_zero: return None
-    CX = CY = 100.0; RO, RI = 96.0, 50.0; RM = (RO + RI) / 2.0
+    CX = CY = 100.0; RO, RI = 96.0, 44.0; RM = (RO + RI) / 2.0
     pt = lambda r, a: (CX + r * math.cos(a), CY + r * math.sin(a))
     ff = 'font-family="Source Sans Pro,Segoe UI,Arial,sans-serif"'
     segs, labs = '', ''
@@ -436,12 +436,12 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
                      f'fill="{c}" stroke="#FFFFFF" stroke-width="1.4" data-tip="{_esc(tip)}"/>')
             am = (a0 + a1) / 2.0; arc = (a1 - a0) * RM
         mx, my = pt(RM, am)
-        if pct >= 9.0 or len(its) == 1:
-            maxc = max(4, min(13, int(arc / 4.4))); nm = l if len(l) <= maxc else l[:maxc - 1] + '…'
-            labs += (f'<text {ff} x="{mx:.1f}" y="{my - 2.5:.1f}" text-anchor="middle" font-size="8" font-weight="800" fill="#FFFFFF" pointer-events="none">{_esc(nm)}</text>'
-                     f'<text {ff} x="{mx:.1f}" y="{my + 7:.1f}" text-anchor="middle" font-size="7.6" font-weight="600" fill="#FFFFFF" pointer-events="none">{int(v):,} · {pct:.0f}%</text>')
+        if pct >= 10.0 or len(its) == 1:
+            maxc = max(4, min(13, int(arc / 6.6))); nm = l if len(l) <= maxc else l[:maxc - 1] + '…'
+            labs += (f'<text {ff} x="{mx:.1f}" y="{my - 3.5:.1f}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#FFFFFF" pointer-events="none">{_esc(nm)}</text>'
+                     f'<text {ff} x="{mx:.1f}" y="{my + 10:.1f}" text-anchor="middle" font-size="12" font-weight="600" fill="#FFFFFF" pointer-events="none">{int(v):,} · {pct:.0f}%</text>')
         elif pct >= 4.5:
-            labs += f'<text {ff} x="{mx:.1f}" y="{my + 2.6:.1f}" text-anchor="middle" font-size="7.4" font-weight="800" fill="#FFFFFF" pointer-events="none">{pct:.0f}%</text>'
+            labs += f'<text {ff} x="{mx:.1f}" y="{my + 4.2:.1f}" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF" pointer-events="none">{pct:.0f}%</text>'
         a0 = a1
     def _cmp_ic(d):
         return ('▲', '#12A150') if d > 0 else (('▼', '#DC2626') if d < 0 else ('▬', '#64748B'))
@@ -453,10 +453,10 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
     zero = [l for l, v, _ in all_its if v <= 0] if keep_zero else []
     if zero: cmp_html += f'<div class="dcmp">Tidak ada: {_esc(", ".join(zero))}</div>'
     css = (".dw{display:block}.dc{display:block;width:100%;max-width:250px;height:auto;margin:2px auto 0 auto}.sg{transition:opacity .12s;cursor:default}.sg:hover{opacity:.82}"
-           ".dcmp{margin-top:8px;padding-top:6px;border-top:1px solid #E3EAFF;font-size:11.5px;color:#3B5BC8;line-height:1.4}")
+           ".dcmp{margin-top:8px;padding-top:6px;border-top:1px solid #E3EAFF;font-size:12.5px;color:#3B5BC8;line-height:1.4}")
     svg = (f'<svg class="dc" viewBox="0 0 200 200"><circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="#E3EAFF" stroke-width="{RO - RI}"/>{segs}{labs}'
-           f'<text {ff} x="{CX}" y="{CY + 4}" text-anchor="middle" font-size="24" font-weight="800" fill="#1E3A8A">{int(total):,}</text>'
-           f'<text {ff} x="{CX}" y="{CY + 18}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#3B5BC8">{_esc(center_label)}</text></svg>')
+           f'<text {ff} x="{CX}" y="{CY + 6}" text-anchor="middle" font-size="28" font-weight="800" fill="#1E3A8A">{int(total):,}</text>'
+           f'<text {ff} x="{CX}" y="{CY + 23}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3B5BC8">{_esc(center_label)}</text></svg>')
     inner = f'<div class="card">{_hdr(title, subtitle)}<div class="dw">{svg}</div>{cmp_html}</div>'
     h = 48 + 250 + (30 if prev is not None else 0) + (22 if zero else 0)
     if parts: return inner, css, h
@@ -468,15 +468,15 @@ var CFG=__CFG__, wrap=document.getElementById('cv'), H=CFG.h;
 function nice(x){var p=Math.pow(10,Math.floor(Math.log10(x||1)));var f=x/p;return (f<=1?1:f<=2?2:f<=5?5:10)*p;}
 function fmt(v){return (Math.round(v*10)/10).toLocaleString('id-ID');}
 function draw(){
- var W=wrap.clientWidth||600, m={l:46,r:16,t:12,b:26}, iw=W-m.l-m.r, ih=H-m.t-m.b, D=CFG.maxd;
+ var W=wrap.clientWidth||600, m={l:54,r:18,t:14,b:32}, iw=W-m.l-m.r, ih=H-m.t-m.b, D=CFG.maxd;
  var vs=CFG.ideal.slice(); CFG.real.forEach(function(p){vs.push(p[1]);}); CFG.proj.forEach(function(p){vs.push(p[1]);}); vs.push(CFG.target); (CFG.ext||[]).forEach(function(e){vs.push(e.v);});
  var mx=Math.max.apply(null,vs)*1.06; if(!(mx>0)) mx=1; var step=nice(mx/4), top=Math.ceil(mx/step)*step;
  function X(d){return m.l+(d-1)/Math.max(1,D-1)*iw;} function Y(v){return m.t+ih-v/top*ih;}
  wrap.setAttribute('data-w',W); var s='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="display:block;width:100%;height:auto">';
- for(var v=0; v<=top+1e-9; v+=step){var y=Y(v); s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'" stroke="#8FA8F0"/><text x="'+(m.l-7)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="#3B5BC8">'+fmt(v)+'</text>';}
+ for(var v=0; v<=top+1e-9; v+=step){var y=Y(v); s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'" stroke="#8FA8F0"/><text x="'+(m.l-7)+'" y="'+(y+4)+'" text-anchor="end" font-size="12.5" fill="#3B5BC8">'+fmt(v)+'</text>';}
  var xs=D>20?3:(D>10?2:1);
- for(var d=1; d<=D; d++){ if(d===1||d%xs===0||d===D){ s+='<text x="'+X(d)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="#3B5BC8">'+d+'</text>'; } }
- if(CFG.target>0){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(CFG.target)+'" y2="'+Y(CFG.target)+'" stroke="#8FA8F0" stroke-dasharray="2 4"/><text x="'+(W-m.r)+'" y="'+(Y(CFG.target)-5)+'" text-anchor="end" font-size="10.5" fill="#3B5BC8">Target '+fmt(CFG.target)+'</text>'; }
+ for(var d=1; d<=D; d++){ if(d===1||(d%xs===0&&d<=D-2)||d===D){ s+='<text x="'+X(d)+'" y="'+(H-9)+'" text-anchor="middle" font-size="12.5" fill="#3B5BC8">'+d+'</text>'; } }
+ if(CFG.target>0){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(CFG.target)+'" y2="'+Y(CFG.target)+'" stroke="#8FA8F0" stroke-dasharray="2 4"/><text x="'+(W-m.r)+'" y="'+(Y(CFG.target)-5)+'" text-anchor="end" font-size="12.5" font-weight="700" fill="#3B5BC8">Target '+fmt(CFG.target)+'</text>'; }
  var p=''; CFG.ideal.forEach(function(v,i){p+=(i?'L':'M')+X(i+1)+','+Y(v);});
  s+='<path d="'+p+'" fill="none" stroke="#8FA8F0" stroke-width="2" stroke-dasharray="6 4"/>';
  if(CFG.proj.length>1){ p=''; CFG.proj.forEach(function(q,i){p+=(i?'L':'M')+X(q[0])+','+Y(q[1]);}); s+='<path d="'+p+'" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-dasharray="2 4" stroke-linecap="round"/>'; }
@@ -488,7 +488,7 @@ function draw(){
   s+='<path d="'+p+'" fill="none" stroke="#12A150" stroke-width="2.8" stroke-linejoin="round"/>';
   s+='<circle cx="'+X(last[0])+'" cy="'+Y(last[1])+'" r="5" fill="#12A150" stroke="#FFFFFF" stroke-width="2"/>';
  }
- s+='<line x1="'+X(CFG.today)+'" x2="'+X(CFG.today)+'" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#D68A00" stroke-dasharray="3 3" stroke-opacity=".7"/><text x="'+X(CFG.today)+'" y="'+(m.t+9)+'" text-anchor="middle" font-size="10" fill="#D68A00" font-weight="700" dx="'+(CFG.today>D-3?-16:16)+'">Tgl '+CFG.today+'</text>';
+ s+='<line x1="'+X(CFG.today)+'" x2="'+X(CFG.today)+'" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#D68A00" stroke-dasharray="3 3" stroke-opacity=".7"/><text x="'+X(CFG.today)+'" y="'+(m.t+11)+'" text-anchor="middle" font-size="12" fill="#D68A00" font-weight="700" dx="'+(CFG.today>D-3?-16:16)+'">Tgl '+CFG.today+'</text>';
  s+='<line id="hl" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#3B5BC8" stroke-opacity=".5" style="display:none"/><circle id="h1" r="4.5" fill="#3B5BC8" style="display:none"/><circle id="h2" r="5" fill="#12A150" stroke="#FFFFFF" stroke-width="2" style="display:none"/>';
  s+='<rect id="ov" x="'+m.l+'" y="'+m.t+'" width="'+iw+'" height="'+ih+'" fill="transparent"/></svg>';
  wrap.innerHTML=s;
@@ -878,28 +878,28 @@ _PN_CSS = """
 .L-stack .pn-charts{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
 .L-eq .pn-charts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .L-cmp .pn-table{width:fit-content;max-width:100%}
-.L-mini .pn-charts .rk{height:17px;gap:5px}
-.L-mini .pn-charts .rk-n{flex:0 0 44%;font-size:10px}
+.L-mini .pn-charts .rk{height:22px;gap:6px}
+.L-mini .pn-charts .rk-n{flex:0 0 44%;font-size:12.5px}
 .L-mini .pn-charts .rk-t{height:8px;border-radius:4px}
 .L-mini .pn-charts .rk-f{border-radius:4px}
-.L-mini .pn-charts .rk-v{flex:0 0 38px;font-size:10px}
+.L-mini .pn-charts .rk-v{flex:0 0 46px;font-size:13px}
 .L-mini .pn-charts .rk-m{top:-2px;bottom:-2px}
 .L-mini .pn-charts>.card{padding:8px 9px 7px 9px}
-.L-mini .pn-charts .ttl{font-size:12px}
-.L-mini .pn-charts .sub{font-size:9.5px;margin:1px 0 4px 0}
-.L-mini .pn-charts .lg{font-size:10px;margin:0 8px 3px 0}
+.L-mini .pn-charts .ttl{font-size:13.5px}
+.L-mini .pn-charts .sub{font-size:12px;margin:1px 0 4px 0}
+.L-mini .pn-charts .lg{font-size:12px;margin:0 8px 3px 0}
 .L-cmp .pn-table td{padding:3px 4px;font-size:12px}
 .L-cmp .pn-table th{padding:4px 4px;font-size:10px;white-space:nowrap}
 .L-cmp .pn-table th:first-child,.L-cmp .pn-table td:first-child{min-width:0;max-width:170px;white-space:nowrap;font-size:11.5px;padding-left:6px}
-.L-tight .pn-table th{white-space:normal;padding:4px 3px;font-size:9.5px;line-height:1.1}
+.L-tight .pn-table th{white-space:normal;padding:4px 3px;font-size:10.5px;line-height:1.1}
 .L-tight .pn-table td{padding:3px 4px;font-size:11.5px}
 .L-tight .pn-table th:first-child,.L-tight .pn-table td:first-child{min-width:0;max-width:112px;white-space:normal;font-size:10.5px;padding-left:5px}
-.L-tight .pn-charts .rk-n{flex:0 0 40%;font-size:9.5px}
-.L-tight .pn-charts .rk-v{flex:0 0 34px;font-size:9.5px}
+.L-tight .pn-charts .rk-n{flex:0 0 40%;font-size:12.5px}
+.L-tight .pn-charts .rk-v{flex:0 0 44px;font-size:13px}
 .L-stretch .pn-grid{align-items:stretch}
 .L-stretch .pn-charts{align-items:stretch}
 .L-stretch .pn-charts>.card{display:flex;flex-direction:column;box-sizing:border-box}
-.L-stretch .pn-charts>.card>.rk{height:auto;flex:1 1 17px;min-height:17px;max-height:46px}
+.L-stretch .pn-charts>.card>.rk{height:auto;flex:1 1 22px;min-height:22px;max-height:46px}
 .L-one .pn-charts{grid-template-columns:minmax(0,1fr)}
 .L-one .pn-table td{font-size:13.5px;padding:6px 4px}
 .L-one .pn-table th{font-size:11.5px;padding:7px 4px}
@@ -916,28 +916,28 @@ _PN_CSS = """
 .pn-left{min-width:0;display:flex;flex-direction:column;gap:0}
 .pn-left .pn-bottom{margin-top:12px;flex:1}
 .pn-sub{display:grid;gap:12px;min-width:0;height:100%;grid-auto-rows:1fr}
-.pn-charts>.card,.pn-bottom>.card,.pn-sub>.card{display:flex;flex-direction:column;min-width:0}
+.pn-charts>.card,.pn-bottom>.card,.pn-sub>.card{display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .pn-charts .dw,.pn-bottom .dw,.pn-sub .dw{flex:1}
 .L-leg .card>.rk{height:auto;flex:1 1 26px;max-height:56px}
 .pn-bm{gap:12px}
 .pn-bm .pn-sub{gap:8px}
 .pn-bm .pn-sub>.card{padding:8px 9px 7px 9px}
-.pn-bm .ttl{font-size:12px}
-.pn-bm .rk{height:17px;gap:5px}
-.pn-bm .rk-n{flex:0 0 44%;font-size:10px}
+.pn-bm .ttl{font-size:13.5px}
+.pn-bm .rk{height:22px;gap:6px}
+.pn-bm .rk-n{flex:0 0 44%;font-size:12.5px}
 .pn-bm .rk-t{height:8px;border-radius:4px}
 .pn-bm .rk-f{border-radius:4px}
-.pn-bm .rk-v{flex:0 0 38px;font-size:10px}
+.pn-bm .rk-v{flex:0 0 46px;font-size:13px}
 .pn-bm .rk-m{top:-2px;bottom:-2px}
-.pn-bm .lg{font-size:10px;margin:0 8px 3px 0}
+.pn-bm .lg{font-size:12px;margin:0 8px 3px 0}
 .pn-b5{gap:8px}
 .pn-b5>.card{padding:9px 9px 8px 9px}
-.pn-b5 .ttl{font-size:12px}
-.pn-b5 .sub{font-size:10px;margin:1px 0 6px 0}
-.pn-b5 .lg{font-size:10px;margin:0 8px 4px 0}
+.pn-b5 .ttl{font-size:13.5px}
+.pn-b5 .sub{font-size:12px;margin:1px 0 6px 0}
+.pn-b5 .lg{font-size:12px;margin:0 8px 4px 0}
 .pn-b5 .rk{gap:5px}
-.pn-b5 .rk-n{flex:0 0 33%;font-size:10.5px}
-.pn-b5 .rk-v{flex:0 0 40px;font-size:10.5px}
+.pn-b5 .rk-n{flex:0 0 33%;font-size:12.5px}
+.pn-b5 .rk-v{flex:0 0 46px;font-size:13px}
 .narrow .pn-bottom,.narrow .pn-sub{grid-template-columns:minmax(0,1fr) !important}
 @media (max-width:1100px){.pn-b5{grid-template-columns:repeat(3,minmax(0,1fr)) !important}}
 .L-charts .pn-grid{grid-template-columns:minmax(0,1fr)}
@@ -967,7 +967,7 @@ __FOOTER__</div>
 var FN="__FNAME__";
 function fitTables(root){root.querySelectorAll('.pn-table').forEach(function(w){var t=w.querySelector('table');if(!t)return;t.style.zoom=1;t.style.width='max-content';
  var nat=t.getBoundingClientRect().width,av=w.clientWidth;if(nat>av+1){t.style.zoom=(av/nat).toFixed(4);}else{t.style.width=av+'px';}});}
-function fitCards(root){try{root.querySelectorAll('.pn-sub>.card,.pn-bottom>.card,.pn-charts>.card').forEach(function(c){c.style.zoom='';var w=c.getBoundingClientRect().width,B=270;if(w>0&&w<B-1){c.style.zoom=Math.max(0.42,w/B).toFixed(3);}});}catch(e){}}
+function fitCards(root){try{root.querySelectorAll('.pn-sub>.card,.pn-bottom>.card,.pn-charts>.card').forEach(function(c){c.style.zoom='';var w=c.getBoundingClientRect().width,B=270;if(w>0&&w<B-1){c.style.zoom=Math.max(0.92,w/B).toFixed(3);}});}catch(e){}}
 function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&el.children.length===1&&i<6){els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
 function fitHeight(){try{var c=document.getElementById('fit');setFrameH(Math.ceil(c.getBoundingClientRect().height)+8);}catch(e){}}
 function stretch(root){try{if(!root.classList.contains('L-side2')||root.classList.contains('narrow'))return;var w=root.querySelector('.pn-table'),c=root.querySelector('.pn-charts'),t=w&&w.querySelector('table');if(!t||!c)return;
@@ -1439,18 +1439,18 @@ def _tp_bar(sl, x, y, w, h, title, cats, vals, ideal=None, fmt='0.0"%"', colors=
     if not cats: _tp_text(sl, x, y + 0.35, w, 0.3, 'Tidak ada data.', size=9, color=_TP['MUT']); return
     cd = CategoryChartData(); cd.categories = [str(c)[:26] for c in cats]; cd.add_series('v', [round(float(v), 2) for v in vals])
     gf = sl.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED, Inches(x), Inches(y + 0.22), Inches(w), Inches(max(0.5, h - 0.22)), cd); ch = gf.chart
-    ch.has_legend = False; ch.has_title = False; ch.font.size = Pt(9); ch.font.name = 'Calibri'; ch.font.color.rgb = _tp_rgb(_TP['TXT'])
+    ch.has_legend = False; ch.has_title = False; ch.font.size = Pt(11); ch.font.name = 'Calibri'; ch.font.color.rgb = _tp_rgb(_TP['TXT'])
     pl = ch.plots[0]; pl.gap_width = 45; pl.vary_by_categories = False
     va, ca = ch.value_axis, ch.category_axis
     va.visible = False; va.has_major_gridlines = False; va.minimum_scale = 0
     top = maxv or max(max([float(v) for v in vals] + [0.0]) * 1.25, (ideal or 0) * 1.15, 1.0); va.maximum_scale = top
-    ca.reverse_order = True; ca.has_major_gridlines = False; ca.format.line.fill.background(); ca.tick_labels.font.size = Pt(9); ca.tick_labels.font.color.rgb = _tp_rgb(_TP['TXT'])
+    ca.reverse_order = True; ca.has_major_gridlines = False; ca.format.line.fill.background(); ca.tick_labels.font.size = Pt(11); ca.tick_labels.font.color.rgb = _tp_rgb(_TP['TXT'])
     s0 = pl.series[0]; s0.format.fill.solid(); s0.format.fill.fore_color.rgb = _tp_rgb(_TP['CYN'])
     for i, v in enumerate(vals):
         c_ = (colors[i] if colors else (_tp_col(float(v), ideal, 0.7 * ideal) if ideal else _TP['CYN']))
         pt = s0.points[i]; pt.format.fill.solid(); pt.format.fill.fore_color.rgb = _tp_rgb(c_)
     dl = s0.data_labels; dl.show_value = True; dl.number_format = fmt; dl.number_format_is_linked = False
-    dl.position = XL_LABEL_POSITION.OUTSIDE_END; dl.font.size = Pt(9); dl.font.bold = True; dl.font.color.rgb = _tp_rgb(_TP['WHT'])
+    dl.position = XL_LABEL_POSITION.OUTSIDE_END; dl.font.size = Pt(11); dl.font.bold = True; dl.font.color.rgb = _tp_rgb(_TP['WHT'])
 
 def _tp_card(sl, x, y, w, h, label, value, sub, color, prog=None):
     _tp_rect(sl, x, y, w, h, fill=_TP['CARD'], line=_TP['LINE'], lw=1, rad=0.08)
@@ -3513,7 +3513,8 @@ def _sm_in_database(v_):
         _DB_SM_FZ[a_] = bool(difflib.get_close_matches(a_, list(_DB_SM_AN), n=1, cutoff=0.92))
     return _DB_SM_FZ[a_]
 def only_db_salesmen(df_x, label, koor_col='Koor'):
-    """Buang baris yang salesmannya tidak ada di file Database. Counter (Koordinator berawalan COUNTER) tetap dihitung."""
+    """Buang baris yang salesmannya tidak ada di file Database. Counter (Koordinator berawalan COUNTER) tetap dihitung.
+    CATATAN: FAKTUR (STU) TIDAK lagi difilter — STU harus sama persis dengan file Faktur. Filter ini hanya untuk analisa funnel (Nota, SPK, Rating)."""
     if df_x is None or df_x.empty or 'Salesman_Clean' not in df_x.columns or not DB_SALESMAN: return df_x
     ok_ = df_x['Salesman_Clean'].map(_sm_in_database)
     if koor_col in df_x.columns: ok_ = ok_ | df_x[koor_col].astype(str).str.upper().str.startswith('COUNTER')
@@ -3521,9 +3522,12 @@ def only_db_salesmen(df_x, label, koor_col='Koor'):
     prev_ = FILTER_SM_LOG.get(label, (0, 0, set()))
     FILTER_SM_LOG[label] = (prev_[0] + len(df_x), prev_[1] + int(ok_.sum()), prev_[2] | dropped_)
     return df_x[ok_.values].reset_index(drop=True)
+FAKTUR_TANPA_DB = pd.DataFrame()   # baris Faktur yang salesmannya TIDAK ada di Database (tetap dihitung sebagai STU; ditampilkan di menu Cek Data)
+if DB_SALESMAN and df_faktur_all is not None and not df_faktur_all.empty and 'Salesman_Clean' in df_faktur_all.columns:
+    try: FAKTUR_TANPA_DB = df_faktur_all[~df_faktur_all['Salesman_Clean'].map(_sm_in_database).values].copy()
+    except Exception: FAKTUR_TANPA_DB = pd.DataFrame()
 if DB_SALESMAN:
-    df_faktur_all = only_db_salesmen(df_faktur_all, 'FAKTUR')
-    df_faktur = only_db_salesmen(df_faktur, 'FAKTUR (menu lain)')
+    # df_faktur_all & df_faktur sengaja TIDAK difilter -> angka STU = jumlah baris di file Faktur
     df_nota = only_db_salesmen(df_nota, 'NOTA')
     df_spk = only_db_salesmen(df_spk, 'SPK', 'Koor_SPK')
     df_spk_alldlr = df_spk
@@ -4035,6 +4039,11 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
             db_sub = df_db_curr_g[df_db_curr_g['Koor'] == ent] if not df_db_curr_g.empty else pd.DataFrame()
             spk_sub = df_spk_curr_g[df_spk_curr_g['Koor_SPK'] == ent] if not df_spk_curr_g.empty else pd.DataFrame()
             rt_sub = df_rating_curr_g[df_rating_curr_g['Koor'] == ent] if not df_rating_curr_g.empty else pd.DataFrame()
+            _dl_ent = kpi_entity_dealer(ent)   # batasi ke dealer induk koordinator/counter (sama dgn Dashboard Dealer: dealer + koor); tanpa ini baris koor yg sudah dipindah ke dealer lain (mis. pemecahan Point Code) ikut terhitung
+            if _dl_ent:
+                f_sub = _dlr_sub(f_sub, 'Nama Dealer', _dl_ent) if (f_sub is not None and not f_sub.empty and 'Nama Dealer' in f_sub.columns) else f_sub
+                db_sub = _dlr_sub(db_sub, 'Nama_Dealer_Clean', _dl_ent) if (db_sub is not None and not db_sub.empty and 'Nama_Dealer_Clean' in db_sub.columns) else db_sub
+                spk_sub = _dlr_sub(spk_sub, 'Nama_Dealer_SPK', _dl_ent) if (spk_sub is not None and not spk_sub.empty and 'Nama_Dealer_SPK' in spk_sub.columns) else spk_sub
             def_t_stu = get_koor_or_counter_target(ent, saved_tk) or (20 if filter_mode == 'counter' else 25)
             def_t_maxi = 8 if filter_mode == 'counter' else 10
             def_t_classy = 3 if filter_mode == 'counter' else 5
@@ -4378,7 +4387,7 @@ def _dash_tile(label, value, suffix, color, prog=None, concl=None):
         fg, bg, bd = DASH_CONCL.get(concl, ('#94A3B8', 'rgba(148,163,184,0.10)', 'rgba(148,163,184,0.3)'))
         ch = f'<div style="margin-top:8px;">{_dash_chip(concl, fg, bg, bd)}</div>'
     return (f'<div style="flex:1 1 128px;min-width:120px;background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-top:3px solid {color};border-radius:12px;padding:10px 14px 12px 14px;box-sizing:border-box;">'
-            f'<div style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#3B5BC8;">{label}</div>'
+            f'<div style="font-size:12px;font-weight:800;letter-spacing:.9px;color:#3B5BC8;">{label}</div>'
             f'<div style="font-size:36px;font-weight:900;color:{color};line-height:1.1;margin-top:2px;">{value}<span style="font-size:14px;font-weight:700;color:#3B5BC8;"> {suffix}</span></div>{bar}{ch}</div>')
 
 def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, tot_pt, dealer_tbl, hl_dealer, show_concl, scheme_note, codes=None, rank_kind=None, with_rank=True):
@@ -4394,7 +4403,7 @@ def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, t
                 f'<div style="font-size:27px;font-weight:900;color:#FFFFFF;line-height:1.15;margin:5px 0 9px 0;">{sel_name}</div>'
                 f'<div>{_dash_chip("📅 " + date_lbl, "#FFFFFF", "rgba(255,255,255,0.18)", "rgba(255,255,255,0.45)")}</div></div>')
     grade_tile = (f'<div style="flex:0.75 1 118px;min-width:110px;background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-top:3px solid {gcol};border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;">'
-                  f'<div style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#3B5BC8;">GRADE</div>'
+                  f'<div style="font-size:12px;font-weight:800;letter-spacing:.9px;color:#3B5BC8;">GRADE</div>'
                   f'<div style="width:62px;height:62px;border-radius:16px;background:{DASH_GRADE_BG.get(grade, "rgba(67,24,255,0.07)")};border:2px solid {gcol};color:{gcol};font-size:40px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:6px;">{grade}</div></div>')
     tiles = (grade_tile + _dash_tile('TOTAL POINT', f'{tot_pt}', '/ 100', '#1E3A8A', tot_pt)
              + _dash_tile('RESULT', f'{s_pt}', f'/ {max_res}', '#2563EB', (s_pt / max_res * 100) if max_res else 0, res_c)
@@ -4408,9 +4417,9 @@ def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, t
     if zero: chips += _dash_chip(f'🚨 {len(zero)} KPI belum menghasilkan poin: ' + ', '.join(zero), '#E11D48', 'rgba(251,113,133,0.14)', 'rgba(251,113,133,0.4)') + ' '
     if lost: chips += _dash_chip('📉 Poin hilang terbesar: ' + ' · '.join(f'{rows[c]["name"]} −{l}' for c, l in lost[:3]), '#D68A00', 'rgba(250,204,21,0.12)', 'rgba(250,204,21,0.4)') + ' '
     chips += _dash_chip(f'✅ {len(full)} KPI poin penuh', '#16A34A', 'rgba(34,197,94,0.14)', 'rgba(34,197,94,0.4)')
-    spot = f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;"><span style="font-size:10.5px;font-weight:800;letter-spacing:1px;color:#3B5BC8;">SOROTAN</span>{chips}</div>'
+    spot = f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;"><span style="font-size:12px;font-weight:800;letter-spacing:1px;color:#3B5BC8;">SOROTAN</span>{chips}</div>'
     # ---------- tabel pencapaian + diagram (SATU tabel: tiap baris KPI punya sel diagram di kanan, otomatis sejajar) ----------
-    th = f'background:{DASH_NAVY};color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:8px 6px;border-bottom:2px solid #1E3A8A;'
+    th = f'background:{DASH_NAVY};color:#fff;font-size:12px;font-weight:800;letter-spacing:.3px;padding:8px 6px;border-bottom:2px solid #1E3A8A;'
     heads = ['CODE', 'PERFORMANCE CATEGORY', 'WEIGHT', 'MIN ACV', 'TARGET', 'RESULT', 'ACHIEVEMENT', 'POINT']
     td = 'padding:6px 6px;border-bottom:1px solid #8FA8F0;font-size:12.5px;color:#1E3A8A;'
     max_a = max([rows[c]['achv'] for c in codes_l] + [1.0]); axis = max(1.2, max_a * 1.25); mark = 100.0 / axis
@@ -4418,7 +4427,7 @@ def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, t
     body = ''
     for g_lbl, g_codes, g_pt, g_max in (('RESULT', [c for c in codes_l if c in res_set], s_pt, max_res), ('PROCESS', [c for c in codes_l if c not in res_set], p_pt, max_prc)):
         if not g_codes: continue
-        body += (f'<tr><td colspan="{NCOL}" style="background:#EAF0FF;padding:6px 10px;border-bottom:1px solid #8FA8F0;"><span style="font-size:11px;font-weight:900;letter-spacing:1px;color:#1E3A8A;">{g_lbl}</span>'
+        body += (f'<tr><td colspan="{NCOL}" style="background:#EAF0FF;padding:6px 10px;border-bottom:1px solid #8FA8F0;"><span style="font-size:12px;font-weight:900;letter-spacing:1px;color:#1E3A8A;">{g_lbl}</span>'
                  f'<span style="float:right;font-size:11.5px;font-weight:800;color:#1E3A8A;">{g_pt} <span style="color:#3B5BC8;">/ {g_max} poin</span></span></td></tr>')
         for c in g_codes:
             r = rows[c]; stt = _dash_status(r); col, bgc = DASH_ST_COL[stt], DASH_ST_BG[stt]
@@ -4429,18 +4438,18 @@ def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, t
             chart_cell = (f'<td style="{td}width:36%;min-width:230px;padding:6px 16px 6px 12px;border-left:2px solid #1E3A8A;vertical-align:middle;">'
                           f'<div style="position:relative;height:18px;background:#EAF0FF;border-radius:9px;"><div style="position:absolute;left:0;top:0;height:18px;width:{w:.1f}%;background:{col};border-radius:9px;"></div>'
                           f'<div style="position:absolute;left:{mark:.1f}%;top:-4px;height:26px;border-left:2px dashed #DC2626;"></div>'
-                          f'<div style="position:absolute;left:calc({w:.1f}% + 7px);top:1px;font-size:11px;font-weight:800;color:#1E3A8A;white-space:nowrap;">{r["achv"] * 100:.1f}%</div></div></td>')
+                          f'<div style="position:absolute;left:calc({w:.1f}% + 7px);top:1px;font-size:12px;font-weight:800;color:#1E3A8A;white-space:nowrap;">{r["achv"] * 100:.1f}%</div></div></td>')
             body += (f'<tr style="background:{bgc};"><td style="{td}width:44px;padding:6px 6px;"><span style="display:inline-block;min-width:34px;text-align:center;padding:2px 4px;border-radius:6px;background:rgba(67,24,255,0.07);color:{col};font-weight:900;font-size:11px;">{c}</span></td>'
                      f'<td style="{td}line-height:1.25;">{r["name"]}</td><td style="{td}text-align:right;color:#3B5BC8;">{r["weight"]}</td><td style="{td}text-align:right;color:#3B5BC8;">{min_txt}</td>'
                      f'<td style="{td}text-align:right;">{tgt_txt}</td><td style="{td}text-align:right;">{res_txt}</td>'
                      f'<td style="{td}text-align:right;white-space:nowrap;"><span style="display:inline-block;width:56px;height:7px;border-radius:4px;background:#EAF0FF;vertical-align:middle;margin-right:7px;overflow:hidden;"><span style="display:block;width:{pb:.1f}%;height:100%;background:{col};"></span></span>'
                      f'<span style="display:inline-block;min-width:46px;font-weight:800;color:{col};">{r["achv"] * 100:.1f}%</span></td>'
-                     f'<td style="{td}text-align:right;white-space:nowrap;"><span style="font-weight:900;color:#1E3A8A;font-size:14px;">{r["point"]}</span><span style="color:#3B5BC8;font-size:11px;">/{r["weight"]}</span></td>{chart_cell}</tr>')
+                     f'<td style="{td}text-align:right;white-space:nowrap;"><span style="font-weight:900;color:#1E3A8A;font-size:14px;">{r["point"]}</span><span style="color:#3B5BC8;font-size:12px;">/{r["weight"]}</span></td>{chart_cell}</tr>')
     head1 = (f'<tr><th colspan="{len(heads)}" style="background:{DASH_TEAL};color:#fff;font-size:12px;font-weight:800;letter-spacing:.7px;padding:8px 14px;text-align:left;border-radius:10px 0 0 0;">ACHIEVEMENT BY PERFORMANCE CATEGORY</th>'
              f'<th style="background:{DASH_TEAL};color:#fff;font-size:12px;font-weight:800;letter-spacing:.7px;padding:8px 14px;text-align:left;white-space:nowrap;border-radius:0 10px 0 0;">ACHIEVEMENT VS TARGET PER KPI'
              f'<span style="float:right;margin-left:14px;">{date_short}</span></th></tr>')
     head2 = '<tr>' + ''.join(f'<th style="{th}text-align:{"left" if i < 2 else "right"};">{h}</th>' for i, h in enumerate(heads)) + f'<th style="{th}text-align:left;border-left:2px solid #1E3A8A;padding-left:12px;">CAPAIAN (garis merah putus-putus = 100% target)</th></tr>'
-    legend = ('<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-size:10.5px;color:#3B5BC8;padding:6px 14px;">'
+    legend = ('<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-size:12px;color:#3B5BC8;padding:6px 14px;">'
               '<span><span style="color:#16A34A;">●</span> poin penuh</span><span><span style="color:#D68A00;">●</span> sebagian poin</span><span><span style="color:#E11D48;">●</span> 0 poin</span></div>')
     table_html = (f'<div style="overflow-x:auto;border:1px solid #8FA8F0;border-radius:10px;background:#FFFFFF;"><table style="width:100%;border-collapse:collapse;"><thead>{head1}{head2}</thead><tbody>{body}</tbody></table>{legend}</div>')
     mid = f'<div style="margin-bottom:14px;">{table_html}</div>'
@@ -4734,7 +4743,8 @@ _dd_view = DD_V_DASH
 if menu_pilihan == DEALER_TAB:   # sub menu Dashboard Dealer: CREATE PPT (semua pengguna) & Analisa Problem dan Perbaikan (hanya kode akses SPV)
     _dd_opts = [DD_V_DASH] + ([DD_V_PPT] if st.session_state.get('dd_view_sel') == DD_V_PPT else []) + ([DD_V_AN] if IS_SPV else [])   # CREATE PPT kini tab di samping MAN POWER; halaman lengkap hanya muncul bila dibuka dari tab itu
     if st.session_state.get('dd_view_sel') not in _dd_opts: st.session_state.pop('dd_view_sel', None)
-    _dd_view = bsg_segmented('Sub menu Dashboard Dealer', _dd_opts, 'dd_view_sel')
+    if len(_dd_opts) > 1: _dd_view = bsg_segmented('Sub menu Dashboard Dealer', _dd_opts, 'dd_view_sel')   # tombol hanya tampil bila ada pilihan lain (mis. Analisa utk SPV); jika hanya 'DASHBOARD' disembunyikan
+    else: st.session_state.pop('dd_view_sel', None)
     if _dd_view == DD_V_AN and not IS_SPV: _dd_view = DD_V_DASH
 if menu_pilihan == '🎯 MASTER KPI':
     st.markdown(f'<div class="main-title">DASHBOARD KPI (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Monitoring Target (T.) vs Result (R.) — KPI Dealer, KPI Koordinator & KPI Counter</div>', unsafe_allow_html=True)
@@ -5035,9 +5045,23 @@ elif menu_pilihan == CEK_TAB:
             _aud.append({'FILE': _fn_a, 'BARIS': _n_a, 'TYPE TERLOOKUP': f'{_t_a:,} ({_t_a / _n_a * 100:.1f}%)', 'KOORDINATOR TERLOOKUP': f'{_k_a:,} ({_k_a / _n_a * 100:.1f}%)', 'DEALER TERLOOKUP': f'{_dl_a:,} ({_dl_a / _n_a * 100:.1f}%)'})
         st.dataframe(pd.DataFrame(_aud), use_container_width=True, hide_index=True)
         if FILTER_SM_LOG:
-            st.caption('Aturan MDS: hanya salesman yang namanya ada di file Database yang dihitung (Counter tetap dihitung). Baris dengan salesman di luar Database dibuang dari analisa:')
+            st.caption('Aturan funnel: untuk Nota, SPK & Rating hanya salesman yang namanya ada di file Database yang dihitung (Counter tetap dihitung). FAKTUR / STU tidak difilter, jadi angkanya sama dengan file Faktur. Baris dengan salesman di luar Database dibuang dari analisa funnel:')
             st.dataframe(pd.DataFrame([{'FILE': k_, 'BARIS ASAL (MDS)': v_[0], 'DIHITUNG': v_[1], 'DIBUANG': v_[0] - v_[1], 'SALESMAN DIBUANG': ', '.join(sorted(v_[2])[:25]) + (' …' if len(v_[2]) > 25 else '')} for k_, v_ in FILTER_SM_LOG.items()]), use_container_width=True, hide_index=True)
         elif not DB_SALESMAN: st.caption('File Database belum terbaca — filter salesman Database belum aktif.')
+        if FAKTUR_TANPA_DB is not None and not FAKTUR_TANPA_DB.empty:
+            try:
+                _ft = FAKTUR_TANPA_DB.copy()
+                _ft['_bi'] = ((_ft['bulan'] == current_month) & (_ft['tahun'] == current_year)).astype(int) if ('bulan' in _ft.columns and 'tahun' in _ft.columns) else 0
+                _ft['_dl'] = _ft['Nama Dealer'].astype(str) if 'Nama Dealer' in _ft.columns else '-'
+                _ft['_kr'] = _ft['Koor'].astype(str) if 'Koor' in _ft.columns else '-'
+                _ftg = _ft.groupby(['_dl', 'Salesman_Clean', '_kr']).agg(**{'FAKTUR BULAN INI': ('_bi', 'sum'), 'TOTAL FAKTUR (SEMUA PERIODE FILE)': ('_bi', 'size')}).reset_index()
+                _ftg.columns = ['DEALER', 'SALESMAN (ADA DI FAKTUR, TIDAK ADA DI DATABASE)', 'KOORDINATOR'] + list(_ftg.columns[3:])
+                _ftg = _ftg.sort_values(['FAKTUR BULAN INI', 'TOTAL FAKTUR (SEMUA PERIODE FILE)'], ascending=False).reset_index(drop=True)
+                st.warning(f'⚠️ Ada {len(_ftg)} salesman di file Faktur yang tidak ditemukan di file Database ({int(_ftg["FAKTUR BULAN INI"].sum()):,} faktur bulan ini). Faktur mereka TETAP dihitung sebagai STU, tetapi prospek/SPK mereka tidak terbaca di Database. Pastikan nama sama persis dengan di Database atau input prospeknya.')
+                st.dataframe(_ftg, use_container_width=True, hide_index=True, height=min(420, 38 + 35 * len(_ftg)))
+            except Exception as e_ft: st.caption(f'⚠️ Daftar salesman Faktur di luar Database tidak dapat ditampilkan ({type(e_ft).__name__}).')
+        elif DB_SALESMAN and df_faktur_all is not None and not df_faktur_all.empty:
+            st.success('✅ Semua salesman di file Faktur sudah ada di file Database.')
         if _tk_map:
             st.warning('Salesman di bawah ini belum punya Koordinator di Data Lookup, sehingga tampil sebagai LAIN-LAIN. Isi nama salesman (persis seperti di file) dan koordinatornya di Data Lookup, lalu unggah ulang.')
             st.dataframe(pd.DataFrame([{'DEALER': d_, 'SALESMAN': m_, 'BARIS': n_} for (d_, m_), n_ in sorted(_tk_map.items())]), use_container_width=True, hide_index=True, height=300)
@@ -5261,7 +5285,14 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB) and _dd_view == DD_V_DASH:
                     for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
                         pies_.append(_pie(fa_[fa_[COL_KOTA] == kt_], (fl_[fl_[COL_KOTA] == kt_] if COL_KOTA in fl_.columns else None), f'MDS — Kota {kt_.title()}', f'Kontribusi MDS terhadap total {kt_.title()}', 'STU'))
                     return [{'group': [c_ for c_ in pies_ if c_], 'cols': 5}]
-                bsg_panel_table(df_jb, df_jb_full, kol_pj_jb, kol_nm_jb, '_pct', 'Jember_Penjualan_SIP_SENTRAL', jdl_jb, _jb_growth_chart, (df_jb,), layout='stackm', cap_header=_cap_jb, bottom_fn=(None if (_dd_mode and _dd_lvl != 'dealer') else _jb_pies), chart_cols='repeat(4,minmax(0,1fr))', no_table=True)   # urutan: STU | Nota | STU vs Target | STU vs LM (grafik dipersempit)
+                def _jb_bottom():   # DASHBOARD DEALER: Kurva Pencapaian STU (target ideal vs realisasi + Forc Nota/7/3) tepat di bawah 4 grafik penjualan; pie kontribusi MDS hanya utk level dealer / Jember
+                    out_ = []
+                    if _dd_mode:
+                        c_cv = bsg_chart_curve(f'Kurva Pencapaian STU — {_dd_lbl}', 'Garis putus-putus abu = target ideal harian', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=bsg_num(r_tot_jb['FORC']) or None, h=330, extra=bsg_forc_lines(r_tot_jb.get('F. NOTA'), r_tot_jb.get('FORC 7'), r_tot_jb.get('FORC 3')), parts=True)
+                        if c_cv: out_.append(c_cv)
+                    if not (_dd_mode and _dd_lvl != 'dealer'): out_ += (_jb_pies() or [])
+                    return out_
+                bsg_panel_table(df_jb, df_jb_full, kol_pj_jb, kol_nm_jb, '_pct', 'Jember_Penjualan_SIP_SENTRAL', jdl_jb, _jb_growth_chart, (df_jb,), layout='stackm', cap_header=_cap_jb, bottom_fn=_jb_bottom, bottom_cols=('minmax(0,1fr)' if _dd_mode else None), chart_cols='repeat(4,minmax(0,1fr))', no_table=True)   # urutan: STU | Nota | STU vs Target | STU vs LM (grafik dipersempit)
 
             with jt_pr:
                 # ---- 2. TABEL PROSES KERJA DEALER (tepat di bawah panel pie kontribusi) ----
