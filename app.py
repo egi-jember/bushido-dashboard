@@ -6,58 +6,107 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title='BUSHIDO ANALYSIS — Dashboard Dealer', page_icon='🐺', layout='wide')
 st.markdown("""<style>
-[data-testid="stSidebar"] { background-color: #3B18FF !important; min-width: 245px !important; max-width: 265px !important; }
+[data-testid="stSidebar"] { background-color: #3B4EFF !important; background-image: linear-gradient(180deg, #4318FF 0%, #3B6BFF 100%) !important; border-right: 2px solid #3B18FF !important; min-width: 245px !important; max-width: 265px !important; }
 [data-testid="stSidebar"] > div:first-child { padding: 1.2rem 1.1rem 0 1.1rem !important; }
 [data-testid="stSidebar"] *:not([data-testid="stIconMaterial"]):not(.material-icons) { color: #FFFFFF !important; }
-[data-testid="stSidebar"] hr { margin: 12px 0px !important; border: none !important; border-top: 1px solid rgba(255,255,255,0.22) !important; }
+[data-testid="stSidebar"] hr { margin: 12px 0px !important; border: none !important; border-top: 1px solid rgba(255,255,255,0.35) !important; }
 [data-testid="stSidebar"] h3 { font-size: 16.5px !important; font-weight: 800 !important; margin: 2px 0 6px 0 !important; padding-bottom: 0px !important; letter-spacing: 0.3px; }
 [data-testid="stSidebar"] div[role="radiogroup"] { gap: 2px !important; }
 [data-testid="stSidebar"] div[role="radiogroup"] label { padding: 3px 4px !important; margin: 0px !important; border: none !important; font-size: 13.5px !important; font-weight: 700 !important; min-height: 28px !important; align-items: center !important; }
 [data-testid="stSidebar"] div[role="radiogroup"] label p { font-size: 13.5px !important; font-weight: 700 !important; margin: 0px !important; line-height: 1.2 !important; }
-[data-testid="stSidebar"] div[role="radiogroup"] label:hover { background-color: rgba(255,255,255,0.1) !important; border-radius: 5px !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] label:hover { background-color: rgba(255,255,255,0.14) !important; border-radius: 5px !important; }
 [data-testid="stSidebar"] div[data-testid="stDateInput"] label p { font-size: 12.5px !important; font-weight: 700 !important; margin-bottom: 4px !important; color: #FFFFFF !important; }
-[data-testid="stSidebar"] div[data-baseweb="input"] { background-color: #FFFFFF !important; border: 1.5px solid #0E1117 !important; border-radius: 7px !important; min-height: 36px !important; }
-[data-testid="stSidebar"] div[data-baseweb="input"] input { color: #0E1117 !important; -webkit-text-fill-color: #0E1117 !important; font-weight: 800 !important; font-size: 13.5px !important; background-color: #FFFFFF !important; padding: 6px 10px !important; }
-[data-testid="stSidebar"] div[data-baseweb="calendar"] * { color: #0E1117 !important; }
-[data-testid="stSidebar"] div[data-baseweb="textarea"], [data-testid="stSidebar"] div[data-baseweb="textarea"] textarea { background-color: #FFFFFF !important; color: #0E1117 !important; -webkit-text-fill-color: #0E1117 !important; font-weight: 700 !important; font-size: 12.5px !important; }
-.azura-logo-box { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin: -8px 0 10px 0; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.22); }
+[data-testid="stSidebar"] div[data-baseweb="input"] { background-color: #FFFFFF !important; border: 1.5px solid #4318FF !important; border-radius: 7px !important; min-height: 36px !important; }
+[data-testid="stSidebar"] div[data-baseweb="input"] input { color: #1E3A8A !important; -webkit-text-fill-color: #1E3A8A !important; font-weight: 800 !important; font-size: 13.5px !important; background-color: #FFFFFF !important; padding: 6px 10px !important; }
+[data-testid="stSidebar"] div[data-baseweb="calendar"] * { color: #1E3A8A !important; }
+[data-testid="stSidebar"] div[data-baseweb="textarea"], [data-testid="stSidebar"] div[data-baseweb="textarea"] textarea { background-color: #FFFFFF !important; color: #1E3A8A !important; -webkit-text-fill-color: #1E3A8A !important; font-weight: 700 !important; font-size: 12.5px !important; }
+.azura-logo-box { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin: -8px 0 10px 0; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.35); }
 .azura-logo-img { max-width: 195px; max-height: 90px; width: auto; height: auto; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.35); background-color: transparent; }
-.azura-fallback-badge { width: 72px; height: 72px; border-radius: 12px; background: radial-gradient(circle, #0051FF 0%, #050B14 85%); border: 2px solid #94A3B8; box-shadow: 0 0 10px rgba(0,0,0,0.45); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.target-ideal-caption { font-size: 12.5px !important; font-weight: 700 !important; color: rgba(255,255,255,0.85) !important; margin-top: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.22); }
+.azura-fallback-badge { width: 72px; height: 72px; border-radius: 12px; background: radial-gradient(circle, #0051FF 0%, #FFFFFF 85%); border: 2px solid #94A3B8; box-shadow: 0 0 10px rgba(0,0,0,0.45); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.target-ideal-caption { font-size: 12.5px !important; font-weight: 700 !important; color: #FFFFFF !important; margin-top: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.35); }
 .main-title { font-size: 44px !important; font-weight: 800 !important; color: #4318FF !important; margin-bottom: 2px; line-height: 1.1; }
-.sub-title { font-size: 15px; font-weight: 600; color: #475569 !important; margin-bottom: 15px; }
+.sub-title { font-size: 15px; font-weight: 600; color: #3B5BC8 !important; margin-bottom: 15px; }
 .section-title { font-size: 22px !important; font-weight: 700 !important; color: #4318FF !important; margin: 20px 0 10px 0; }
-.cap-title-banner { background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }
-.compact-table-wrap { width: 100%; overflow-x: auto; margin-bottom: 4px; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }
-table.compact-tbl { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13px; background-color: #0E1117; }
-table.compact-tbl th { background-color: #1A202C; color: #CBD5E1; font-weight: 700; padding: 7px 6px; border-bottom: 1px solid #2D3748; border-right: 1px solid #1E293B; text-align: right; white-space: nowrap; }
+.cap-title-banner { background: linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }
+.compact-table-wrap { width: 100%; overflow-x: auto; margin-bottom: 4px; border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; }
+table.compact-tbl { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13px; background-color: #FFFFFF; }
+table.compact-tbl th { background-color: #EAF0FF; color: #1E3A8A; font-weight: 700; padding: 7px 6px; border-bottom: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; text-align: right; white-space: nowrap; }
 table.compact-tbl th:first-child, table.compact-tbl td:first-child { text-align: left; padding-left: 10px; }
-table.compact-tbl td { padding: 6px 6px; border-bottom: 1px solid #1E293B; border-right: 1px solid #1E293B; text-align: right; white-space: nowrap; font-weight: 600; }
-table.compact-tbl tr:hover td, table.ultra-compact-tbl tr:hover td { background-color: rgba(255,255,255,0.04); }
-.ultra-compact-wrap { width: 100%; overflow-x: hidden; margin-bottom: 4px; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }
-table.ultra-compact-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #0E1117; }
-table.ultra-compact-tbl th { background-color: #1A202C; color: #CBD5E1; font-weight: 800; padding: 6px 3px; border-bottom: 1px solid #2D3748; border-right: 1px solid #1E293B; text-align: center; white-space: normal; line-height: 1.15; font-size: 11.5px; word-break: break-word; }
+table.compact-tbl td { padding: 6px 6px; border-bottom: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; text-align: right; white-space: nowrap; font-weight: 600; }
+table.compact-tbl tr:hover td, table.ultra-compact-tbl tr:hover td { background-color: rgba(67,24,255,0.07); }
+.ultra-compact-wrap { width: 100%; overflow-x: hidden; margin-bottom: 4px; border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; }
+table.ultra-compact-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #FFFFFF; }
+table.ultra-compact-tbl th { background-color: #EAF0FF; color: #1E3A8A; font-weight: 800; padding: 6px 3px; border-bottom: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; text-align: center; white-space: normal; line-height: 1.15; font-size: 11.5px; word-break: break-word; }
 table.ultra-compact-tbl th:first-child, table.ultra-compact-tbl td:first-child { width: 17.5%; text-align: left; padding-left: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-table.ultra-compact-tbl td { padding: 5px 5px; border-bottom: 1px solid #1E293B; border-right: 1px solid #1E293B; text-align: right; white-space: nowrap; font-weight: 700; font-size: 13.5px; overflow: hidden; }
-table.narrative-tbl { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #0E1117; }
-table.narrative-tbl th { background-color: #4318FF; color: #FFFFFF; font-weight: 700; padding: 10px 14px; border: 1px solid #2D3748; text-align: left; font-size: 13.5px; }
-table.narrative-tbl td { padding: 10px 14px; border: 1px solid #2D3748; text-align: left; vertical-align: top; color: #E2E8F0; line-height: 1.55; font-weight: 400; white-space: normal; }
-table.narrative-tbl td.item-col { width: 15%; color: #E2E8F0; text-align: left; background-color: #161B26; white-space: nowrap; font-weight: 600; }
-table.narrative-tbl td.cond-col { width: 42.5%; background-color: #0E1117; }
-table.narrative-tbl td.plan-col { width: 42.5%; background-color: #111622; }
-p.nar-p { margin: 0 0 6px 0; padding: 0; color: #E2E8F0; font-weight: 400; line-height: 1.55; text-align: left; }
+table.ultra-compact-tbl td { padding: 5px 5px; border-bottom: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; text-align: right; white-space: nowrap; font-weight: 700; font-size: 13.5px; overflow: hidden; }
+table.narrative-tbl { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #FFFFFF; }
+table.narrative-tbl th { background-color: #4318FF; color: #FFFFFF; font-weight: 700; padding: 10px 14px; border: 1px solid #8FA8F0; text-align: left; font-size: 13.5px; }
+table.narrative-tbl td { padding: 10px 14px; border: 1px solid #8FA8F0; text-align: left; vertical-align: top; color: #1E3A8A; line-height: 1.55; font-weight: 400; white-space: normal; }
+table.narrative-tbl td.item-col { width: 15%; color: #1E3A8A; text-align: left; background-color: #EAF0FF; white-space: nowrap; font-weight: 600; }
+table.narrative-tbl td.cond-col { width: 42.5%; background-color: #FFFFFF; }
+table.narrative-tbl td.plan-col { width: 42.5%; background-color: #EAF0FF; }
+p.nar-p { margin: 0 0 6px 0; padding: 0; color: #1E3A8A; font-weight: 400; line-height: 1.55; text-align: left; }
 p.nar-p:last-of-type { margin-bottom: 4px; }
-.focus-alert-box { margin-top: 14px; padding: 11px 16px; background: linear-gradient(90deg, rgba(255,0,127,0.14) 0%, rgba(14,17,23,0.95) 100%); border-left: 4px solid #FF007F; border-top: 1px solid #2D3748; border-right: 1px solid #2D3748; border-bottom: 1px solid #2D3748; border-radius: 6px; font-size: 13.5px; line-height: 1.65; color: #E2E8F0; }
-.unmapped-sales-box { margin: 4px 0 12px 0; padding: 10px 14px; background: linear-gradient(90deg, rgba(255,234,0,0.12) 0%, rgba(14,17,23,0.96) 100%); border-left: 4px solid #FFEA00; border-top: 1px solid #2D3748; border-right: 1px solid #2D3748; border-bottom: 1px solid #2D3748; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #E2E8F0; }
-.unmapped-badge { display: inline-block; background-color: #1E293B; color: #FFEA00; border: 1px solid #475569; border-radius: 4px; padding: 2px 8px; margin: 2px 4px 2px 0; font-size: 12px; font-weight: 700; }
+.focus-alert-box { margin-top: 14px; padding: 11px 16px; background: linear-gradient(90deg, rgba(255,0,127,0.14) 0%, #1E3A8A 100%); border-left: 4px solid #E0115F; border-top: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; border-bottom: 1px solid #8FA8F0; border-radius: 6px; font-size: 13.5px; line-height: 1.65; color: #1E3A8A; }
+.unmapped-sales-box { margin: 4px 0 12px 0; padding: 10px 14px; background: linear-gradient(90deg, rgba(255,234,0,0.12) 0%, #1E3A8A 100%); border-left: 4px solid #D68A00; border-top: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; border-bottom: 1px solid #8FA8F0; border-radius: 6px; font-size: 13px; line-height: 1.6; color: #1E3A8A; }
+.unmapped-badge { display: inline-block; background-color: #EAF0FF; color: #D68A00; border: 1px solid #8FA8F0; border-radius: 4px; padding: 2px 8px; margin: 2px 4px 2px 0; font-size: 12px; font-weight: 700; }
 </style>""", unsafe_allow_html=True)
 st.markdown("""<style>
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) { background-color: rgba(255,255,255,0.20) !important; border-radius: 6px !important; box-shadow: inset 3px 0 0 #FFEA00 !important; padding-left: 9px !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) { background-color: rgba(255,255,255,0.24) !important; border-radius: 6px !important; box-shadow: inset 3px 0 0 #FFFFFF !important; padding-left: 9px !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] [data-testid="stSidebarContent"], [data-testid="stSidebar"][data-testid="stSidebar"] [data-testid="stSidebarHeader"], [data-testid="stSidebar"][data-testid="stSidebar"] [data-testid="stSidebarUserContent"] { background: transparent !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="input"], [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="base-input"], [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="select"] > div, [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="textarea"] { background-color: #FFFFFF !important; border-color: #FFFFFF !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="input"] *, [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="select"] *, [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="textarea"] *, [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="calendar"] * { color: #1E3A8A !important; -webkit-text-fill-color: #1E3A8A !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="input"] svg, [data-testid="stSidebar"][data-testid="stSidebar"] div[data-baseweb="select"] svg { fill: #1E3A8A !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] .stButton button, [data-testid="stSidebar"][data-testid="stSidebar"] .stButton button *, [data-testid="stSidebar"][data-testid="stSidebar"] .stDownloadButton button, [data-testid="stSidebar"][data-testid="stSidebar"] .stDownloadButton button * { color: #4318FF !important; -webkit-text-fill-color: #4318FF !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] .stButton button, [data-testid="stSidebar"][data-testid="stSidebar"] .stDownloadButton button { background-color: #FFFFFF !important; border: 1.5px solid #FFFFFF !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] div[data-testid="stAlert"] *, [data-testid="stSidebar"][data-testid="stSidebar"] div[data-testid="stAlertContainer"] * { color: #1E3A8A !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] [data-testid="stExpander"] details * { color: #1E3A8A !important; }
+[data-testid="stSidebar"][data-testid="stSidebar"] [data-testid="stExpander"] details { background-color: #FFFFFF !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"], .stTabs button[data-baseweb="tab"] { padding: 10px 16px !important; }
 div[data-testid="stTabs"] button[data-baseweb="tab"] p, .stTabs button[data-baseweb="tab"] p { font-size: 15px !important; font-weight: 700 !important; }
-div[data-testid="stTabs"] button[aria-selected="true"] p, .stTabs button[aria-selected="true"] p { color: #9F8CFF !important; }
+div[data-testid="stTabs"] button[aria-selected="true"] p, .stTabs button[aria-selected="true"] p { color: #4318FF !important; }
 div[data-testid="stTabs"] [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-highlight"] { background-color: #4318FF !important; height: 3px !important; }
 @media (max-width: 768px) { .main-title { font-size: 28px !important; } .section-title { font-size: 18px !important; } .block-container { padding: 1rem 0.8rem 3rem 0.8rem !important; } }
+</style>""", unsafe_allow_html=True)
+
+st.markdown("""<style>
+:root { color-scheme: light !important; }
+html, body, .stApp, [data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stMainBlockContainer"], section.main, .main, [data-testid="stBottom"], [data-testid="stBottomBlockContainer"], [data-testid="stHeader"], [data-testid="stToolbar"] { background-color: #FFFFFF !important; color: #1E3A8A !important; }
+[data-testid="stHeader"] { border-bottom: 1px solid #8FA8F0 !important; }
+/* indikator proses (Running...) berwarna biru */
+[data-testid="stStatusWidget"], [data-testid="stStatusWidget"] *, [data-testid="stStatusWidget"] label { color: #2563EB !important; font-weight: 700 !important; }
+[data-testid="stStatusWidget"] svg, [data-testid="stStatusWidget"] img { filter: invert(27%) sepia(96%) saturate(2500%) hue-rotate(215deg) brightness(95%) !important; }
+[data-testid="stStatusWidget"] svg circle, [data-testid="stStatusWidget"] svg path { stroke: #2563EB !important; }
+[data-testid="stDecoration"] { background-image: linear-gradient(90deg, #2563EB, #4318FF) !important; }
+h1, h2, h3, h4, h5, h6, label, label p, [data-testid="stWidgetLabel"] *, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] *, [data-testid="stMetricValue"], [data-testid="stMetricLabel"] *,
+[data-testid="stMarkdownContainer"] p:not([style]), [data-testid="stMarkdownContainer"] li:not([style]), [data-testid="stMarkdownContainer"] strong, [data-testid="stExpander"] summary *, [data-testid="stFileUploader"] *, [data-testid="stRadio"] *, [data-testid="stCheckbox"] *, [data-testid="stToggle"] * { color: #1E3A8A !important; }
+a, a:visited { color: #4318FF !important; }
+hr, [data-testid="stDivider"] hr { border-color: #8FA8F0 !important; background-color: #8FA8F0 !important; }
+[data-testid="stDivider"] { margin: 0 !important; padding: 0 !important; }
+[data-testid="stDivider"] hr, hr:not([style]) { margin: 4px 0 !important; }
+div[data-baseweb="input"], div[data-baseweb="base-input"], div[data-baseweb="select"] > div, div[data-baseweb="textarea"], textarea, input, [data-testid="stNumberInput"] button { background-color: #FFFFFF !important; color: #1E3A8A !important; -webkit-text-fill-color: #1E3A8A !important; border-color: #8FA8F0 !important; }
+div[data-baseweb="select"] svg, div[data-baseweb="input"] svg, [data-testid="stNumberInput"] svg { fill: #1E3A8A !important; color: #1E3A8A !important; }
+[data-baseweb="popover"] > div, [data-baseweb="menu"], ul[role="listbox"], li[role="option"], [data-baseweb="calendar"] { background-color: #FFFFFF !important; color: #1E3A8A !important; border-color: #8FA8F0 !important; }
+li[role="option"] *, [data-baseweb="menu"] * { color: #1E3A8A !important; }
+li[role="option"]:hover, li[aria-selected="true"] { background-color: #EAF0FF !important; }
+[data-baseweb="tag"] { background-color: #EAF0FF !important; } [data-baseweb="tag"] * { color: #1E3A8A !important; }
+.stButton > button, .stDownloadButton > button, [data-testid="stBaseButton-secondary"], [data-testid="stFormSubmitButton"] > button { background-color: #FFFFFF !important; color: #4318FF !important; border: 1.5px solid #4318FF !important; }
+.stButton > button *, .stDownloadButton > button *, [data-testid="stBaseButton-secondary"] * { color: #4318FF !important; }
+.stButton > button:hover, .stDownloadButton > button:hover, [data-testid="stBaseButton-secondary"]:hover { background-color: #EAF0FF !important; }
+[data-testid="stBaseButton-primary"], .stButton > button[kind="primary"] { background-color: #4318FF !important; border: 1.5px solid #4318FF !important; }
+[data-testid="stBaseButton-primary"] *, .stButton > button[kind="primary"] * { color: #FFFFFF !important; }
+[data-testid="stAlert"], [data-testid="stAlertContainer"] { background-color: #EAF0FF !important; border: 1px solid #8FA8F0 !important; border-radius: 10px !important; }
+[data-testid="stAlert"] *, [data-testid="stAlertContainer"] * { color: #1E3A8A !important; }
+[data-testid="stToast"], [data-testid="stNotification"] { background-color: #FFFFFF !important; border: 1.5px solid #4318FF !important; box-shadow: 0 6px 20px rgba(67,24,255,0.20) !important; } [data-testid="stToast"] *, [data-testid="stNotification"] * { color: #1E3A8A !important; }
+[data-testid="stExpander"], [data-testid="stExpander"] details { background-color: #FFFFFF !important; border: 1px solid #8FA8F0 !important; border-radius: 10px !important; }
+[data-testid="stExpander"] summary:hover { background-color: #EAF0FF !important; }
+[data-testid="stFileUploaderDropzone"] { background-color: #EAF0FF !important; border: 1.5px dashed #4318FF !important; }
+div[data-baseweb="tab-border"] { background-color: #8FA8F0 !important; }
+button[data-baseweb="tab"] p { color: #3B5BC8 !important; } button[data-baseweb="tab"][aria-selected="true"] p { color: #4318FF !important; }
+pre, code, [data-testid="stCodeBlock"] { background-color: #EAF0FF !important; color: #1E3A8A !important; }
+[data-testid="stProgress"] > div > div { background-color: #EAF0FF !important; } [data-testid="stProgress"] > div > div > div { background-color: #4318FF !important; }
+[data-testid="stTooltipContent"], [role="tooltip"] { background-color: #FFFFFF !important; color: #1E3A8A !important; border: 1px solid #8FA8F0 !important; }
+[data-testid="stDataFrame"], [data-testid="stDataEditor"], [data-testid="stDataFrameGlideDataEditor"] { border: 1px solid #8FA8F0 !important; border-radius: 8px !important; --gdg-bg-cell: #FFFFFF; --gdg-bg-cell-medium: #F4F7FF; --gdg-bg-header: #EAF0FF; --gdg-bg-header-has-focus: #DCE6FF; --gdg-bg-header-hovered: #DCE6FF; --gdg-text-dark: #1E3A8A; --gdg-text-medium: #3B5BC8; --gdg-text-light: #3B5BC8; --gdg-text-header: #1E3A8A; --gdg-border-color: #8FA8F0; --gdg-horizontal-border-color: #8FA8F0; --gdg-accent-color: #4318FF; --gdg-accent-light: rgba(67,24,255,0.12); --gdg-bg-bubble: #EAF0FF; }
 </style>""", unsafe_allow_html=True)
 
 # ====================================================================================================
@@ -66,7 +115,7 @@ div[data-testid="stTabs"] [data-baseweb="tab-highlight"], .stTabs [data-baseweb=
 # ====================================================================================================
 import html as _html
 
-BSG_GRN, BSG_YEL, BSG_RED, BSG_CYN, BSG_PUR = '#00FF66', '#FFEA00', '#FF4D8D', '#00E5FF', '#4318FF'
+BSG_GRN, BSG_YEL, BSG_RED, BSG_CYN, BSG_PUR = '#12A150', '#F97316', '#DC2626', '#2563EB', '#2563EB'   # hijau, orange, merah, biru
 _bsg_fragment = getattr(st, 'fragment', None) or getattr(st, 'experimental_fragment', None) or (lambda f: f)
 
 def _esc(x): return _html.escape(str(x), quote=True)
@@ -122,29 +171,99 @@ def bsg_prog_bar(prog, color, ref=None):
     if ref is not None:
         try: mk = f'<div title="Acuan ideal" style="position:absolute;left:{max(0.0, min(100.0, float(ref))):.1f}%;top:-3px;bottom:-3px;width:2px;background:#FFFFFF;opacity:.9;border-radius:1px;"></div>'
         except Exception: mk = ''
-    return (f'<div style="position:relative;height:6px;border-radius:4px;background:#1E293B;margin-top:8px;">'
+    return (f'<div style="position:relative;height:6px;border-radius:4px;background:#EAF0FF;margin-top:8px;">'
             f'<div style="width:{p:.1f}%;height:100%;border-radius:4px;background:{color};"></div>{mk}</div>')
 
 def bsg_card(icon, label, value, sub, color, prog=None, ref=None):
     bar = bsg_prog_bar(prog, color, ref) if prog is not None else ''
-    return (f'<div style="background:linear-gradient(160deg,#151B2B 0%,#0E1117 100%);border:1px solid #232B3E;border-top:3px solid {color};border-radius:12px;padding:12px 14px;min-height:98px;box-sizing:border-box;">'
-            f'<div style="font-size:11.5px;font-weight:700;letter-spacing:0.6px;color:#94A3B8;text-transform:uppercase;white-space:nowrap;">{icon} {label}</div>'
+    return (f'<div style="background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-top:3px solid {color};border-radius:12px;padding:12px 14px;min-height:98px;box-sizing:border-box;">'
+            f'<div style="font-size:11.5px;font-weight:700;letter-spacing:0.6px;color:#3B5BC8;text-transform:uppercase;white-space:nowrap;">{icon} {label}</div>'
             f'<div style="font-size:27px;font-weight:800;color:{color};line-height:1.2;margin:4px 0 2px 0;">{value}</div>'
-            f'<div style="font-size:12px;font-weight:500;color:#CBD5E1;line-height:1.45;">{sub}</div>{bar}</div>')
+            f'<div style="font-size:12px;font-weight:500;color:#1E3A8A;line-height:1.45;">{sub}</div>{bar}</div>')
+
+def bsg_benchmark_kpi_html(title, r_tot, nm, ideal_pct):
+    """Benchmark KPI 1 baris (11 kartu): TARGET · STU · NOTA · ACHIEVEMENT · AVG NOTA · AVG 7 · AVG 3 · FORC NOTA · FORC 7 · FORC 3 · FORC."""
+    GRN, YEL, RED, CYN, BLU = '#12A150', '#D68A00', '#E0115F', '#0891B2', '#2563EB'
+    tg, stu, nota, idl_u = safe_int(r_tot.get('TARGET')), safe_int(r_tot.get('STU')), safe_int(r_tot.get('NOTA')), safe_int(r_tot.get('IDEAL'))
+    pct = bsg_num(r_tot.get('_pct')); idl = float(ideal_pct) if ideal_pct else 100.0
+    avg, a7, a3 = nm['avg'], nm['avg7'], nm['avg3']
+    def _tr(v, ref, lbl): return f'<span style="color:{GRN};font-weight:800;">▲</span> vs {lbl}' if v > ref else (f'<span style="color:{RED};font-weight:800;">▼</span> vs {lbl}' if v < ref else f'▬ = {lbl}')
+    def _fc(label, icon, v):
+        p = (v / tg * 100.0) if tg > 0 else None
+        return (icon, label, f'{int(v):,}', (f'<b>{p:.1f}%</b> dari target' if p is not None else 'target belum diisi'), (bsg_stat_color(p, 100.0, 85.0) if p is not None else CYN), (min(p, 100.0) if p is not None else None), None)
+    cards = [
+        ('🎯', 'TARGET', f'{tg:,}', f'Ideal tgl {tanggal_akhir}: <b>{idl_u:,}</b>', BLU, None, None),
+        ('🏍️', 'STU', f'{stu:,}', f'Gap ideal <b>{stu - idl_u:+,}</b>', (GRN if stu >= idl_u else (YEL if stu >= 0.85 * idl_u else RED)), None, None),
+        ('🧾', 'NOTA', f'{nota:,}', f"Hari ini <b>{safe_int(r_tot.get('TODAY')):,}</b>", CYN, None, None),
+        ('🏆', 'ACHIEVEMENT', f'{pct:.1f}%', f'Ideal <b>{idl:.0f}%</b>', bsg_stat_color(pct, idl, 0.85 * idl), min(pct, 100.0), idl),
+        ('📊', 'AVG NOTA', f'{avg:.2f}', f"{nm['n']:,} nota ÷ {hari_aktif} hr", CYN, None, None),
+        ('⚡', 'AVG 7', f'{a7:.2f}', f"{nm['n7']:,} ÷ {nm['d7']} hr · {_tr(a7, avg, 'AVG')}", (GRN if a7 >= avg else RED), None, None),
+        ('🔥', 'AVG 3', f'{a3:.2f}', f"{nm['n3']:,} ÷ {nm['d3']} hr · {_tr(a3, a7, 'AVG 7')}", (GRN if a3 >= a7 else RED), None, None),
+        _fc('FORC NOTA', '📈', nm['f_nota']), _fc('FORC 7', '📈', nm['f7']), _fc('FORC 3', '📈', nm['f3']), _fc('FORC', '🏁', safe_int(r_tot.get('FORC'))),
+    ]
+    return _bmk_render(cards, f'📌 BENCHMARK KPI — {_esc(title)} (1 s.d {tanggal_akhir})')
+
+def _bmk_render(cards, ttl=None):
+    """Render deretan kartu benchmark (11 kolom). cards: (ikon, label, nilai, sub, warna, prog, ref)."""
+    css = ('<style>.bmk-wrap{margin:4px 0 10px 0}.bmk-ttl{font-size:12.5px;font-weight:800;color:#1E3A8A;margin:0 0 6px 2px;letter-spacing:.3px}'
+           '.bmk-grid{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:8px}'
+           '@media (max-width:1250px){.bmk-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}@media (max-width:700px){.bmk-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}'
+           '.bmk-c{background:#FFFFFF;border:1px solid #8FA8F0;border-radius:10px;padding:8px 8px 7px 8px;box-sizing:border-box;min-width:0}'
+           '.bmk-l{font-size:9.5px;font-weight:800;letter-spacing:.3px;color:#3B5BC8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+           '.bmk-v{font-size:19px;font-weight:800;line-height:1.2;margin:3px 0 1px 0;white-space:nowrap}.bmk-s{font-size:10px;font-weight:500;color:#1E3A8A;line-height:1.35}</style>')
+    body = ''
+    for ic, lb, val, sub, col, prog, ref in cards:
+        bar = bsg_prog_bar(prog, col, ref) if prog is not None else ''
+        body += (f'<div class="bmk-c" style="border-top:3px solid {col};"><div class="bmk-l">{ic} {lb}</div><div class="bmk-v" style="color:{col};">{val}</div><div class="bmk-s">{sub}</div>{bar}</div>')
+    t_ = f'<div class="bmk-ttl">{ttl}</div>' if ttl else ''
+    return f'{css}<div class="bmk-wrap">{t_}<div class="bmk-grid">{body}</div></div>'
+
+def bsg_benchmark_kpi2_html(f_c, db_c, sp_c, nota_today):
+    """Benchmark KPI baris 2 (11 kartu): STU AT PREMIUM · CLASSY · LPM · DB QUALITY · SPK · ACC% · WALK IN / HOT / SPK / NOTA / STU TODAY."""
+    GRN, YEL, RED, CYN, BLU = '#12A150', '#D68A00', '#E0115F', '#0891B2', '#2563EB'
+    def _n(df_x): return 0 if df_x is None else len(df_x)
+    def _has(df_x, c_): return df_x is not None and not df_x.empty and c_ in df_x.columns
+    stu = _n(f_c)
+    def _typ(lbl, ic, col, ideal):
+        v = int((f_c['Type_Clean'] == lbl).sum()) if _has(f_c, 'Type_Clean') else 0
+        p = (v / stu * 100.0) if stu > 0 else 0.0
+        return (ic, f'STU {lbl}', f'{v:,}', f'<b>{p:.1f}%</b> dari STU · ideal {ideal}%', col, min(p / ideal * 100.0, 100.0) if ideal else None, None)
+    db_n, sp_n = _n(db_c), _n(sp_c)
+    hot_n = int((db_c['Data_Type_Clean'] == 'DEAL PROSPECT').sum()) if _has(db_c, 'Data_Type_Clean') else 0
+    acc_n = int((sp_c['Status_SPK_Clean'] == 'DISETUJUI').sum()) if _has(sp_c, 'Status_SPK_Clean') else 0
+    rej_n = int((sp_c['Status_SPK_Clean'] == 'DITOLAK').sum()) if _has(sp_c, 'Status_SPK_Clean') else 0
+    dbq = (hot_n / db_n * 100.0) if db_n > 0 else 0.0
+    accp = (acc_n / (acc_n + rej_n) * 100.0) if (acc_n + rej_n) > 0 else 0.0
+    def _tod(df_x): return df_x[df_x['hari'] == tanggal_akhir] if _has(df_x, 'hari') else pd.DataFrame()
+    db_t, sp_t = _tod(db_c), _tod(sp_c)
+    hot_t = int((db_t['Data_Type_Clean'] == 'DEAL PROSPECT').sum()) if _has(db_t, 'Data_Type_Clean') else 0
+    stu_t = int((f_c['hari'] == tanggal_akhir).sum()) if _has(f_c, 'hari') else 0
+    cards = [
+        _typ('AT PREMIUM', '💎', BLU, 60), _typ('AT CLASSY', '🛵', GRN, 25), _typ('AT LPM', '🏷️', '#F97316', 10),
+        ('🗂️', 'DB QUALITY', f'{dbq:.1f}%', f'HOT <b>{hot_n:,}</b> ÷ DB <b>{db_n:,}</b> · ideal 30%', bsg_stat_color(dbq, 30.0, 20.0), min(dbq / 30.0 * 100.0, 100.0), None),
+        ('📝', 'SPK', f'{sp_n:,}', f'Disetujui <b>{acc_n:,}</b> · Ditolak <b>{rej_n:,}</b>', CYN, None, None),
+        ('✅', 'ACC%', f'{accp:.1f}%', 'ideal 50%', bsg_stat_color(accp, 50.0, 40.0), min(accp, 100.0), 50.0),
+        ('🚶', 'WALK IN TODAY', f'{count_walkin(db_t) if not db_t.empty else 0:,}', f'tgl {tanggal_akhir}', CYN, None, None),
+        ('🔥', 'HOT TODAY', f'{hot_t:,}', f'tgl {tanggal_akhir}', CYN, None, None),
+        ('📄', 'SPK TODAY', f'{_n(sp_t):,}', f'tgl {tanggal_akhir}', CYN, None, None),
+        ('🧾', 'NOTA TODAY', f'{_n(nota_today):,}', f'tgl {tanggal_akhir}', CYN, None, None),
+        ('🏍️', 'STU TODAY', f'{stu_t:,}', f'tgl {tanggal_akhir}', BLU, None, None),
+    ]
+    return _bmk_render(cards)
 
 # ---------------------------------------------------------------- kerangka iframe grafik ----
 _BSG_FRAME = """<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:transparent;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;color:#E2E8F0}
-.card{background:linear-gradient(160deg,#151B2B 0%,#0E1117 100%);border:1px solid #232B3E;border-radius:12px;padding:12px 14px 10px 14px;width:100%}
-.ttl{font-size:14px;font-weight:800;color:#E2E8F0;line-height:1.25}
-.sub{font-size:11.5px;color:#94A3B8;margin:2px 0 8px 0;line-height:1.4}
-.lg{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#94A3B8;margin:0 12px 6px 0}
+html,body{margin:0;padding:0;background:transparent;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;color:#1E3A8A}
+.card{background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-radius:12px;padding:12px 14px 10px 14px;width:100%}
+.ttl{font-size:14px;font-weight:800;color:#1E3A8A;line-height:1.25}
+.sub{font-size:11.5px;color:#3B5BC8;margin:2px 0 8px 0;line-height:1.4}
+.lg{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#3B5BC8;margin:0 12px 6px 0}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-.mk{display:inline-block;width:2px;height:11px;background:#fff;opacity:.9}
+.mk{display:inline-block;width:3px;height:11px;background:#DC2626;opacity:1}
 .ds{display:inline-block;width:16px;height:0;border-top:2px dashed #94A3B8}
-.chip{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#1B2336;border:1px solid #2D3748;margin:0 6px 6px 0;color:#CBD5E1}
-#tip{position:fixed;left:0;top:0;pointer-events:none;background:#0B1020;border:1px solid #475569;border-radius:8px;padding:6px 9px;font-size:12px;line-height:1.5;opacity:0;transition:opacity .08s;z-index:99;max-width:280px;color:#E2E8F0}
+.chip{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#EAF0FF;border:1px solid #8FA8F0;margin:0 6px 6px 0;color:#1E3A8A}
+#tip{position:fixed;left:0;top:0;pointer-events:none;background:#FFFFFF;border:1px solid #8FA8F0;border-radius:8px;padding:6px 9px;font-size:12px;line-height:1.5;opacity:0;transition:opacity .08s;z-index:99;max-width:280px;color:#1E3A8A}
 @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 __CSS__
 </style></head><body>__INNER__<div id="tip"></div>
@@ -154,7 +273,7 @@ e.addEventListener('mousemove',function(ev){t.innerHTML=e.getAttribute('data-tip
 if(x+t.offsetWidth>window.innerWidth-6)x=Math.max(4,ev.clientX-t.offsetWidth-14);if(y+t.offsetHeight>window.innerHeight-4)y=Math.max(4,ev.clientY-t.offsetHeight-10);
 t.style.left=x+'px';t.style.top=y+'px';});
 e.addEventListener('mouseleave',function(){t.style.opacity=0;});});})();</script>
-<script>(function(){function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&i<4){if(Math.abs(el.getBoundingClientRect().height-old)<=3)els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
+<script>(function(){function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&el.children.length===1&&i<6){els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
 function fit(){try{var c=document.querySelector('.card');if(!c)return;setFrameH(Math.ceil(c.getBoundingClientRect().height)+4);}catch(e){}}
 fit();window.addEventListener('resize',function(){setTimeout(fit,60);});setTimeout(fit,200);setTimeout(fit,800);})();</script>
 __JS__</body></html>"""
@@ -167,23 +286,33 @@ def bsg_show(res):
     html_str, h = res
     components.html(html_str, height=int(h), scrolling=False)
 
+def _ttl(t):
+    """Hapus semua teks berkurung (...) dari judul grafik."""
+    return re.sub(r'\s*\([^)]*\)', '', str(t)).strip()
+
 def _hdr(title, subtitle=''):
+    title = _ttl(title)
     return f'<div class="ttl">{_esc(title)}</div>' + (f'<div class="sub">{_esc(subtitle)}</div>' if subtitle else '<div style="height:8px"></div>')
 
 # ---------------------------------------------------------------- 1. ranking bar horizontal ----
 _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:26px}
-.rk-n{flex:0 0 36%;max-width:215px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#E2E8F0}
-.rk-t{position:relative;flex:1;height:14px;border-radius:7px;background:#1B2336}
+.rk-n{flex:0 0 36%;max-width:215px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1E3A8A}
+.rk-t{position:relative;flex:1;height:14px;border-radius:7px;background:#EAF0FF}
 .rk-f{height:100%;border-radius:7px;transform-origin:left center;animation:grow .7s ease-out both}
-.rk-m{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.9;border-radius:1px}
+.rk-m{position:absolute;top:-3px;bottom:-3px;width:3px;background:#DC2626;opacity:1;border-radius:1px;z-index:2}
 .rk-v{flex:0 0 58px;text-align:right;font-size:12px;font-weight:800}
-.rk-x{flex:0 0 24px;text-align:right;font-size:12px;font-weight:800;color:#FFEA00}
-.rk:hover .rk-t{background:#242E45}
-.rk:hover .rk-n{color:#fff}"""
+.rk-x{flex:0 0 24px;text-align:right;font-size:12px;font-weight:800;color:#F97316}
+.rk:hover .rk-t{background:#EAF0FF}
+.rk:hover .rk-n{color:#4318FF}
+.ttl-r{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.ttl-tot{font-size:22px;font-weight:900;line-height:1.05;white-space:nowrap}"""
 
-def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None):
+BSG_ONE_ROW = False   # True (Dashboard Dealer): tiap kelompok pie/grafik per Koordinator-Counter selalu 1 baris, berapapun jumlahnya
+
+def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None, total=None, total_color=None):
     """rows: list dict(name, val, label=None, tip=None). Warna otomatis terhadap ideal (hijau ≥ ideal, kuning ≥ 85%, merah di bawahnya).
     parts=True → kembalikan (inner_html, css, tinggi) untuk digabung ke panel; False → (dokumen_iframe, tinggi)."""
+    subtitle = ''   # keterangan di bawah judul grafik dihapus
     rows = [r for r in rows if r is not None]
     if not rows: return None
     rows = sorted(rows, key=lambda r: r['val'], reverse=not ascending)
@@ -205,7 +334,11 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
     leg = ''
     if ideal and not fixed_color:
         leg = f'<span class="lg"><span class="mk"></span>{_esc(ideal_label)} {ideal:.0f}{unit}</span>'   # hanya penanda garis ideal; warna hijau/kuning/merah sudah terlihat dari batang
-    inner = f'<div class="card">{_hdr(title, subtitle)}{leg}{body}</div>'
+    hdr = _hdr(title, subtitle)
+    if total is not None:   # angka total (besar) di sisi kanan judul
+        hdr = (f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div>'
+               + (f'<div class="sub">{_esc(subtitle)}</div>' if subtitle else '<div style="height:8px"></div>'))
+    inner = f'<div class="card">{hdr}{leg}{body}</div>'
     h = 59 + (22 if leg else 0) + (14 if subtitle else 0) + 26 * len(rows)
     if parts: return inner, _RANK_CSS, h
     return _bsg_frame(inner, css=_RANK_CSS), h
@@ -213,6 +346,7 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
 # ---------------------------------------------------------------- 2. funnel ----
 def bsg_chart_funnel(title, subtitle, stages):
     """stages: list (label, value, color). Lebar bar relatif terhadap tahap pertama; tampil konversi antar tahap."""
+    subtitle = ''   # keterangan di bawah judul grafik dihapus
     st_ = [(l, max(0.0, float(v)), c) for l, v, c in stages]
     if not st_ or st_[0][1] <= 0: return None
     base = st_[0][1]; body = ''
@@ -226,12 +360,12 @@ def bsg_chart_funnel(title, subtitle, stages):
         body += (f'<div class="fn-r" data-tip="{_esc(tip)}"><div class="fn-l" title="{_esc(l)}">{_esc(l)}</div><div class="fn-t">'
                  f'<div class="fn-b" style="width:{w:.1f}%;background:linear-gradient(90deg,{c},{c}CC);animation-delay:{i * 90}ms">{int(v):,}</div></div></div>')
     css = (".fn-r{display:flex;align-items:center;gap:8px;height:28px}"
-           ".fn-l{flex:0 0 38%;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#E2E8F0}"
+           ".fn-l{flex:0 0 38%;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1E3A8A}"
            ".fn-t{flex:1;display:flex;justify-content:center}"
-           ".fn-b{height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#06101F;font-size:12.5px;font-weight:900;"
+           ".fn-b{height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#FFFFFF;font-size:12.5px;font-weight:900;"
            "transform-origin:center;animation:grow .6s ease-out both;white-space:nowrap;min-width:46px}"
            ".fn-r:hover .fn-b{filter:brightness(1.18)}"
-           ".fn-c{margin-left:calc(38% + 8px);text-align:center;font-size:10.5px;color:#94A3B8;height:16px;line-height:16px}")
+           ".fn-c{margin-left:calc(38% + 8px);text-align:center;font-size:10.5px;color:#3B5BC8;height:16px;line-height:16px}")
     inner = f'<div class="card">{_hdr(title, subtitle)}{body}</div>'
     n = len(st_)
     return _bsg_frame(inner, css=css), 60 + (14 if subtitle else 0) + n * 28 + (n - 1) * 16
@@ -239,22 +373,23 @@ def bsg_chart_funnel(title, subtitle, stages):
 # ---------------------------------------------------------------- 3. heatmap ----
 def _bsg_heat_color(s):
     """skor 0..100+ → merah → kuning → hijau."""
-    stops = [(0.0, (255, 77, 141)), (50.0, (255, 176, 32)), (100.0, (0, 230, 118))]
+    stops = [(0.0, (220, 38, 38)), (50.0, (249, 115, 22)), (100.0, (18, 161, 80))]
     s = max(0.0, min(100.0, float(s)))
     for (a, ca), (b, cb) in zip(stops, stops[1:]):
         if s <= b:
             t = (s - a) / (b - a) if b > a else 0.0
             return '#%02X%02X%02X' % tuple(int(round(ca[k] + (cb[k] - ca[k]) * t)) for k in range(3))
-    return '#00E676'
+    return '#12A150'
 
 def bsg_chart_heat(title, subtitle, row_names, col_names, cells, max_rows=24):
     """cells[(row, col)] = (skor | None, label, tip)."""
+    subtitle = ''   # keterangan di bawah judul grafik dihapus
     row_names = list(row_names)[:max_rows]
     if not row_names: return None
-    css = (".ht{width:100%;border-collapse:separate;border-spacing:3px}.ht th{font-size:11.5px;font-weight:800;color:#CBD5E1;padding:4px 2px;text-align:center}"
-           ".ht td.n{font-size:12px;font-weight:700;color:#E2E8F0;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis;padding-right:6px}"
-           ".ht td.c{height:26px;text-align:center;font-size:12.5px;font-weight:800;border-radius:6px;color:#06101F}.ht td.c:hover{filter:brightness(1.15);outline:1px solid #fff}"
-           ".ht td.na{background:#1B2336;color:#64748B}")
+    css = (".ht{width:100%;border-collapse:separate;border-spacing:3px}.ht th{font-size:11.5px;font-weight:800;color:#1E3A8A;padding:4px 2px;text-align:center}"
+           ".ht td.n{font-size:12px;font-weight:700;color:#1E3A8A;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis;padding-right:6px}"
+           ".ht td.c{height:26px;text-align:center;font-size:12.5px;font-weight:800;border-radius:6px;color:#FFFFFF}.ht td.c:hover{filter:brightness(1.15);outline:1px solid #1E3A8A}"
+           ".ht td.na{background:#EAF0FF;color:#3B5BC8}")
     th = '<tr><th></th>' + ''.join(f'<th>{_esc(c)}</th>' for c in col_names) + '</tr>'
     rows_html = ''
     for rn in row_names:
@@ -264,39 +399,67 @@ def bsg_chart_heat(title, subtitle, row_names, col_names, cells, max_rows=24):
             if sc is None: tds += f'<td class="c na" data-tip="{_esc(tip or "Tidak ada data")}">–</td>'
             else: tds += f'<td class="c" style="background:{_bsg_heat_color(sc)}" data-tip="{_esc(tip)}">{_esc(lab)}</td>'
         rows_html += f'<tr>{tds}</tr>'
-    leg = ('<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10.5px;color:#94A3B8;">Skor vs ideal:'
+    leg = ('<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10.5px;color:#3B5BC8;">Skor vs ideal:'
            f'<span style="width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,{_bsg_heat_color(0)},{_bsg_heat_color(50)},{_bsg_heat_color(100)})"></span>0% → 100%+</div>')
     inner = f'<div class="card">{_hdr(title, subtitle)}<table class="ht">{th}{rows_html}</table>{leg}</div>'
     return _bsg_frame(inner, css=css), 67 + (14 if subtitle else 0) + 30 * (len(row_names) + 1)
 
 # ---------------------------------------------------------------- 4. donut ----
-BSG_PAL = ['#4318FF', '#00E5FF', '#FFB020', '#FF4D8D', '#00E676', '#B388FF', '#FF8A65', '#4DD0E1', '#FFD54F', '#90A4AE', '#F06292', '#AED581']
+BSG_PAL = ['#2563EB', '#12A150', '#DC2626', '#F97316'] * 3   # hanya 4 warna: biru, hijau, merah, orange
 
-def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, keep_zero=False):
-    """items: list (label, value, color). keep_zero=True → item bernilai 0 tetap tampil di legenda (0 · 0%)."""
+def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, keep_zero=False, prev=None, prev_note='bulan lalu (periode sama)'):
+    """items: list (label, value, color). Donut tebal: label, nilai & persen berada DI DALAM potongan (tanpa legenda)."""
+    import math
+    subtitle = ''   # keterangan di bawah judul grafik dihapus
     all_its = [(l, float(v or 0), c) for l, v, c in items]
     its = [t for t in all_its if t[1] > 0]
     total = sum(v for _, v, _ in its)
     if total <= 0 and not keep_zero: return None
-    if not keep_zero: all_its = its
-    R, SW = 44.0, 16.0; C = 2 * 3.141592653589793 * R; off = 0.0; segs = ''
-    for l, v, c in its:
-        ln = v / total * C; gap = 0.8 if len(its) > 1 else 0.0
-        tip = f'<b>{_esc(l)}</b><br>{int(v):,} ({v / total * 100.0:.1f}%)'
-        segs += (f'<circle class="sg" cx="60" cy="60" r="{R}" fill="none" stroke="{c}" stroke-width="{SW}" stroke-dasharray="{max(ln - gap, 0.1):.3f} {C - max(ln - gap, 0.1):.3f}" '
-                 f'stroke-dashoffset="{-off:.3f}" data-tip="{_esc(tip)}"/>')
-        off += ln
-    leg = ''.join(f'<div class="dl"><span class="dot" style="background:{c}"></span><span class="dn" title="{_esc(l)}">{_esc(l)}</span><b>{int(v):,}</b><i>{(v / total * 100.0 if total > 0 else 0.0):.0f}%</i></div>' for l, v, c in all_its)
-    css = (".dw{display:flex;align-items:center;gap:14px}.dc{flex:0 0 132px}.sg{transition:stroke-width .12s}.sg:hover{stroke-width:20}"
-           ".dlg{flex:1;min-width:0}.dl{display:flex;align-items:center;gap:7px;font-size:12px;min-height:22px}.dn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#CBD5E1}"
-           ".dl b{font-weight:800}.dl i{font-style:normal;color:#94A3B8;width:34px;text-align:right}")
+    CX = CY = 100.0; RO, RI = 96.0, 50.0; RM = (RO + RI) / 2.0
+    pt = lambda r, a: (CX + r * math.cos(a), CY + r * math.sin(a))
     ff = 'font-family="Source Sans Pro,Segoe UI,Arial,sans-serif"'
-    svg = (f'<svg class="dc" viewBox="0 0 120 120" width="132" height="132"><circle cx="60" cy="60" r="{R}" fill="none" stroke="#1B2336" stroke-width="{SW}"/>'
-           f'<g transform="rotate(-90 60 60)">{segs}</g><text {ff} x="60" y="61" text-anchor="middle" font-size="17" font-weight="800" fill="#E2E8F0">{int(total):,}</text>'
-           f'<text {ff} x="60" y="76" text-anchor="middle" font-size="9" fill="#94A3B8">{_esc(center_label)}</text></svg>')
-    inner = f'<div class="card">{_hdr(title, subtitle)}<div class="dw">{svg}<div class="dlg">{leg}</div></div></div>'
-    h = 60 + (14 if subtitle else 0) + max(132, 22 * len(all_its))
-    if parts: return inner, css, h + 22 * len(all_its) + 6   # +legenda: pada layar sempit/stack3 legenda berada di bawah donut
+    segs, labs = '', ''
+    a0 = -math.pi / 2.0
+    for l, v, c in its:
+        frac = v / total; a1 = a0 + frac * 2.0 * math.pi; pct = frac * 100.0
+        tip = f'<b>{_esc(l)}</b><br>{int(v):,} ({pct:.1f}%)'
+        if prev is not None:
+            pv = float(prev.get(l, 0) or 0); d_ = v - pv
+            tip += f'<br>{"▲" if d_ > 0 else ("▼" if d_ < 0 else "▬")} {abs(int(d_)):,} vs {int(pv):,} {_esc(prev_note)}'
+        if len(its) == 1:
+            segs += f'<circle class="sg" cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{c}" stroke-width="{RO - RI}" data-tip="{_esc(tip)}"/>'
+            am = -math.pi / 2.0; arc = 2.0 * math.pi * RM
+        else:
+            x0, y0 = pt(RO, a0); x1, y1 = pt(RO, a1); x2, y2 = pt(RI, a1); x3, y3 = pt(RI, a0)
+            lg = 1 if (a1 - a0) > math.pi else 0
+            segs += (f'<path class="sg" d="M{x0:.2f} {y0:.2f} A{RO} {RO} 0 {lg} 1 {x1:.2f} {y1:.2f} L{x2:.2f} {y2:.2f} A{RI} {RI} 0 {lg} 0 {x3:.2f} {y3:.2f} Z" '
+                     f'fill="{c}" stroke="#FFFFFF" stroke-width="1.4" data-tip="{_esc(tip)}"/>')
+            am = (a0 + a1) / 2.0; arc = (a1 - a0) * RM
+        mx, my = pt(RM, am)
+        if pct >= 9.0 or len(its) == 1:
+            maxc = max(4, min(13, int(arc / 4.4))); nm = l if len(l) <= maxc else l[:maxc - 1] + '…'
+            labs += (f'<text {ff} x="{mx:.1f}" y="{my - 2.5:.1f}" text-anchor="middle" font-size="8" font-weight="800" fill="#FFFFFF" pointer-events="none">{_esc(nm)}</text>'
+                     f'<text {ff} x="{mx:.1f}" y="{my + 7:.1f}" text-anchor="middle" font-size="7.6" font-weight="600" fill="#FFFFFF" pointer-events="none">{int(v):,} · {pct:.0f}%</text>')
+        elif pct >= 4.5:
+            labs += f'<text {ff} x="{mx:.1f}" y="{my + 2.6:.1f}" text-anchor="middle" font-size="7.4" font-weight="800" fill="#FFFFFF" pointer-events="none">{pct:.0f}%</text>'
+        a0 = a1
+    def _cmp_ic(d):
+        return ('▲', '#12A150') if d > 0 else (('▼', '#DC2626') if d < 0 else ('▬', '#64748B'))
+    cmp_html = ''
+    if prev is not None:
+        tp = float(sum(float(x or 0) for x in prev.values())); dt = total - tp; ic, col = _cmp_ic(dt)
+        pc_t = f' ({dt / tp * 100.0:+.1f}%)' if tp > 0 else ''
+        cmp_html = f'<div class="dcmp"><span style="color:{col};font-weight:800">{ic} {dt:+,.0f}{pc_t}</span> dibanding {_esc(prev_note)}: {int(tp):,}</div>'
+    zero = [l for l, v, _ in all_its if v <= 0] if keep_zero else []
+    if zero: cmp_html += f'<div class="dcmp">Tidak ada: {_esc(", ".join(zero))}</div>'
+    css = (".dw{display:block}.dc{display:block;width:100%;max-width:250px;height:auto;margin:2px auto 0 auto}.sg{transition:opacity .12s;cursor:default}.sg:hover{opacity:.82}"
+           ".dcmp{margin-top:8px;padding-top:6px;border-top:1px solid #E3EAFF;font-size:11.5px;color:#3B5BC8;line-height:1.4}")
+    svg = (f'<svg class="dc" viewBox="0 0 200 200"><circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="#E3EAFF" stroke-width="{RO - RI}"/>{segs}{labs}'
+           f'<text {ff} x="{CX}" y="{CY + 4}" text-anchor="middle" font-size="24" font-weight="800" fill="#1E3A8A">{int(total):,}</text>'
+           f'<text {ff} x="{CX}" y="{CY + 18}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#3B5BC8">{_esc(center_label)}</text></svg>')
+    inner = f'<div class="card">{_hdr(title, subtitle)}<div class="dw">{svg}</div>{cmp_html}</div>'
+    h = 48 + 250 + (30 if prev is not None else 0) + (22 if zero else 0)
+    if parts: return inner, css, h
     return _bsg_frame(inner, css=css), h
 
 # ---------------------------------------------------------------- 5. kurva target ideal vs realisasi (JS, responsif) ----
@@ -310,23 +473,23 @@ function draw(){
  var mx=Math.max.apply(null,vs)*1.06; if(!(mx>0)) mx=1; var step=nice(mx/4), top=Math.ceil(mx/step)*step;
  function X(d){return m.l+(d-1)/Math.max(1,D-1)*iw;} function Y(v){return m.t+ih-v/top*ih;}
  wrap.setAttribute('data-w',W); var s='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="display:block;width:100%;height:auto">';
- for(var v=0; v<=top+1e-9; v+=step){var y=Y(v); s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'" stroke="#1E293B"/><text x="'+(m.l-7)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="#64748B">'+fmt(v)+'</text>';}
+ for(var v=0; v<=top+1e-9; v+=step){var y=Y(v); s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'" stroke="#8FA8F0"/><text x="'+(m.l-7)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="#3B5BC8">'+fmt(v)+'</text>';}
  var xs=D>20?3:(D>10?2:1);
- for(var d=1; d<=D; d++){ if(d===1||d%xs===0||d===D){ s+='<text x="'+X(d)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="#64748B">'+d+'</text>'; } }
- if(CFG.target>0){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(CFG.target)+'" y2="'+Y(CFG.target)+'" stroke="#475569" stroke-dasharray="2 4"/><text x="'+(W-m.r)+'" y="'+(Y(CFG.target)-5)+'" text-anchor="end" font-size="10.5" fill="#94A3B8">Target '+fmt(CFG.target)+'</text>'; }
+ for(var d=1; d<=D; d++){ if(d===1||d%xs===0||d===D){ s+='<text x="'+X(d)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10.5" fill="#3B5BC8">'+d+'</text>'; } }
+ if(CFG.target>0){ s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+Y(CFG.target)+'" y2="'+Y(CFG.target)+'" stroke="#8FA8F0" stroke-dasharray="2 4"/><text x="'+(W-m.r)+'" y="'+(Y(CFG.target)-5)+'" text-anchor="end" font-size="10.5" fill="#3B5BC8">Target '+fmt(CFG.target)+'</text>'; }
  var p=''; CFG.ideal.forEach(function(v,i){p+=(i?'L':'M')+X(i+1)+','+Y(v);});
- s+='<path d="'+p+'" fill="none" stroke="#94A3B8" stroke-width="2" stroke-dasharray="6 4"/>';
- if(CFG.proj.length>1){ p=''; CFG.proj.forEach(function(q,i){p+=(i?'L':'M')+X(q[0])+','+Y(q[1]);}); s+='<path d="'+p+'" fill="none" stroke="#00E5FF" stroke-width="2.2" stroke-dasharray="2 4" stroke-linecap="round"/>'; }
+ s+='<path d="'+p+'" fill="none" stroke="#8FA8F0" stroke-width="2" stroke-dasharray="6 4"/>';
+ if(CFG.proj.length>1){ p=''; CFG.proj.forEach(function(q,i){p+=(i?'L':'M')+X(q[0])+','+Y(q[1]);}); s+='<path d="'+p+'" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-dasharray="2 4" stroke-linecap="round"/>'; }
  (CFG.ext||[]).forEach(function(e){ p=''; e.p.forEach(function(q,i){p+=(i?'L':'M')+X(q[0])+','+Y(q[1]);}); s+='<path d="'+p+'" fill="none" stroke="'+e.c+'" stroke-width="2.2" stroke-dasharray="'+e.d+'" stroke-linecap="round"/>'; });
  if(CFG.real.length){
   p=''; CFG.real.forEach(function(q,i){p+=(i?'L':'M')+X(q[0])+','+Y(q[1]);});
   var last=CFG.real[CFG.real.length-1], first=CFG.real[0];
   s+='<path d="'+p+'L'+X(last[0])+','+Y(0)+'L'+X(first[0])+','+Y(0)+'Z" fill="rgba(0,255,102,0.10)"/>';
-  s+='<path d="'+p+'" fill="none" stroke="#00FF66" stroke-width="2.8" stroke-linejoin="round"/>';
-  s+='<circle cx="'+X(last[0])+'" cy="'+Y(last[1])+'" r="5" fill="#00FF66" stroke="#0E1117" stroke-width="2"/>';
+  s+='<path d="'+p+'" fill="none" stroke="#12A150" stroke-width="2.8" stroke-linejoin="round"/>';
+  s+='<circle cx="'+X(last[0])+'" cy="'+Y(last[1])+'" r="5" fill="#12A150" stroke="#FFFFFF" stroke-width="2"/>';
  }
- s+='<line x1="'+X(CFG.today)+'" x2="'+X(CFG.today)+'" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#FFEA00" stroke-dasharray="3 3" stroke-opacity=".7"/><text x="'+X(CFG.today)+'" y="'+(m.t+9)+'" text-anchor="middle" font-size="10" fill="#FFEA00" font-weight="700" dx="'+(CFG.today>D-3?-16:16)+'">Tgl '+CFG.today+'</text>';
- s+='<line id="hl" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#E2E8F0" stroke-opacity=".35" style="display:none"/><circle id="h1" r="4.5" fill="#94A3B8" style="display:none"/><circle id="h2" r="5" fill="#00FF66" stroke="#0E1117" stroke-width="2" style="display:none"/>';
+ s+='<line x1="'+X(CFG.today)+'" x2="'+X(CFG.today)+'" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#D68A00" stroke-dasharray="3 3" stroke-opacity=".7"/><text x="'+X(CFG.today)+'" y="'+(m.t+9)+'" text-anchor="middle" font-size="10" fill="#D68A00" font-weight="700" dx="'+(CFG.today>D-3?-16:16)+'">Tgl '+CFG.today+'</text>';
+ s+='<line id="hl" y1="'+m.t+'" y2="'+(m.t+ih)+'" stroke="#3B5BC8" stroke-opacity=".5" style="display:none"/><circle id="h1" r="4.5" fill="#3B5BC8" style="display:none"/><circle id="h2" r="5" fill="#12A150" stroke="#FFFFFF" stroke-width="2" style="display:none"/>';
  s+='<rect id="ov" x="'+m.l+'" y="'+m.t+'" width="'+iw+'" height="'+ih+'" fill="transparent"/></svg>';
  wrap.innerHTML=s;
  var ov=document.getElementById('ov'), hl=document.getElementById('hl'), h1=document.getElementById('h1'), h2=document.getElementById('h2');
@@ -337,9 +500,9 @@ function draw(){
   hl.setAttribute('x1',x); hl.setAttribute('x2',x); hl.style.display='';
   h1.setAttribute('cx',x); h1.setAttribute('cy',Y(idv)); h1.style.display='';
   var t='<b>Tgl '+d+'</b><br>Target ideal: <b>'+fmt(idv)+'</b>';
-  if(rv!==undefined){ var g=rv-idv; h2.setAttribute('cx',x); h2.setAttribute('cy',Y(rv)); h2.style.display=''; t+='<br>Realisasi STU: <b style="color:#00FF66">'+fmt(rv)+'</b><br>Gap: <b style="color:'+(g>=0?'#00FF66':'#FF4D8D')+'">'+(g>=0?'+':'')+fmt(g)+'</b>'; } else { h2.style.display='none'; }
+  if(rv!==undefined){ var g=rv-idv; h2.setAttribute('cx',x); h2.setAttribute('cy',Y(rv)); h2.style.display=''; t+='<br>Realisasi STU: <b style="color:#12A150">'+fmt(rv)+'</b><br>Gap: <b style="color:'+(g>=0?'#12A150':'#DC2626')+'">'+(g>=0?'+':'')+fmt(g)+'</b>'; } else { h2.style.display='none'; }
   if(d>CFG.today){ var lt=CFG.real.length?CFG.real[CFG.real.length-1]:[CFG.today,0], fr=(d-CFG.today)/Math.max(1,D-CFG.today);
-   if(CFG.proj.length>1){ t+='<br><span style="color:#00E5FF">Forecast closing: <b>'+fmt(lt[1]+(CFG.proj[1][1]-lt[1])*fr)+'</b></span>'; }
+   if(CFG.proj.length>1){ t+='<br><span style="color:#0891B2">Forecast closing: <b>'+fmt(lt[1]+(CFG.proj[1][1]-lt[1])*fr)+'</b></span>'; }
    (CFG.ext||[]).forEach(function(e){ t+='<br><span style="color:'+e.c+'">'+e.n+': <b>'+fmt(lt[1]+(e.v-lt[1])*fr)+'</b></span>'; }); }
   tip.innerHTML=t; tip.style.opacity=1; var tx=ev.clientX+14, ty=ev.clientY+14; if(tx+tip.offsetWidth>window.innerWidth-6) tx=ev.clientX-tip.offsetWidth-14; tip.style.left=tx+'px'; tip.style.top=ty+'px';
  });
@@ -351,10 +514,11 @@ try{ if(window.ResizeObserver){ new ResizeObserver(function(){ if(String(wrap.cl
 
 def bsg_forc_lines(f_nota=None, f7=None, f3=None):
     """Garis forecast tambahan untuk kurva STU: (label, nilai akhir bulan, warna, pola garis)."""
-    return [('Forc Nota', f_nota, '#FFB020', '6 4'), ('Forc 7', f7, '#B388FF', '1 5'), ('Forc 3', f3, '#FF4D8D', '8 3 2 3')]
+    return [('Forc Nota', f_nota, '#F97316', '6 4'), ('Forc 7', f7, '#6D4DFF', '1 5'), ('Forc 3', f3, '#DC2626', '8 3 2 3')]
 
 def bsg_chart_curve(title, subtitle, df_stu, target, tgl_akhir, max_day, forc=None, h=280, extra=None, parts=False):
     """Kurva kumulatif STU: target ideal harian (dari tabel_target_harian) vs realisasi + proyeksi (forecast closing)."""
+    subtitle = ''   # keterangan di bawah judul grafik dihapus
     target = bsg_num(target)
     if target <= 0: return None
     days = list(range(1, int(max_day) + 1))
@@ -393,17 +557,17 @@ def bsg_html_podium(rows, ideal):
         col = bsg_stat_color(r['pct'], ideal, 0.85 * ideal) if ideal else BSG_CYN
         tag = '⚠️' if warn else (medals[i] if i < 3 else f'#{i + 1}')
         bar = bsg_prog_bar(min(r['pct'], 100.0), col, ideal if ideal else None)
-        return (f'<div style="display:flex;align-items:center;gap:10px;background:linear-gradient(160deg,#151B2B 0%,#0E1117 100%);border:1px solid #232B3E;border-left:4px solid {col};border-radius:10px;padding:7px 12px;">'
+        return (f'<div style="display:flex;align-items:center;gap:10px;background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-left:4px solid {col};border-radius:10px;padding:7px 12px;">'
                 f'<div style="font-size:20px;width:26px;text-align:center;">{tag}</div>'
-                f'<div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:800;color:#E2E8F0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{_esc(r["name"])}">{_esc(r["name"])}</div>'
-                f'<div style="font-size:11px;color:#94A3B8;">STU {int(r["stu"]):,} / Target {int(r["target"]):,}</div>{bar}</div>'
+                f'<div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:800;color:#1E3A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{_esc(r["name"])}">{_esc(r["name"])}</div>'
+                f'<div style="font-size:11px;color:#3B5BC8;">STU {int(r["stu"]):,} / Target {int(r["target"]):,}</div>{bar}</div>'
                 f'<div style="font-size:20px;font-weight:900;color:{col};min-width:62px;text-align:right;">{r["pct"]:.1f}%</div></div>')
     top = rows[:3]; top_names = {r['name'] for r in top}
     bottom = [r for r in rows[::-1][:3] if r['name'] not in top_names]
-    out = '<div style="font-size:13px;font-weight:800;color:#E2E8F0;margin:2px 0 6px 0;">🏅 Leaderboard Pencapaian</div>'
+    out = '<div style="font-size:13px;font-weight:800;color:#1E3A8A;margin:2px 0 6px 0;">🏅 Leaderboard Pencapaian</div>'
     out += '<div style="display:grid;gap:7px;">' + ''.join(_row(i, r) for i, r in enumerate(top)) + '</div>'
     if bottom:
-        out += '<div style="font-size:13px;font-weight:800;color:#E2E8F0;margin:12px 0 6px 0;">🚨 Perlu Perhatian</div>'
+        out += '<div style="font-size:13px;font-weight:800;color:#1E3A8A;margin:12px 0 6px 0;">🚨 Perlu Perhatian</div>'
         out += '<div style="display:grid;gap:7px;">' + ''.join(_row(i, r, True) for i, r in enumerate(bottom)) + '</div>'
     return out
 
@@ -437,8 +601,8 @@ def bsg_build_insights(ctx, rows):
 
 def bsg_html_insights(items):
     if not items: return ''
-    cells = ''.join(f'<div style="border-left:4px solid {c};background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(14,17,23,0.95) 100%);border-top:1px solid #2D3748;border-right:1px solid #2D3748;border-bottom:1px solid #2D3748;border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.55;color:#E2E8F0;">{ic} {tx}</div>' for c, ic, tx in items)
-    return '<div style="font-size:13px;font-weight:800;color:#E2E8F0;margin:2px 0 6px 0;">💡 Insight Otomatis</div><div style="display:grid;grid-template-columns:1fr;gap:7px;">' + cells + '</div>'
+    cells = ''.join(f'<div style="border-left:4px solid {c};background:linear-gradient(90deg,rgba(67,24,255,0.07) 0%,#1E3A8A 100%);border-top:1px solid #8FA8F0;border-right:1px solid #8FA8F0;border-bottom:1px solid #8FA8F0;border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.55;color:#1E3A8A;">{ic} {tx}</div>' for c, ic, tx in items)
+    return '<div style="font-size:13px;font-weight:800;color:#1E3A8A;margin:2px 0 6px 0;">💡 Insight Otomatis</div><div style="display:grid;grid-template-columns:1fr;gap:7px;">' + cells + '</div>'
 
 def bsg_celebrate(key, achieved, msg='🎉 Target tercapai!'):
     """Efek balon + toast sekali saja per kunci (scope + bulan + tanggal)."""
@@ -567,20 +731,20 @@ def bsg_render_ringkasan(ctx):
             if targ <= 0: continue
             pct, stu, idu = bsg_num(r.get('_pct')), bsg_num(r.get('STU')), bsg_num(r.get('IDEAL'))
             rank_rows.append({'name': n, 'val': pct, 'tip': f"<b>{_esc(n)}</b><br>STU <b>{int(stu):,}</b> / Target {int(targ):,}<br>Ideal tgl {tgl}: {int(idu):,} → <b>{stu - idu:+,.0f}</b><br>Pencapaian <b>{pct:.1f}%</b>"})
-        res = bsg_safe(bsg_chart_rank, 'Ranking Pencapaian Target', f'% STU terhadap target bulanan · garis putih = ideal tgl {tgl} ({ideal:.0f}%)', rank_rows, ideal=ideal, label='Ranking')
+        res = bsg_safe(bsg_chart_rank, 'Ranking Pencapaian Target', f'% STU terhadap target bulanan · garis merah = ideal tgl {tgl} ({ideal:.0f}%)', rank_rows, ideal=ideal, label='Ranking')
         if res: bsg_show(res)
         else: st.caption('Belum ada baris bertarget pada filter ini.')
     with c_f:
         regs = 0; f_c = ctx.get('f_c')
         if f_c is not None and not f_c.empty and 'Status_Registrasi_Rating' in f_c.columns: regs = int((f_c['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI').sum())
-        stages = [('Database (DB)', bsg_num(r_pr.get('DB')), '#4318FF'), ('Hot Prospect', bsg_num(r_pr.get('HOT')), '#6D4DFF'), ('STU', bsg_num(r_p.get('STU')), '#00B8D9')]
-        if regs > 0: stages.append(('Sudah Registrasi', float(regs), '#00E5FF'))
+        stages = [('Database (DB)', bsg_num(r_pr.get('DB')), '#4318FF'), ('Hot Prospect', bsg_num(r_pr.get('HOT')), '#6D4DFF'), ('STU', bsg_num(r_p.get('STU')), '#12A150')]
+        if regs > 0: stages.append(('Sudah Registrasi', float(regs), '#12A150'))
         bsg_show(bsg_safe(bsg_chart_funnel, 'Funnel Konversi Prospek', 'DB → Hot → STU (→ registrasi rating)', stages, label='Funnel'))
         s_c = ctx.get('s_c')
         if s_c is not None and not s_c.empty and 'Status_SPK_Clean' in s_c.columns:
             vc = s_c['Status_SPK_Clean'].value_counts()
             bsg_show(bsg_safe(bsg_chart_donut, 'Status SPK Leasing', 'Disetujui vs ditolak vs terbuka',
-                              [('Disetujui', int(vc.get('DISETUJUI', 0)), '#00E676'), ('Ditolak', int(vc.get('DITOLAK', 0)), '#FF4D8D'), ('Terbuka', int(vc.get('TERBUKA', 0)), '#FFB020')], 'SPK', label='Donut SPK'))
+                              [('Disetujui', int(vc.get('DISETUJUI', 0)), '#12A150'), ('Ditolak', int(vc.get('DITOLAK', 0)), '#DC2626'), ('Terbuka', int(vc.get('TERBUKA', 0)), '#F97316')], 'SPK', label='Donut SPK'))
 
     # ---- heatmap kualitas ----
     cols = ['Target', 'DB Quality', 'STU Ratio', 'Approval']
@@ -611,17 +775,17 @@ def bsg_render_leasing_charts(df_s, r_tot_s, kol_nm):
             rows.append({'name': str(r[kol_nm]), 'val': acc, 'tip': f"<b>{_esc(r[kol_nm])}</b><br>ACC% <b>{acc:.1f}%</b><br>SPK {int(bsg_num(r.get('_spk_val'))):,} (LM {int(bsg_num(r.get('_spk_lm_val'))):,}) · Terbuka {int(bsg_num(r.get('TERBUKA'))):,}"})
     c1, c2 = st.columns([3, 2])
     with c1:
-        res = bsg_chart_rank('Approval Rate (ACC%) per baris', 'Garis putih = acuan ideal ACC% 50%', rows, ideal=50.0)
+        res = bsg_chart_rank('Approval Rate (ACC%) per baris', 'Garis merah = acuan ideal ACC% 50%', rows, ideal=50.0)
         if res: bsg_show(res)
         else: st.caption('Belum ada SPK pada periode ini.')
     with c2:
-        items = [(k, bsg_num(r_tot_s.get(k)), c) for k, c in [('BAF', '#4318FF'), ('ADIRA', '#00E5FF'), ('SOF', '#FFB020'), ('IMFI', '#FF4D8D')]]
+        items = [(k, bsg_num(r_tot_s.get(k)), c) for k, c in [('BAF', '#2563EB'), ('ADIRA', '#12A150'), ('SOF', '#F97316'), ('IMFI', '#DC2626')]]
         bsg_show(bsg_chart_donut('Porsi SPK per Leasing', 'Total periode berjalan', items, 'SPK'))
 
 def bsg_render_type_charts(df_td_i, ideal):
     """Tab STU › Per Type: komposisi STU per type + capaian terhadap target type."""
     if df_td_i is None or df_td_i.empty or 'TYPE' not in df_td_i.columns: return
-    pal = {'AT PREMIUM': '#4318FF', 'AT CLASSY': '#00E5FF', 'AT LPM': '#FFB020', 'MOPED': '#FF4D8D', 'OTHERS': '#94A3B8'}
+    pal = {'AT PREMIUM': '#2563EB', 'AT CLASSY': '#12A150', 'AT LPM': '#F97316', 'MOPED': '#DC2626', 'OTHERS': '#94A3B8'}
     items = [(str(r['TYPE']), bsg_num(r.get('STU')), pal.get(str(r['TYPE']), '#64748B')) for _, r in df_td_i.iterrows()]
     rows = []
     for _, r in df_td_i.iterrows():
@@ -632,7 +796,7 @@ def bsg_render_type_charts(df_td_i, ideal):
     c1, c2 = st.columns([2, 3])
     with c1: bsg_show(bsg_chart_donut('Komposisi STU per Type', 'Porsi unit terjual periode berjalan', items, 'STU'))
     with c2:
-        res = bsg_chart_rank('Capaian per Type vs Target Type', f'Garis putih = ideal tgl {int(bsg_num(ideal))} ({ideal:.0f}%)', rows, ideal=float(ideal))
+        res = bsg_chart_rank('Capaian per Type vs Target Type', f'Garis merah = ideal tgl {int(bsg_num(ideal))} ({ideal:.0f}%)', rows, ideal=float(ideal))
         if res: bsg_show(res)
 
 def bsg_render_salesman_charts(df_smi, ideal, n=10):
@@ -651,7 +815,7 @@ def bsg_render_salesman_charts(df_smi, ideal, n=10):
 
 def bsg_render_reg_donut(sudah, belum):
     c1, c2 = st.columns([2, 3])
-    with c1: bsg_show(bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Konsumen faktur periode berjalan', [('Sudah Registrasi', sudah, '#00E676'), ('Belum Registrasi', belum, '#FF4D8D')], 'Konsumen'))
+    with c1: bsg_show(bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Konsumen faktur periode berjalan', [('Sudah Registrasi', sudah, '#12A150'), ('Belum Registrasi', belum, '#DC2626')], 'Konsumen'))
 
 def bsg_render_spk_online_charts(df_sit, df_bwi, df_lsg_full):
     """Dashboard Leasing (tab SPK & Leasing): ranking ACC%, growth SPK vs bulan lalu, dan porsi leasing."""
@@ -665,14 +829,14 @@ def bsg_render_spk_online_charts(df_sit, df_bwi, df_lsg_full):
     st.markdown('<div class="section-title">📊 Visual Ringkas Leasing</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1:
-        res = bsg_chart_rank('Approval Rate (ACC%) per Dealer', 'Putih = ideal 50%', acc_rows, ideal=50.0)
+        res = bsg_chart_rank('Approval Rate (ACC%) per Dealer', 'Garis merah = ideal 50%', acc_rows, ideal=50.0)
         if res: bsg_show(res)
     with c2:
-        res = bsg_chart_rank('Growth SPK vs Bulan Lalu', 'Putih = sama dengan bulan lalu (100%)', grw_rows, ideal=100.0)
+        res = bsg_chart_rank('Growth SPK vs Bulan Lalu', 'Garis merah = sama dengan bulan lalu (100%)', grw_rows, ideal=100.0)
         if res: bsg_show(res)
     with c3:
         tot = df_lsg_full.iloc[-1] if (df_lsg_full is not None and not df_lsg_full.empty) else {}
-        items = [(k, bsg_num(tot.get(k)), c) for k, c in [('BAF', '#4318FF'), ('ADIRA', '#00E5FF'), ('SOF', '#FFB020'), ('IMFI', '#FF4D8D')]]
+        items = [(k, bsg_num(tot.get(k)), c) for k, c in [('BAF', '#2563EB'), ('ADIRA', '#12A150'), ('SOF', '#F97316'), ('IMFI', '#DC2626')]]
         bsg_show(bsg_chart_donut('Porsi SPK per Leasing', 'Total seluruh dealer', items, 'SPK'))
 
 def bsg_render_master_kpi_cards(tot_d, ideal):
@@ -697,13 +861,13 @@ _BSG_TIPJS = '<script>' + _BSG_FRAME.split('<div id="tip"></div>')[1].split('<sc
 _PN_CSS = """
 .pn-grid{display:grid;gap:12px;align-items:start}
 .pn-charts{display:grid;gap:12px;min-width:0;grid-template-columns:minmax(0,1fr)}
-.pn-table{min-width:0;overflow:hidden;border-radius:8px;border:1px solid #2D3748;background:#0E1117}
+.pn-table{min-width:0;overflow:hidden;border-radius:8px;border:1px solid #8FA8F0;background:#FFFFFF}
 .pn-table div{margin:0;border:0;border-radius:0;overflow:visible}
-.pn-table table{border-collapse:collapse;table-layout:auto;width:max-content;background:#0E1117;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif}
-.pn-table th{background:#1A202C;color:#CBD5E1;font-weight:800;padding:5px 4px;border-bottom:1px solid #2D3748;border-right:1px solid #1E293B;text-align:right;white-space:normal;line-height:1.15;font-size:10.5px;width:auto}
-.pn-table td{padding:4px 4px;border-bottom:1px solid #1E293B;border-right:1px solid #1E293B;text-align:right;white-space:nowrap;font-weight:700;font-size:12px;overflow:visible;width:auto}
+.pn-table table{border-collapse:collapse;table-layout:auto;width:max-content;background:#FFFFFF;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif}
+.pn-table th{background:#EAF0FF;color:#1E3A8A;font-weight:800;padding:5px 4px;border-bottom:1px solid #8FA8F0;border-right:1px solid #8FA8F0;text-align:right;white-space:normal;line-height:1.15;font-size:10.5px;width:auto}
+.pn-table td{padding:4px 4px;border-bottom:1px solid #8FA8F0;border-right:1px solid #8FA8F0;text-align:right;white-space:nowrap;font-weight:700;font-size:12px;overflow:visible;width:auto}
 .pn-table th:first-child,.pn-table td:first-child{text-align:left;white-space:normal;min-width:110px;max-width:135px;line-height:1.2;padding-left:7px;font-size:11.5px;width:auto;overflow:visible;text-overflow:clip}
-.pn-table tr:hover td{background:rgba(255,255,255,.05)}
+.pn-table tr:hover td{background:rgba(67,24,255,0.07)}
 .L-side .pn-grid{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}
 .L-side2 .pn-grid{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:stretch}
 .L-side2 .pn-table td{font-size:13.5px;padding:5px 3px}
@@ -713,6 +877,34 @@ _PN_CSS = """
 .L-stack .pn-grid{grid-template-columns:minmax(0,1fr)}
 .L-stack .pn-charts{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
 .L-eq .pn-charts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.L-cmp .pn-table{width:fit-content;max-width:100%}
+.L-mini .pn-charts .rk{height:17px;gap:5px}
+.L-mini .pn-charts .rk-n{flex:0 0 44%;font-size:10px}
+.L-mini .pn-charts .rk-t{height:8px;border-radius:4px}
+.L-mini .pn-charts .rk-f{border-radius:4px}
+.L-mini .pn-charts .rk-v{flex:0 0 38px;font-size:10px}
+.L-mini .pn-charts .rk-m{top:-2px;bottom:-2px}
+.L-mini .pn-charts>.card{padding:8px 9px 7px 9px}
+.L-mini .pn-charts .ttl{font-size:12px}
+.L-mini .pn-charts .sub{font-size:9.5px;margin:1px 0 4px 0}
+.L-mini .pn-charts .lg{font-size:10px;margin:0 8px 3px 0}
+.L-cmp .pn-table td{padding:3px 4px;font-size:12px}
+.L-cmp .pn-table th{padding:4px 4px;font-size:10px;white-space:nowrap}
+.L-cmp .pn-table th:first-child,.L-cmp .pn-table td:first-child{min-width:0;max-width:170px;white-space:nowrap;font-size:11.5px;padding-left:6px}
+.L-tight .pn-table th{white-space:normal;padding:4px 3px;font-size:9.5px;line-height:1.1}
+.L-tight .pn-table td{padding:3px 4px;font-size:11.5px}
+.L-tight .pn-table th:first-child,.L-tight .pn-table td:first-child{min-width:0;max-width:112px;white-space:normal;font-size:10.5px;padding-left:5px}
+.L-tight .pn-charts .rk-n{flex:0 0 40%;font-size:9.5px}
+.L-tight .pn-charts .rk-v{flex:0 0 34px;font-size:9.5px}
+.L-stretch .pn-grid{align-items:stretch}
+.L-stretch .pn-charts{align-items:stretch}
+.L-stretch .pn-charts>.card{display:flex;flex-direction:column;box-sizing:border-box}
+.L-stretch .pn-charts>.card>.rk{height:auto;flex:1 1 17px;min-height:17px;max-height:46px}
+.L-one .pn-charts{grid-template-columns:minmax(0,1fr)}
+.L-one .pn-table td{font-size:13.5px;padding:6px 4px}
+.L-one .pn-table th{font-size:11.5px;padding:7px 4px}
+.L-one .pn-table th:first-child,.L-one .pn-table td:first-child{font-size:13px;max-width:300px;padding-left:8px}
+.pn-charts:empty{display:none}
 .L-stack3 .pn-grid{grid-template-columns:minmax(0,1fr)}
 .L-stack3 .pn-charts{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr)}
 .L-stack3 .dw{flex-direction:column;align-items:center;gap:6px}
@@ -727,19 +919,39 @@ _PN_CSS = """
 .pn-charts>.card,.pn-bottom>.card,.pn-sub>.card{display:flex;flex-direction:column;min-width:0}
 .pn-charts .dw,.pn-bottom .dw,.pn-sub .dw{flex:1}
 .L-leg .card>.rk{height:auto;flex:1 1 26px;max-height:56px}
+.pn-bm{gap:12px}
+.pn-bm .pn-sub{gap:8px}
+.pn-bm .pn-sub>.card{padding:8px 9px 7px 9px}
+.pn-bm .ttl{font-size:12px}
+.pn-bm .rk{height:17px;gap:5px}
+.pn-bm .rk-n{flex:0 0 44%;font-size:10px}
+.pn-bm .rk-t{height:8px;border-radius:4px}
+.pn-bm .rk-f{border-radius:4px}
+.pn-bm .rk-v{flex:0 0 38px;font-size:10px}
+.pn-bm .rk-m{top:-2px;bottom:-2px}
+.pn-bm .lg{font-size:10px;margin:0 8px 3px 0}
+.pn-b5{gap:8px}
+.pn-b5>.card{padding:9px 9px 8px 9px}
+.pn-b5 .ttl{font-size:12px}
+.pn-b5 .sub{font-size:10px;margin:1px 0 6px 0}
+.pn-b5 .lg{font-size:10px;margin:0 8px 4px 0}
+.pn-b5 .rk{gap:5px}
+.pn-b5 .rk-n{flex:0 0 33%;font-size:10.5px}
+.pn-b5 .rk-v{flex:0 0 40px;font-size:10.5px}
 .narrow .pn-bottom,.narrow .pn-sub{grid-template-columns:minmax(0,1fr) !important}
+@media (max-width:1100px){.pn-b5{grid-template-columns:repeat(3,minmax(0,1fr)) !important}}
 .L-charts .pn-grid{grid-template-columns:minmax(0,1fr)}
 .L-charts .pn-charts{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
 .narrow .pn-grid{grid-template-columns:minmax(0,1fr) !important}
 .narrow .pn-charts{grid-template-columns:minmax(0,1fr) !important}
 .cap-only{display:none}.cap .cap-only{display:block}
 .cap *{animation:none !important;transition:none !important}
-.pn-banner{background:linear-gradient(90deg,#4318FF 0%,#1E293B 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:12px;letter-spacing:.3px}
+.pn-banner{background:linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:12px;letter-spacing:.3px}
 .tb{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
-.btn{background:#1E293B;color:#E2E8F0;border:1px solid #334155;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn{background:#EAF0FF;color:#1E3A8A;border:1px solid #8FA8F0;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{background:#4318FF;border-color:#4318FF;color:#fff}
 #st{font-size:12px;font-weight:600;margin-left:4px}
-#hold{position:fixed;left:-99999px;top:0;width:__CAPW__px;background:#0E1117;padding:14px;z-index:-1}
+#hold{position:fixed;left:-99999px;top:0;width:__CAPW__px;background:#FFFFFF;padding:14px;z-index:-1}
 """
 
 _PN_DOC = """<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -755,34 +967,35 @@ __FOOTER__</div>
 var FN="__FNAME__";
 function fitTables(root){root.querySelectorAll('.pn-table').forEach(function(w){var t=w.querySelector('table');if(!t)return;t.style.zoom=1;t.style.width='max-content';
  var nat=t.getBoundingClientRect().width,av=w.clientWidth;if(nat>av+1){t.style.zoom=(av/nat).toFixed(4);}else{t.style.width=av+'px';}});}
-function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&i<4){if(Math.abs(el.getBoundingClientRect().height-old)<=3)els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
+function fitCards(root){try{root.querySelectorAll('.pn-sub>.card,.pn-bottom>.card,.pn-charts>.card').forEach(function(c){c.style.zoom='';var w=c.getBoundingClientRect().width,B=270;if(w>0&&w<B-1){c.style.zoom=Math.max(0.42,w/B).toFixed(3);}});}catch(e){}}
+function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&el.children.length===1&&i<6){els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
 function fitHeight(){try{var c=document.getElementById('fit');setFrameH(Math.ceil(c.getBoundingClientRect().height)+8);}catch(e){}}
 function stretch(root){try{if(!root.classList.contains('L-side2')||root.classList.contains('narrow'))return;var w=root.querySelector('.pn-table'),c=root.querySelector('.pn-charts'),t=w&&w.querySelector('table');if(!t||!c)return;
  var cells=t.querySelectorAll('td,th'),rows=t.querySelectorAll('tr');cells.forEach(function(x){x.style.paddingTop='';x.style.paddingBottom='';});
  var z=parseFloat(t.style.zoom)||1,th=t.getBoundingClientRect().height,ch=c.getBoundingClientRect().height,wb=w.offsetHeight-w.clientHeight;
  var ex=(ch-wb-th)/Math.max(1,rows.length)/z;if(!(ex>0.5))return;ex=Math.min(ex,28);
  cells.forEach(function(x){var cs=getComputedStyle(x);x.style.paddingTop=(parseFloat(cs.paddingTop)+ex/2)+'px';x.style.paddingBottom=(parseFloat(cs.paddingBottom)+ex/2)+'px';});}catch(e){}}
-function layout(){var pn=document.getElementById('pn');var W=document.getElementById('fit').clientWidth;pn.classList.toggle('narrow',W<820);fitTables(pn);stretch(pn);fitHeight();}
+function layout(){var pn=document.getElementById('pn');var W=document.getElementById('fit').clientWidth;pn.classList.toggle('narrow',W<820);fitTables(pn);fitCards(pn);stretch(pn);fitHeight();}
 var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(layout,80);});
 layout();setTimeout(layout,250);setTimeout(layout,900);setTimeout(layout,2000);
-try{if(window.ResizeObserver){var ro=new ResizeObserver(function(){clearTimeout(rt);rt=setTimeout(function(){stretch(document.getElementById('pn'));fitHeight();},60);});ro.observe(document.getElementById('fit'));}}catch(e){}
+try{if(window.ResizeObserver){var ro=new ResizeObserver(function(){clearTimeout(rt);rt=setTimeout(function(){fitCards(document.getElementById('pn'));stretch(document.getElementById('pn'));fitHeight();},60);});ro.observe(document.getElementById('fit'));}}catch(e){}
 window.pnCap=async function(mode){
- var st=document.getElementById('st');st.style.color='#FFEA00';st.textContent='Memproses gambar HD...';
+ var st=document.getElementById('st');st.style.color='#F97316';st.textContent='Memproses gambar HD...';
  try{
   if(typeof html2canvas==='undefined')throw new Error('html2canvas belum termuat (cek koneksi internet)');
   var hold=document.getElementById('hold');hold.innerHTML='';
   var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
-  hold.appendChild(c);fitTables(c);stretch(c);await new Promise(function(r){setTimeout(r,120);});
-  var canvas=await html2canvas(hold,{backgroundColor:'#0E1117',scale:2,useCORS:true,logging:false});hold.innerHTML='';
+  hold.appendChild(c);fitTables(c);fitCards(c);stretch(c);await new Promise(function(r){setTimeout(r,120);});
+  var canvas=await html2canvas(hold,{backgroundColor:'#FFFFFF',scale:2,useCORS:true,logging:false});hold.innerHTML='';
   function dl(){var a=document.createElement('a');a.href=canvas.toDataURL('image/jpeg',0.95);a.download=FN+'.jpg';a.click();}
   if(mode==='copy'){canvas.toBlob(async function(blob){try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-    st.style.color='#00FF66';st.textContent='✅ Tabel + grafik disalin (HD). Siap Ctrl+V di WA/Word/Excel';}catch(e){dl();st.style.color='#00E5FF';st.textContent='📥 Browser membatasi clipboard, gambar diunduh sebagai JPG.';}
+    st.style.color='#12A150';st.textContent='✅ Tabel + grafik disalin (HD). Siap Ctrl+V di WA/Word/Excel';}catch(e){dl();st.style.color='#12A150';st.textContent='📥 Browser membatasi clipboard, gambar diunduh sebagai JPG.';}
     setTimeout(function(){st.textContent='';},5000);},'image/png');}
-  else{dl();st.style.color='#00FF66';st.textContent='✅ '+FN+'.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
- }catch(e){st.style.color='#FF4D8D';st.textContent='Gagal membuat gambar: '+e.message;}
+  else{dl();st.style.color='#12A150';st.textContent='✅ '+FN+'.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
+ }catch(e){st.style.color='#DC2626';st.textContent='Gagal membuat gambar: '+e.message;}
 };
 window.pnCapData=async function(){var hold=document.getElementById('hold');hold.innerHTML='';var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
-  hold.appendChild(c);fitTables(c);stretch(c);await new Promise(function(r){setTimeout(r,150);});var canvas=await html2canvas(hold,{backgroundColor:'#0E1117',scale:2,useCORS:true,logging:false});hold.innerHTML='';return canvas.toDataURL('image/jpeg',0.95);};
+  hold.appendChild(c);fitTables(c);fitCards(c);stretch(c);await new Promise(function(r){setTimeout(r,150);});var canvas=await html2canvas(hold,{backgroundColor:'#FFFFFF',scale:2,useCORS:true,logging:false});hold.innerHTML='';return canvas.toDataURL('image/jpeg',0.95);};
 })();</script></body></html>"""
 
 def _pn_bottom_html(bottom, cols=None):
@@ -793,13 +1006,15 @@ def _pn_bottom_html(bottom, cols=None):
         if isinstance(b, dict):
             g = [c for c in b.get('group', []) if c]
             if not g: continue
-            n = int(b.get('cols', 2)); rws = -(-len(g) // n)
+            n = max(1, len(g)) if BSG_ONE_ROW else int(b.get('cols', 2)); rws = -(-len(g) // n)
             htm.append(f'<div class="pn-sub" style="grid-template-columns:repeat({n},minmax(0,1fr))">' + ''.join(c[0] for c in g) + '</div>')
             csl += [c[1] for c in g]; hs.append(rws * max(c[2] for c in g) + (rws - 1) * 12)
         else: htm.append(b[0]); csl.append(b[1]); hs.append(b[2])
     if not htm: return '', '', 0
     tpl = cols or f'repeat({len(htm)},minmax(0,1fr))'
-    return f'<div class="pn-bottom" style="grid-template-columns:{tpl}">' + ''.join(htm) + '</div>', '\n'.join(dict.fromkeys(csl)), max(hs)
+    stacked = bool(cols) and cols.strip() == 'minmax(0,1fr)'   # beberapa blok disusun ke bawah (1 kolom)
+    cls = ' pn-bm' if stacked else (' pn-b5' if len(htm) == 5 else '')
+    return f'<div class="pn-bottom{cls}" style="grid-template-columns:{tpl}">' + ''.join(htm) + '</div>', '\n'.join(dict.fromkeys(csl)), (sum(hs) + 12 * (len(hs) - 1) if stacked else max(hs))
 
 def bsg_panel(table_html, charts, layout, title, file_label, cap_header='', n_rows=0, cap_width=1480, footer_html='', bottom=None, bottom_cols=None, chart_cols=None, grid_cols=None, bottom_left=False):
     """charts: list (inner_html, css, tinggi). layout: 'side' (tabel kiri, grafik kanan) | 'stack' (tabel atas, grafik bawah) | 'charts' (hanya grafik)."""
@@ -808,24 +1023,28 @@ def bsg_panel(table_html, charts, layout, title, file_label, cap_header='', n_ro
     css_all = '\n'.join(dict.fromkeys([c[1] for c in charts] + ([bt_css] if bt_css else [])))
     ch_html = ''.join(c[0] for c in charts)
     tbl = f'<div class="pn-table">{table_html}</div>' if table_html else ''
-    th = 44 + 31 * max(1, n_rows) if table_html else 0
+    th = 40 + 27 * max(1, n_rows) if table_html else 0
     if bottom_left and bt_html and tbl:
         tbl = f'<div class="pn-left">{tbl}{bt_html}</div>'; th += bt_h + 12; bt_html, bt_h = '', 0
-    if layout.startswith('side'): body_h = max(th, sum(c[2] + 12 for c in charts))
+    if layout.startswith('side2'):   # grafik tersusun 2 kolom → tinggi = jumlah baris grafik, bukan jumlah semua grafik
+        _gr = -(-len(charts) // 2) if charts else 0
+        body_h = max(th, (_gr * max([c[2] for c in charts]) + (_gr - 1) * 12) if charts else 0)
+    elif layout in ('sidecm', 'sidecmx'): body_h = max(th, max([c[2] for c in charts]) if charts else 0)   # grafik berjajar 1 baris di kanan tabel
+    elif layout.startswith('side'): body_h = max(th, sum(c[2] + 12 for c in charts))
     elif layout.startswith('stack'): body_h = th + 12 + (max([c[2] for c in charts]) if charts else 0)
     else: body_h = max([c[2] for c in charts]) if charts else 0
     if bt_h: body_h += bt_h + 12
     doc = (_PN_DOC.replace('__BASE__', _BSG_BASE_CSS).replace('__PNCSS__', _PN_CSS.replace('__CAPW__', str(int(cap_width)))).replace('__CHARTCSS__', css_all)
-           .replace('__LAYOUT__', {'side': 'L-side', 'side2': 'L-side L-side2', 'stack': 'L-stack', 'stack_eq': 'L-stack L-eq', 'stack3': 'L-stack3', 'stack3s': 'L-stack3 L-leg', 'charts': 'L-charts'}.get(layout, 'L-stack')).replace('__CAPHDR__', f'<div class="cap-only" style="margin-bottom:12px">{cap_header}</div>' if cap_header else '')
+           .replace('__LAYOUT__', {'side': 'L-side', 'side2': 'L-side L-side2', 'side2s': 'L-side L-side2 L-leg', 'stack': 'L-stack', 'stack_eq': 'L-stack L-eq', 'stack_c': 'L-stack L-cmp', 'side2c': 'L-side L-side2 L-cmp L-mini', 'stackm': 'L-stack L-mini', 'sidecm': 'L-side L-cmp L-mini L-tight', 'sidecmx': 'L-side L-cmp L-mini L-tight L-stretch', 'stack1': 'L-stack L-one', 'stack3': 'L-stack3', 'stack3s': 'L-stack3 L-leg', 'charts': 'L-charts'}.get(layout, 'L-stack')).replace('__CAPHDR__', f'<div class="cap-only" style="margin-bottom:12px">{cap_header}</div>' if cap_header else '')
            .replace('__TITLE__', _esc(title)).replace('__TABLE__', tbl).replace('__CHARTS__', ch_html).replace('__BOTTOM__', bt_html)
            .replace('__GRIDSTYLE__', (' style="' + (f'grid-template-columns:{grid_cols};' if grid_cols else '') + ('align-items:stretch' if bottom_left else '') + '"' if (grid_cols or bottom_left) else '')).replace('__CHSTYLE__', (f' style="grid-template-columns:{chart_cols}"' if chart_cols else '')).replace('__TIPJS__', _BSG_TIPJS)
            .replace('__FNAME__', re.sub(r'[^a-zA-Z0-9_-]', '_', file_label)))
     doc = doc.replace('__FOOTER__', footer_html or '')
-    return doc, int(body_h + 70 + (110 if footer_html else 0))
+    return doc, int(body_h + 62 + (110 if footer_html else 0))
 
 _PANEL_REG = {}   # nama_file -> dokumen HTML panel yang dirender pada run ini (dipakai tombol Download SEMUA gambar PPT)
 
-def bsg_panel_table(df_items, df_full, columns, name_col, metric_col, key_suffix, title_text, chart_fn=None, chart_args=(), layout='side', wrap_first=False, highlight_names=None, cap_header='', footer_html='', bottom_fn=None, bottom_args=(), bottom_cols=None, chart_cols=None, grid_cols=None, bottom_left=False):
+def bsg_panel_table(df_items, df_full, columns, name_col, metric_col, key_suffix, title_text, chart_fn=None, chart_args=(), layout='side', wrap_first=False, highlight_names=None, cap_header='', footer_html='', bottom_fn=None, bottom_args=(), bottom_cols=None, chart_cols=None, grid_cols=None, bottom_left=False, no_table=False):
     """Tabel ringkas + grafik pendamping dalam SATU panel; tombol Copy/Download menangkap tabel dan semua grafik (HD)."""
     if df_full is None or df_full.empty: return
     charts = []
@@ -837,8 +1056,8 @@ def bsg_panel_table(df_items, df_full, columns, name_col, metric_col, key_suffix
         try: bottom = [c for c in (bottom_fn(*bottom_args) or []) if c]
         except Exception as e: st.caption(f'⚠️ Grafik tambahan tidak dapat ditampilkan ({type(e).__name__}: {str(e)[:80]}).')
     dom_id = 'PN_' + re.sub(r'[^a-zA-Z0-9]', '_', key_suffix)
-    tbl = build_compact_html_string(df_items, df_full, columns, name_col, metric_col, dom_id, ultra_compact=True, title_text=None, highlight_names=highlight_names, wrap_first=wrap_first)
-    doc, h = bsg_panel(tbl, charts, layout if charts else 'stack', title_text, key_suffix, cap_header, n_rows=len(df_full), footer_html=footer_html, bottom=bottom, bottom_cols=bottom_cols, chart_cols=chart_cols, grid_cols=grid_cols, bottom_left=bottom_left)
+    tbl = '' if no_table else build_compact_html_string(df_items, df_full, columns, name_col, metric_col, dom_id, ultra_compact=True, title_text=None, highlight_names=highlight_names, wrap_first=wrap_first)
+    doc, h = bsg_panel(tbl, charts, layout if (charts or layout.startswith('stack_c')) else 'stack', title_text, key_suffix, cap_header, n_rows=len(df_full), footer_html=footer_html, bottom=bottom, bottom_cols=bottom_cols, chart_cols=chart_cols, grid_cols=grid_cols, bottom_left=bottom_left)
     _PANEL_REG[re.sub(r'[^a-zA-Z0-9_-]', '_', key_suffix)] = doc
     components.html(doc, height=h, scrolling=False)
 
@@ -861,13 +1080,13 @@ def bsg_pn_sales_charts(df_p, kol_nm, ideal, who):
     for _, r in df_p.iterrows():
         n, stu, targ, pct, idu = str(r[kol_nm]), bsg_num(r.get('STU')), bsg_num(r.get('TARGET')), bsg_num(r.get('_pct')), bsg_num(r.get('IDEAL'))
         if targ > 0: rows.append({'name': n, 'val': pct, 'label': f'{pct:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>STU <b>{int(stu):,}</b> / Target {int(targ):,}<br>Ideal {int(idu):,} → <b>{stu - idu:+,.0f}</b><br>Pencapaian <b>{pct:.1f}%</b>"})
-    return [bsg_chart_rank('Pencapaian vs Target', f'% STU terhadap target bulanan · putih = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
-            bsg_chart_donut(f'Kontribusi Penjualan per {who}', 'Porsi unit STU terhadap total', items, 'STU', parts=True)]
+    return [bsg_chart_rank('Pencapaian vs Target', f'% STU terhadap target bulanan · garis merah = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
+            bsg_chart_donut(f'Kontribusi Penjualan per {who}', 'Porsi unit STU terhadap total', items, 'STU', parts=True, prev={str(r_[kol_nm]): bsg_num(r_.get('STU LM')) for _, r_ in df_p.iterrows()} if 'STU LM' in df_p.columns else None)]
 
 def bsg_pn_curve_charts(df_stu, target, tgl, max_day, forc, label, fx):
     """Pendamping Tabel Penjualan: kurva pencapaian STU (+ garis Forc Nota / Forc 7 / Forc 3) di sisi kanan tabel."""
     return [bsg_chart_curve(f'Kurva Pencapaian STU — {label}', 'Garis putus-putus abu = target ideal harian',
-                            df_stu, bsg_num(target), tgl, max_day, forc=bsg_num(forc) or None, h=190, extra=bsg_forc_lines(*fx), parts=True)]
+                            df_stu, bsg_num(target), tgl, max_day, forc=bsg_num(forc) or None, h=330, extra=bsg_forc_lines(*fx), parts=True)]
 
 def bsg_pn_process_charts(df_pr, kol_nm):
     dbq, stup = [], []
@@ -876,11 +1095,11 @@ def bsg_pn_process_charts(df_pr, kol_nm):
         n = str(r[kol_nm]); db, hot, stu = int(bsg_num(r.get('DB'))), int(bsg_num(r.get('HOT'))), int(bsg_num(r.get('STU')))
         dbq.append({'name': n, 'val': bsg_num(r.get('DB Q')), 'tip': f"<b>{_esc(n)}</b><br>DB Q <b>{bsg_num(r.get('DB Q')):.2f}%</b><br>HOT {hot:,} / DB {db:,}"})
         stup.append({'name': n, 'val': bsg_num(r.get('_stu_pct')), 'tip': f"<b>{_esc(n)}</b><br>STU% <b>{bsg_num(r.get('_stu_pct')):.2f}%</b><br>STU {stu:,} / DB {db:,}"})
-    return [bsg_chart_rank('Database Quality (DB Q)', 'HOT ÷ DB · putih = ideal 30%', dbq, ideal=30.0, parts=True),
-            bsg_chart_rank('STU Ratio (STU%)', 'STU ÷ DB · putih = ideal 10%', stup, ideal=10.0, parts=True)]
+    return [bsg_chart_rank('Database Quality (DB Q)', 'HOT ÷ DB · garis merah = ideal 30%', dbq, ideal=30.0, parts=True),
+            bsg_chart_rank('STU Ratio (STU%)', 'STU ÷ DB · garis merah = ideal 10%', stup, ideal=10.0, parts=True)]
 
 def bsg_pn_process_bottom(df_pr, df_s, kol_nm, hari):
-    """Di bawah tabel Proses Kerja: AVG Database, AVG HOT Prospect (per MP per hari) dan Approval Ratio dari tiap koordinator / counter."""
+    """Di bawah tabel Proses Kerja (1 baris, 5 kotak): DB Q, STU%, AVG Database, AVG HOT Prospect (per MP per hari) dan Approval Ratio."""
     avgdb, avghot, acc = [], [], []
     for _, r in df_pr.iterrows():
         mp, db, hot = int(bsg_num(r.get('JML MP'))), int(bsg_num(r.get('DB'))), int(bsg_num(r.get('HOT')))
@@ -893,9 +1112,10 @@ def bsg_pn_process_bottom(df_pr, df_s, kol_nm, hari):
             if bsg_num(r.get('_spk_val')) <= 0: continue
             n, a_ = str(r[kol_nm]), bsg_num(r.get('_acc_val'))
             acc.append({'name': n, 'val': a_, 'tip': f"<b>{_esc(n)}</b><br>ACC% <b>{a_:.1f}%</b><br>SPK {int(bsg_num(r.get('_spk_val'))):,} · Terbuka {int(bsg_num(r.get('TERBUKA'))):,}"})
-    return [bsg_chart_rank('AVG Database per MP / hari', 'DB ÷ jumlah MP ÷ hari kerja', avgdb, unit='', parts=True),
-            bsg_chart_rank('AVG HOT Prospect per MP / hari', 'HOT ÷ jumlah MP ÷ hari kerja', avghot, unit='', parts=True),
-            bsg_chart_rank('Approval Ratio (ACC%)', 'Putih = acuan ideal ACC% 50%', acc, ideal=50.0, parts=True)]
+    return (bsg_pn_process_charts(df_pr, kol_nm) +   # DB Q & STU% ikut digabung → total 5 kotak dalam 1 baris
+            [bsg_chart_rank('AVG Database per MP / hari', 'DB ÷ jumlah MP ÷ hari kerja', avgdb, unit='', parts=True),
+             bsg_chart_rank('AVG HOT Prospect per MP / hari', 'HOT ÷ jumlah MP ÷ hari kerja', avghot, unit='', parts=True),
+             bsg_chart_rank('Approval Ratio (ACC%)', 'Garis merah = acuan ideal ACC% 50%', acc, ideal=50.0, parts=True)])
 
 def bsg_pn_activity_charts(df_pt, ideal):
     _pal = {str(r['PROSPECT TYPE']): BSG_PAL[i_ % len(BSG_PAL)] for i_, (_, r) in enumerate(df_pt.iterrows())}   # warna per aktifitas dibuat tetap agar donut STU & HOT searah
@@ -906,7 +1126,7 @@ def bsg_pn_activity_charts(df_pt, ideal):
         n, tg, stu = str(r['PROSPECT TYPE']), bsg_num(r.get('TARGET')), bsg_num(r.get('STU'))
         if tg > 0:
             ach = bsg_num(r.get('ACHIEV')); rows.append({'name': n, 'val': ach, 'label': f'{ach:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>STU <b>{int(stu):,}</b> / Target {int(tg):,}<br>Capaian <b>{ach:.1f}%</b>"})
-    return [bsg_chart_rank('Pencapaian Aktifitas vs Target', f'% STU terhadap target aktifitas · putih = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
+    return [bsg_chart_rank('Pencapaian Aktifitas vs Target', f'% STU terhadap target aktifitas · garis merah = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
             bsg_chart_donut('Kontribusi Penjualan per Aktifitas', 'Porsi unit STU terhadap total', items, 'STU', parts=True),
             bsg_chart_donut('Kontribusi HOT per Aktifitas', 'Porsi HOT Prospect terhadap total', items_hot, 'HOT', parts=True)]
 
@@ -920,25 +1140,25 @@ def bsg_pn_leasing_charts(df_s, r_tot_s, kol_nm, f_c=None):
         if bsg_num(r.get('_spk_val')) <= 0: continue
         n, acc = str(r[kol_nm]), bsg_num(r.get('_acc_val'))
         rows.append({'name': n, 'val': acc, 'tip': f"<b>{_esc(n)}</b><br>ACC% <b>{acc:.1f}%</b><br>SPK {int(bsg_num(r.get('_spk_val'))):,} (LM {int(bsg_num(r.get('_spk_lm_val'))):,}) · Terbuka {int(bsg_num(r.get('TERBUKA'))):,}"})
-    items = [(k, bsg_num(r_tot_s.get(k)), c) for k, c in [('BAF', '#4318FF'), ('ADIRA', '#00E5FF'), ('SOF', '#FFB020'), ('IMFI', '#FF4D8D')]]
-    out = [bsg_chart_rank('Approval Rate (ACC%) per baris', 'Putih = acuan ideal ACC% 50%', rows, ideal=50.0, parts=True),
+    items = [(k, bsg_num(r_tot_s.get(k)), c) for k, c in [('BAF', '#2563EB'), ('ADIRA', '#12A150'), ('SOF', '#F97316'), ('IMFI', '#DC2626')]]
+    out = [bsg_chart_rank('Approval Rate (ACC%) per baris', 'Garis merah = acuan ideal ACC% 50%', rows, ideal=50.0, parts=True),
            bsg_chart_donut('Porsi SPK per Leasing', f'BAF, ADIRA, SOF, IMFI · dari total {int(bsg_num(r_tot_s.get("SPK"))):,} SPK', items, 'SPK 4 leasing', parts=True)]
     if f_c is not None and not f_c.empty and 'Leasing_Faktur_Clean' in f_c.columns:
         vc = f_c['Leasing_Faktur_Clean'].value_counts()
         baf, adr, sof = int(vc.get('BAF', 0)), int(vc.get('ADIRA', 0)), int(vc.get('SOF', 0))
         kredit = int(sum(v for k, v in vc.items() if k not in ('CASH', '', None)))
         lain = max(0, kredit - baf - adr - sof)
-        its = [('BAF', baf, '#4318FF'), ('ADIRA', adr, '#00E5FF'), ('SOF', sof, '#FFB020')] + ([('Leasing lain', lain, '#94A3B8')] if lain > 0 else [])
+        its = [('BAF', baf, '#2563EB'), ('ADIRA', adr, '#12A150'), ('SOF', sof, '#F97316')] + ([('Leasing lain', lain, '#94A3B8')] if lain > 0 else [])
         out.append(bsg_chart_donut('Kontribusi STU Kredit per Leasing', f'Dari {kredit:,} faktur kredit (cash {int(vc.get("CASH", 0)):,} tidak dihitung)', its, 'Faktur kredit', parts=True))
     return out
 
 def bsg_pn_leasing_bottom(r_tot_s, s_c):
     """Baris bawah panel SPK & Leasing: Approval Rate per leasing (kiri) + 4 pie Reject Reason (BAF, ADIRA, SOF, IMFI) di sisi kanan."""
-    LS = [('BAF', '#4318FF'), ('ADIRA', '#00E5FF'), ('SOF', '#FFB020'), ('IMFI', '#FF4D8D')]
+    LS = [('BAF', '#2563EB'), ('ADIRA', '#12A150'), ('SOF', '#F97316'), ('IMFI', '#DC2626')]
     ok = (s_c is not None and hasattr(s_c, 'empty') and not s_c.empty and all(c in s_c.columns for c in ('Leasing_SPK_Clean', 'Status_SPK_Clean', 'Alasan_Reject_Clean')))
     n_open = {l: (int(((s_c['Leasing_SPK_Clean'] == l) & (s_c['Status_SPK_Clean'] == 'TERBUKA')).sum()) if ok else 0) for l, _ in LS}
-    rows = [{'name': l, 'val': bsg_num(r_tot_s.get(f'%{l}')), 'extra': str(n_open[l]), 'tip': f"<b>{l}</b><br>ACC% <b>{bsg_num(r_tot_s.get(f'%{l}')):.1f}%</b><br>SPK {int(bsg_num(r_tot_s.get(l))):,} · <span style='color:#FFEA00'>SPK terbuka {n_open[l]:,}</span>"} for l, _ in LS]
-    out = [bsg_chart_rank('Approval Rate per Leasing', 'Putih = acuan ideal ACC% 50% · angka kuning = SPK terbuka', rows, ideal=50.0, parts=True)]
+    rows = [{'name': l, 'val': bsg_num(r_tot_s.get(f'%{l}')), 'extra': str(n_open[l]), 'tip': f"<b>{l}</b><br>ACC% <b>{bsg_num(r_tot_s.get(f'%{l}')):.1f}%</b><br>SPK {int(bsg_num(r_tot_s.get(l))):,} · <span style='color:#F97316'>SPK terbuka {n_open[l]:,}</span>"} for l, _ in LS]
+    out = [bsg_chart_rank('Approval Rate per Leasing', 'Garis merah = acuan ideal ACC% 50% · angka kuning = SPK terbuka', rows, ideal=50.0, parts=True)]
     rej = {l: (s_c[(s_c['Leasing_SPK_Clean'] == l) & (s_c['Status_SPK_Clean'] == 'DITOLAK')] if ok else None) for l, _ in LS}
     tot_all = {}   # urutan & warna alasan dibuat tetap di keempat pie agar alasan yang sama berwarna sama
     for d_ in rej.values():
@@ -957,7 +1177,7 @@ def bsg_pn_leasing_bottom(r_tot_s, s_c):
 
 def bsg_pn_type_bottom(df_td_i, f_cg):
     """Di bawah tabel Penjualan per Type: 3 pie kontribusi leasing KREDIT (BAF, ADIRA, SOF) untuk AT PREMIUM, AT CLASSY, AT LPM. CASH tidak dihitung."""
-    LS = [('BAF', '#4318FF'), ('ADIRA', '#00E5FF'), ('SOF', '#FFB020')]
+    LS = [('BAF', '#2563EB'), ('ADIRA', '#12A150'), ('SOF', '#F97316')]
     ok = (f_cg is not None and hasattr(f_cg, 'empty') and not f_cg.empty and 'Type_Grp' in f_cg.columns and 'Leasing_Faktur_Clean' in f_cg.columns)
     pies = []
     for t_ in ['AT PREMIUM', 'AT CLASSY', 'AT LPM']:
@@ -972,7 +1192,7 @@ def bsg_pn_type_bottom(df_td_i, f_cg):
     return pies
 
 def bsg_pn_type_charts(df_td_i, ideal):
-    pal = {'AT PREMIUM': '#4318FF', 'AT CLASSY': '#00E5FF', 'AT LPM': '#FFB020', 'MOPED': '#FF4D8D', 'OTHERS': '#94A3B8'}
+    pal = {'AT PREMIUM': '#2563EB', 'AT CLASSY': '#12A150', 'AT LPM': '#F97316', 'MOPED': '#DC2626', 'OTHERS': '#94A3B8'}
     items = [(str(r['TYPE']), bsg_num(r.get('STU')), pal.get(str(r['TYPE']), '#64748B')) for _, r in df_td_i.iterrows()]
     rows = []
     for _, r in df_td_i.iterrows():
@@ -980,7 +1200,7 @@ def bsg_pn_type_charts(df_td_i, ideal):
         if tg <= 0: continue
         ach = bsg_num(r.get('ACHIEV'))
         rows.append({'name': str(r['TYPE']), 'val': ach, 'tip': f"<b>{_esc(r['TYPE'])}</b><br>STU <b>{int(bsg_num(r.get('STU'))):,}</b> / Target {int(tg):,}<br>Capaian <b>{ach:.1f}%</b> · LM {int(bsg_num(r.get('LM'))):,}"})
-    return [bsg_chart_rank('Capaian per Type vs Target Type', f'Putih = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
+    return [bsg_chart_rank('Capaian per Type vs Target Type', f'Garis merah = ideal {ideal:.0f}%', rows, ideal=float(ideal), parts=True),
             bsg_chart_donut('Komposisi STU per Type', 'Porsi unit terjual periode berjalan', items, 'STU', parts=True)]
 
 def bsg_pn_salesman_charts(df_smi, ideal, n=10):
@@ -1013,7 +1233,7 @@ def bsg_render_salesman_panel(df_smi, ideal, title, n=10):
 
 def bsg_render_reg_panel(sudah, belum, f_c, title):
     """Donut sudah vs belum registrasi rating + ranking koordinator dengan % registrasi tertinggi."""
-    donut = bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Persentase konsumen faktur yang sudah vs belum registrasi', [('Sudah Registrasi', sudah, '#00E676'), ('Belum Registrasi', belum, '#FF4D8D')], 'Konsumen', parts=True, keep_zero=True)
+    donut = bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Persentase konsumen faktur yang sudah vs belum registrasi', [('Sudah Registrasi', sudah, '#12A150'), ('Belum Registrasi', belum, '#DC2626')], 'Konsumen', parts=True, keep_zero=True)
     rows = []
     if f_c is not None and not f_c.empty and 'Koor' in f_c.columns and 'Status_Registrasi_Rating' in f_c.columns:
         for nm, g in f_c.groupby('Koor'):
@@ -1022,7 +1242,7 @@ def bsg_render_reg_panel(sudah, belum, f_c, title):
             tot, sdh = len(g), int((g['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI').sum())
             pc = sdh / tot * 100.0 if tot else 0.0
             rows.append({'name': n, 'val': pc, 'label': f'{pc:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>Sudah registrasi <b>{sdh:,}</b> dari {tot:,} konsumen<br><b>{pc:.1f}%</b>"})
-    rank = bsg_chart_rank('Koordinator dengan Registrasi Rating Tertinggi', 'Persentase konsumen yang sudah registrasi (10 teratas)', rows, ideal=None, fixed_color='#00E676', max_rows=10, scale_max=100.0, parts=True)
+    rank = bsg_chart_rank('Koordinator dengan Registrasi Rating Tertinggi', 'Persentase konsumen yang sudah registrasi (10 teratas)', rows, ideal=None, fixed_color='#12A150', max_rows=10, scale_max=100.0, parts=True)
     bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [donut, rank], 'Registrasi_MYDR_' + str(title))
 
 
@@ -1896,10 +2116,17 @@ SUBTOTAL_ROW_LABELS = {'SUB SITUBONDO', 'SUB BANYUWANGI', 'JEMBER', 'BONDOWOSO',
 tabel_target_harian = {1:0.0, 2:1.0, 3:2.0, 4:5.0, 5:8.0, 6:12.0, 7:18.0, 8:21.0, 9:24.0, 10:29.0, 11:34.0, 12:36.0, 13:40.0, 14:44.0, 15:48.0, 16:51.0, 17:54.0, 18:57.0, 19:60.0, 20:63.0, 21:67.0, 22:70.0, 23:73.0, 24:77.0, 25:79.0, 26:82.0, 27:84.0, 28:88.0, 29:92.0, 30:100.0, 31:100.0}
 FIXED_COUNTER_TARGETS = {'IIN BARIROH': 25, 'SITI NURJANAH': 25, 'TRIA DAMAYANTI': 25, 'MUHAMMAD HAMDAN WAHDI': 15, 'DESVIN NURUL PRISTANTINI': 15, 'RIKA DWI ASTUTI': 15, 'NURUL FADILAH': 15}
 FOKUS_KATEGORI_TYPE = ['AT PREMIUM', 'AT CLASSY', 'AT LPM']
-daftar_dealer = ['SIP PANJI', 'SIP BESUKI', 'SIP A. YANI', 'SIP SRONO', 'SIP SIAGA', 'SIP SOBO', 'SIP GIRI']
+daftar_dealer = ['SIP PANJI', 'SIP BESUKI', 'SIP A. YANI', 'SIP SRONO', 'SIP SIAGA', 'SIP SOBO', 'SIP GIRI']   # hanya daftar tampilan menu KPI lama; TIDAK lagi dipakai menyaring data
+LOOKUP_DEALERS = set()   # seluruh nama dealer yang terbaca dari Data Lookup (diisi saat Data Lookup dibaca)
+def is_dealer_name(n_):
+    """Satu aturan untuk semua file (Database, Faktur, Nota, SPK, Rating): nama dealer valid = ada di Data Lookup, atau berawalan SIP / SENTRAL YAMAHA."""
+    s_ = ' '.join(str(n_).split()).upper() if n_ is not None else ''
+    if not s_ or s_ in ('NAN', 'NONE', 'TIDAK DIKETAHUI', 'LAIN-LAIN', 'TOTAL', 'JUMLAH'): return False
+    return s_ in daftar_dealer or s_ in LOOKUP_DEALERS or s_.startswith('SIP') or s_.startswith('SENTRAL YAMAHA')
 ARCHIVE_DIR = st.session_state.get('arsip_dir') if (st.session_state.get('arsip_dir') and os.path.isdir(st.session_state.get('arsip_dir'))) else None   # MODE ARSIP: baca data dari folder arsip hasil IMPORT
 ARCHIVE_MODE, ARCHIVE_META = bool(ARCHIVE_DIR), (st.session_state.get('arsip_meta') or {})
 _ABS = (lambda f_: os.path.join(ARCHIVE_DIR, f_)) if ARCHIVE_DIR else (lambda f_: f_)
+KPI_RESIGNED_FILE = _ABS('koor_resigned.json')
 TARGET_DEALER_FILE, TARGET_KOOR_FILE, KPI_SAVED_FILE, AI_CONFIG_FILE, UPLOAD_DIR = _ABS('dealer_targets_saved.json'), _ABS('koor_targets_saved.json'), _ABS('kpi_targets_saved.json'), 'ai_config.json', _ABS('saved_raw_files')
 DB_Multi_DIR, RATING_Multi_DIR, RAW_META_FILE = os.path.join(UPLOAD_DIR, 'database_files'), os.path.join(UPLOAD_DIR, 'rating_files'), os.path.join(UPLOAD_DIR, 'metadata.json')
 os.makedirs(DB_Multi_DIR, exist_ok=True)
@@ -1928,6 +2155,18 @@ def normalize_dealer_name(val):
         if k in s: return v
     return s
 
+JEMBER_FILE_KEYS = [('GAJAH', 'SIP GAJAH MADA'), ('KEBONSARI', 'SIP KEBONSARI'), ('SUMBERSARI', 'SIP SUMBERSARI'), ('NANGKAAN', 'SIP NANGKAAN'), ('BONDOWOSO', 'SIP BONDOWOSO'), ('RAMBIPUJI', 'SIP RAMBIPUJI'),
+                    ('AMBULU', 'SIP AMBULU'), ('TRUNOJOYO', 'SIP TRUNOJOYO'), ('BALUNG', 'SIP BALUNG')]
+def jb_file_dealer(name):
+    """Nama dealer dari nama file Database: 7 dealer inti seperti biasa; dealer Jember lain (Gajah Mada, Ambulu, dst) dikenali dari kata kunci nama file."""
+    s_ = normalize_dealer_name(name)
+    if s_ in daftar_dealer: return s_
+    u_ = re.sub(r'[^A-Z0-9]', '', str(name).upper())
+    if 'SENTRAL' in u_: return 'SENTRAL YAMAHA JEMBER'   # file Sentral memuat beberapa dealer; dipecah per Point Code (lookup kolom V & X)
+    for k_, v_ in JEMBER_FILE_KEYS:
+        if k_ in u_: return v_
+    return s_
+
 def safe_int(val, default=0):
     try: return default if pd.isna(val) else int(float(str(val).replace(',', '').replace('%', '').strip()))
     except Exception: return default
@@ -1947,8 +2186,10 @@ def limit_words(text, max_words=MAX_NARRATIVE_WORDS):
     truncated = ' '.join(words[:max_words]).rstrip(',;:-')
     return truncated if truncated.endswith('.') else truncated + '.'
 
-def format_paragraphs_html(text):
-    clean_txt = limit_words(text, MAX_NARRATIVE_WORDS)
+MAX_PLAN_WORDS = 40   # Action Plan + How To digabung dalam satu kolom
+
+def format_paragraphs_html(text, max_words=MAX_NARRATIVE_WORDS):
+    clean_txt = limit_words(text, max_words)
     return f'<p class="nar-p">{clean_txt}</p>' if clean_txt else ''
 
 def calc_rational_7d_addition(curr_stu, monthly_targ, curr_day, next_day, pct_curr_dec, pct_next_dec, active_mp=1):
@@ -1967,8 +2208,7 @@ def get_compact_col_config(columns, name_col, editable_col=None):
     return {c: (st.column_config.TextColumn(c, width="medium") if c == name_col else (st.column_config.NumberColumn(c, width="small", format="%d") if c == editable_col else st.column_config.Column(c, width="small"))) for c in columns}
 
 def get_neon_gradient_hex(ratio):
-    r = max(0.0, min(1.0, float(ratio)))
-    return '#{:02X}{:02X}{:02X}'.format(255, int((r/0.5)*234), int(127*(1.0-r/0.5))) if r <= 0.5 else '#{:02X}{:02X}{:02X}'.format(int(255*(1.0-(r-0.5)/0.5)), int(234+((r-0.5)/0.5)*21), int(((r-0.5)/0.5)*102))
+    return '#1D3FD8'   # tema putih-biru: seluruh teks & angka tabel berwarna biru
 
 def build_compact_html_string(df_items, df_full, columns, name_col, metric_col, table_dom_id, header_labels=None, ultra_compact=False, title_text=None, highlight_names=None, wrap_first=False):
     if df_full is None or df_full.empty: return ''
@@ -1981,7 +2221,7 @@ def build_compact_html_string(df_items, df_full, columns, name_col, metric_col, 
     html = [f'<div id="{table_dom_id}" class="{wrap_cls}">{banner_html}<table class="{tbl_cls}"><thead><tr>'] + [(f'<th style="white-space:normal;font-size:11px;padding:5px 4px;text-align:left;line-height:1.2;">{h}</th>' if wrap_first == 'all' else f'<th>{h}</th>') for h in hdrs] + ['</tr></thead><tbody>']
     for _, row in df_full.iterrows():
         nm = str(row[name_col])
-        style = 'background-color: #4318FF; color: #FFFFFF; font-weight: 800;' if (nm.startswith('TOTAL') or nm.startswith('CREDIT SHARE')) else ('background-color: #1E293B; color: #FFFFFF; font-weight: 800;' if (nm in SUBTOTAL_ROW_LABELS or nm.startswith('SUB ') or (highlight_names is not None and nm in highlight_names)) else '')
+        style = 'background-color: #4318FF; color: #FFFFFF; font-weight: 800;' if (nm.startswith('TOTAL') or nm.startswith('CREDIT SHARE')) else ('background-color: #EAF0FF; color: #1E3A8A; font-weight: 800;' if (nm in SUBTOTAL_ROW_LABELS or nm.startswith('SUB ') or (highlight_names is not None and nm in highlight_names)) else '')
         if not style and '_row_ratio' in df_full.columns and pd.notna(row['_row_ratio']):
             style = f'color: {get_neon_gradient_hex(float(row["_row_ratio"]))};'
         if not style and df_items is not None and not df_items.empty and metric_col in df_items.columns:
@@ -1999,16 +2239,16 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
     safe_fname, hidden_payload = re.sub(r'[^a-zA-Z0-9_-]', '_', file_label), json.dumps(standalone_html or '')
     components.html(f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
         body {{ margin: 0; padding: 2px 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; display: flex; align-items: center; gap: 8px; }}
-        .act-btn {{ background-color: #1E293B; color: #E2E8F0; border: 1px solid #334155; border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }}
+        .act-btn {{ background-color: #EAF0FF; color: #1E3A8A; border: 1px solid #8FA8F0; border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }}
         .act-btn:hover {{ background-color: #4318FF; color: #FFFFFF; border-color: #4318FF; }}
-        #status_msg {{ font-size: 12px; color: #00FF66; font-weight: 600; margin-left: 6px; }}
-        #offscreen_holder {{ position: fixed; left: -9999px; top: 0; background: #0E1117; padding: 10px; z-index: -1; }}
-        .compact-table-wrap, .ultra-compact-wrap {{ border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; overflow: hidden; }}
-        .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
-        table.compact-tbl, table.ultra-compact-tbl {{ border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #0E1117; width: 100%; }}
-        table.compact-tbl th, table.ultra-compact-tbl th {{ background-color: #1A202C; color: #CBD5E1; font-weight: 800; padding: 6px 6px; border: 1px solid #2D3748; text-align: right; white-space: nowrap; }}
+        #status_msg {{ font-size: 12px; color: #12A150; font-weight: 600; margin-left: 6px; }}
+        #offscreen_holder {{ position: fixed; left: -9999px; top: 0; background: #FFFFFF; padding: 10px; z-index: -1; }}
+        .compact-table-wrap, .ultra-compact-wrap {{ border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; overflow: hidden; }}
+        .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
+        table.compact-tbl, table.ultra-compact-tbl {{ border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #FFFFFF; width: 100%; }}
+        table.compact-tbl th, table.ultra-compact-tbl th {{ background-color: #EAF0FF; color: #1E3A8A; font-weight: 800; padding: 6px 6px; border: 1px solid #8FA8F0; text-align: right; white-space: nowrap; }}
         table.compact-tbl th:first-child, table.compact-tbl td:first-child, table.ultra-compact-tbl th:first-child, table.ultra-compact-tbl td:first-child {{ text-align: left; padding-left: 8px; }}
-        table.compact-tbl td, table.ultra-compact-tbl td {{ padding: 5px 6px; border: 1px solid #1E293B; text-align: right; white-space: nowrap; font-weight: 700; }}
+        table.compact-tbl td, table.ultra-compact-tbl td {{ padding: 5px 6px; border: 1px solid #8FA8F0; text-align: right; white-space: nowrap; font-weight: 700; }}
     </style></head><body>
     <button class="act-btn" onclick="captureTbl('copy')">📸 Copy Tabel (Gambar)</button>
     <button class="act-btn" onclick="captureTbl('jpg')">📥 Download JPG</button>
@@ -2016,30 +2256,30 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
     <script>
     const fallbackHtml = {hidden_payload};
     async function captureTbl(mode) {{
-        const msg = document.getElementById('status_msg'); msg.style.color = '#FFEA00'; msg.innerText = 'Memproses gambar...';
+        const msg = document.getElementById('status_msg'); msg.style.color = '#D68A00'; msg.innerText = 'Memproses gambar...';
         try {{
             const holder = document.getElementById('offscreen_holder');
             let targetEl = fallbackHtml ? (holder.innerHTML = fallbackHtml, holder.firstElementChild) : window.parent.document.getElementById('{table_dom_id}');
-            if (!targetEl) {{ msg.style.color = '#FF007F'; msg.innerText = 'Tabel tidak ditemukan.'; return; }}
-            const canvas = await html2canvas(targetEl, {{ backgroundColor: '#0E1117', scale: 2, useCORS: true, logging: false }});
+            if (!targetEl) {{ msg.style.color = '#E0115F'; msg.innerText = 'Tabel tidak ditemukan.'; return; }}
+            const canvas = await html2canvas(targetEl, {{ backgroundColor: '#FFFFFF', scale: 2, useCORS: true, logging: false }});
             if (mode === 'copy') {{
                 canvas.toBlob(async (blob) => {{
                     try {{
                         await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
-                        msg.style.color = '#00FF66'; msg.innerText = '✅ Gambar berhasil disalin ke Clipboard! (Siap Ctrl+V di WA/Excel)';
+                        msg.style.color = '#12A150'; msg.innerText = '✅ Gambar berhasil disalin ke Clipboard! (Siap Ctrl+V di WA/Excel)';
                     }} catch (err) {{
                         const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_fname}.jpg'; a.click();
-                        msg.style.color = '#00E5FF'; msg.innerText = '📥 Browser membatasi clipboard, gambar otomatis diunduh sebagai JPG.';
+                        msg.style.color = '#0891B2'; msg.innerText = '📥 Browser membatasi clipboard, gambar otomatis diunduh sebagai JPG.';
                     }}
                     setTimeout(() => msg.innerText = '', 4500);
                 }}, 'image/png');
             }} else {{
                 const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_fname}.jpg'; a.click();
-                msg.style.color = '#00FF66'; msg.innerText = '✅ File {safe_fname}.jpg berhasil diunduh!';
+                msg.style.color = '#12A150'; msg.innerText = '✅ File {safe_fname}.jpg berhasil diunduh!';
                 setTimeout(() => msg.innerText = '', 4000);
             }}
             holder.innerHTML = '';
-        }} catch (e) {{ msg.style.color = '#FF007F'; msg.innerText = 'Gagal membuat gambar: ' + e.message; }}
+        }} catch (e) {{ msg.style.color = '#E0115F'; msg.innerText = 'Gagal membuat gambar: ' + e.message; }}
     }}
     </script></body></html>""", height=36)
 
@@ -2052,52 +2292,149 @@ def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, 
     if ultra_compact:
         safe_fname, comp_height, hidden_uc_payload = re.sub(r'[^a-zA-Z0-9_-]', '_', key_suffix), (len(df_full) * 29) + 100, json.dumps(html_capture_str)
         components.html(f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
-            body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #E2E8F0; }}
-            .ultra-compact-wrap {{ width: 100%; overflow-x: hidden; margin-bottom: 6px; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }}
-            .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
-            table.ultra-compact-tbl {{ width: 100%; table-layout: fixed; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #0E1117; }}
-            table.ultra-compact-tbl th {{ background-color: #1A202C; color: #CBD5E1; font-weight: 800; padding: 6px 3px; border-bottom: 1px solid #2D3748; border-right: 1px solid #1E293B; text-align: center; white-space: normal; line-height: 1.15; font-size: 11.5px; word-break: break-word; }}
+            body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #1E3A8A; }}
+            .ultra-compact-wrap {{ width: 100%; overflow-x: hidden; margin-bottom: 6px; border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; }}
+            .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
+            table.ultra-compact-tbl {{ width: 100%; table-layout: fixed; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #FFFFFF; }}
+            table.ultra-compact-tbl th {{ background-color: #EAF0FF; color: #1E3A8A; font-weight: 800; padding: 6px 3px; border-bottom: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; text-align: center; white-space: normal; line-height: 1.15; font-size: 11.5px; word-break: break-word; }}
             table.ultra-compact-tbl th:first-child, table.ultra-compact-tbl td:first-child {{ width: 17.5%; text-align: left; padding-left: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
-            table.ultra-compact-tbl td {{ padding: 5px 5px; border-bottom: 1px solid #1E293B; border-right: 1px solid #1E293B; text-align: right; white-space: nowrap; font-weight: 700; font-size: 13.5px; overflow: hidden; }}
-            table.ultra-compact-tbl tr:hover td {{ background-color: rgba(255,255,255,0.04); }}
+            table.ultra-compact-tbl td {{ padding: 5px 5px; border-bottom: 1px solid #8FA8F0; border-right: 1px solid #8FA8F0; text-align: right; white-space: nowrap; font-weight: 700; font-size: 13.5px; overflow: hidden; }}
+            table.ultra-compact-tbl tr:hover td {{ background-color: rgba(67,24,255,0.07); }}
             .toolbar {{ display: flex; align-items: center; gap: 8px; padding-top: 2px; }}
-            .act-btn {{ background-color: #1E293B; color: #E2E8F0; border: 1px solid #334155; border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }}
+            .act-btn {{ background-color: #EAF0FF; color: #1E3A8A; border: 1px solid #8FA8F0; border-radius: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }}
             .act-btn:hover {{ background-color: #4318FF; color: #FFFFFF; border-color: #4318FF; }}
-            #status_msg {{ font-size: 12px; color: #00FF66; font-weight: 600; margin-left: 6px; }}
-            #offscreen_uc {{ position: fixed; left: -9999px; top: 0; width: 1350px; background: #0E1117; padding: 10px; z-index: -1; }}
+            #status_msg {{ font-size: 12px; color: #12A150; font-weight: 600; margin-left: 6px; }}
+            #offscreen_uc {{ position: fixed; left: -9999px; top: 0; width: 1350px; background: #FFFFFF; padding: 10px; z-index: -1; }}
         </style></head><body>{html_display_str}
         <div class="toolbar"><button class="act-btn" onclick="captureUC('copy')">📸 Copy Tabel (Gambar)</button><button class="act-btn" onclick="captureUC('jpg')">📥 Download JPG</button><span id="status_msg"></span></div>
         <div id="offscreen_uc"></div>
         <script>
         const ucCaptureHtml = {hidden_uc_payload};
         async function captureUC(mode) {{
-            const msg = document.getElementById('status_msg'); msg.style.color = '#FFEA00'; msg.innerText = 'Memproses gambar...';
+            const msg = document.getElementById('status_msg'); msg.style.color = '#D68A00'; msg.innerText = 'Memproses gambar...';
             try {{
                 const holder = document.getElementById('offscreen_uc'); holder.innerHTML = ucCaptureHtml;
-                const canvas = await html2canvas(holder.firstElementChild, {{ backgroundColor: '#0E1117', scale: 2, useCORS: true, logging: false }});
+                const canvas = await html2canvas(holder.firstElementChild, {{ backgroundColor: '#FFFFFF', scale: 2, useCORS: true, logging: false }});
                 holder.innerHTML = '';
                 if (mode === 'copy') {{
                     canvas.toBlob(async (blob) => {{
                         try {{
                             await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
-                            msg.style.color = '#00FF66'; msg.innerText = '✅ Gambar tabel + Judul disalin ke Clipboard! (Siap Ctrl+V di WA/Excel)';
+                            msg.style.color = '#12A150'; msg.innerText = '✅ Gambar tabel + Judul disalin ke Clipboard! (Siap Ctrl+V di WA/Excel)';
                         }} catch (err) {{
                             const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_fname}.jpg'; a.click();
-                            msg.style.color = '#00E5FF'; msg.innerText = '📥 Gambar otomatis diunduh sebagai JPG.';
+                            msg.style.color = '#0891B2'; msg.innerText = '📥 Gambar otomatis diunduh sebagai JPG.';
                         }}
                         setTimeout(() => msg.innerText = '', 4500);
                     }}, 'image/png');
                 }} else {{
                     const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_fname}.jpg'; a.click();
-                    msg.style.color = '#00FF66'; msg.innerText = '✅ File {safe_fname}.jpg berhasil diunduh!';
+                    msg.style.color = '#12A150'; msg.innerText = '✅ File {safe_fname}.jpg berhasil diunduh!';
                     setTimeout(() => msg.innerText = '', 4000);
                 }}
-            }} catch (e) {{ msg.style.color = '#FF007F'; msg.innerText = 'Gagal membuat gambar: ' + e.message; }}
+            }} catch (e) {{ msg.style.color = '#E0115F'; msg.innerText = 'Gagal membuat gambar: ' + e.message; }}
         }}
         </script></body></html>""", height=comp_height, scrolling=False)
     else:
         st.markdown(html_display_str, unsafe_allow_html=True)
         render_table_image_buttons(dom_id, key_suffix, standalone_html=html_capture_str)
+
+# ---------------------------------------------------------------- LOKASI DEALER (TERKUNCI) & INTEL LOKAL RING 1 ----
+# Ubah di sini bila ada dealer baru / pindah lokasi. Kunci = nama dealer persis seperti di data (huruf besar).
+DEALER_LOKASI = {
+    'SIP BESUKI':  ('Besuki',          'Situbondo'),
+    'SIP PANJI':   ('Panji',           'Situbondo'),
+    'SIP SIAGA':   ('Genteng',         'Banyuwangi'),
+    'SIP SRONO':   ('Srono',           'Banyuwangi'),
+    'SIP SOBO':    ('Sobo',            'Banyuwangi'),
+    'SIP A YANI':  ('Banyuwangi Kota', 'Banyuwangi'),
+    'SIP GIRI':    ('Giri',            'Banyuwangi'),
+}
+LOKAL_INTEL_FILE = _ABS('lokal_intel_saved.json')
+MAX_HOWTO_WORDS = 80
+
+def _lokasi_dealer(nama):
+    """(kecamatan, kabupaten) dealer, atau None bila nama bukan salah satu dealer terdaftar (mis. TOTAL)."""
+    n = ' '.join(str(nama).upper().split())
+    if n in DEALER_LOKASI: return DEALER_LOKASI[n]
+    for k_, v_ in DEALER_LOKASI.items():
+        if k_ in n: return v_
+    return None
+
+LOKAL_ALL_KEY = '__SEMUA_DEALER__'
+
+def _norm_dealer(n):
+    return ' '.join(re.sub(r'[*#_`]', ' ', str(n)).upper().split())
+
+def lokal_intel_all_get():
+    return load_json(LOKAL_INTEL_FILE).get(LOKAL_ALL_KEY, {}) or {}
+
+def lokal_intel_all_set(text):
+    d_ = load_json(LOKAL_INTEL_FILE)
+    if text and text.strip(): d_[LOKAL_ALL_KEY] = {'text': text.strip()[:60000], 'ts': _wib_now().strftime('%Y-%m-%d %H:%M')}
+    else: d_.pop(LOKAL_ALL_KEY, None)
+    save_json(d_, LOKAL_INTEL_FILE)
+
+_DLR_HDR = re.compile(r'^[#*\s>-]*DEALER\s*:\s*(.+?)[*\s]*$', re.I | re.M)
+
+def lokal_intel_split(text):
+    """Pecah laporan Deep Research (header 'DEALER: NAMA') menjadi {NAMA DEALER: isi bagian}."""
+    out, ms = {}, list(_DLR_HDR.finditer(text or ''))
+    for i_, m_ in enumerate(ms):
+        end_ = ms[i_ + 1].start() if i_ + 1 < len(ms) else len(text)
+        out[_norm_dealer(m_.group(1))] = text[m_.end():end_].strip()
+    return out
+
+def lokal_intel_get(dealer):
+    """Intel lokal untuk 1 dealer: ambil bagiannya dari laporan SEMUA dealer; cadangan: data per-dealer lama."""
+    d_ = _norm_dealer(dealer); allv = lokal_intel_all_get()
+    if allv.get('text'):
+        for k_, v_ in lokal_intel_split(allv['text']).items():
+            if v_ and (k_ == d_ or k_ in d_ or d_ in k_):
+                return {'text': v_, 'ts': allv.get('ts', ''), 'src': 'semua'}
+    old = load_json(LOKAL_INTEL_FILE).get(' '.join(str(dealer).upper().split()), {}) or {}
+    return old
+
+def lokal_intel_set(dealer, text):
+    d_ = load_json(LOKAL_INTEL_FILE); k_ = ' '.join(str(dealer).upper().split())
+    if text and text.strip(): d_[k_] = {'text': text.strip()[:12000], 'ts': _wib_now().strftime('%Y-%m-%d %H:%M')}
+    else: d_.pop(k_, None)
+    save_json(d_, LOKAL_INTEL_FILE)
+
+def build_deep_research_prompt_all(tgl, bln_thn):
+    """SATU prompt untuk SEMUA dealer terdaftar di DEALER_LOKASI (cukup dijalankan seminggu sekali)."""
+    daftar = '\n'.join(f'- {n_} | Kecamatan {kec_} | Kab. {kab_}' for n_, (kec_, kab_) in DEALER_LOKASI.items())
+    return f"""Lakukan Deep Research tentang peluang perputaran uang masyarakat di wilayah RING 1 setiap dealer sepeda motor Yamaha berikut (nama dealer | kecamatan lokasi | kabupaten, Jawa Timur):
+{daftar}
+
+RING 1 = kecamatan lokasi dealer + semua kecamatan yang berbatasan langsung dengannya.
+PERIODE FOKUS: tanggal {tgl} {bln_thn} sampai 14 hari ke depan (laporan dipakai untuk 1 minggu).
+
+CARI informasi terbaru (3 bulan terakhir + jadwal ke depan) untuk SETIAP dealer tentang:
+1. Panen & komoditas unggulan yang sedang/akan panen (padi, jagung, tembakau, tebu, cabai, bawang, kopi, perikanan, dll), perkiraan waktu panen, dan tren harga di tingkat petani.
+2. Pencairan dana ke masyarakat: gaji/THR ASN, PKH/bansos, dana desa, kredit usaha, bonus pabrik/perkebunan.
+3. Event & keramaian: pasar rakyat, festival, hajatan massal, pilkades, pameran, hari besar, wisata musiman.
+4. Aktivitas ekonomi besar: pabrik, pelabuhan, proyek infrastruktur, sentra dagang.
+5. Kejadian negatif yang menekan daya beli: gagal panen, banjir, kekeringan, PHK, harga komoditas anjlok.
+
+ATURAN:
+- Tulis HANYA hal yang ada sumbernya. Setiap temuan wajib memuat NAMA KECAMATAN spesifik, tanggal/periode, serta nama dan URL sumber.
+- Jika tidak ada info untuk suatu poin, tulis "TIDAK DITEMUKAN". Jangan menebak atau mengarang.
+- Bedakan FAKTA (ada sumber) dan PERKIRAAN (beri label PERKIRAAN).
+- Bahasa Indonesia, ringkas, maksimal 120 kata per dealer, tanpa kalimat pembuka.
+
+FORMAT KELUARAN (WAJIB, satu blok per dealer, urut sesuai daftar, nama dealer ditulis PERSIS seperti di daftar):
+DEALER: <NAMA DEALER>
+Ring 1: (daftar kecamatan)
+Peluang: (poin 1-5 yang ditemukan: kecamatan | komoditas/event | periode | sumber URL)
+Waktu terbaik: (3 peluang terbesar untuk sales motor beserta kecamatan dan tanggalnya)"""
+
+def format_howto_html(text):
+    """Langkah bernomor '1) ... 2) ... 3) ...' ditampilkan satu langkah per baris."""
+    clean_txt = limit_words(text, MAX_HOWTO_WORDS)
+    if not clean_txt: return ''
+    parts = [p_.strip() for p_ in re.split(r'\s+(?=\d\)\s)', clean_txt) if p_.strip()]
+    return '<p class="nar-p">' + '<br>'.join(_esc(p_) for p_ in parts) + '</p>'
 
 def load_json(f):
     if os.path.exists(f):
@@ -2210,7 +2547,7 @@ def render_sidebar_azura_logo():
             st.sidebar.markdown(f'<div class="azura-logo-box"><img src="data:{mime};base64,{b64_str}" class="azura-logo-img" alt="AZURA"></div>', unsafe_allow_html=True)
             return
         except Exception: pass
-    st.sidebar.markdown('<div class="azura-logo-box"><div class="azura-fallback-badge"><div style="font-size:22px; line-height:1;">🐺</div><div style="font-size:10px; font-weight:900; letter-spacing:1px; color:#00E5FF; margin-top:2px;">AZURA</div></div></div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="azura-logo-box"><div class="azura-fallback-badge"><div style="font-size:22px; line-height:1;">🐺</div><div style="font-size:10px; font-weight:900; letter-spacing:1px; color:#0891B2; margin-top:2px;">AZURA</div></div></div>', unsafe_allow_html=True)
 
 def call_gemini_ai_table(api_key, raw_context_str):
     clean_key = api_key.strip()
@@ -2219,35 +2556,40 @@ Berikut adalah DATA MENTAH LENGKAP dari Tabel 1 s.d 5, Data Alasan Reject SPK, s
 {raw_context_str}
 
 TUGAS ANDA:
-Lakukan analisa silang yang tajam (temukan akar masalah/bottleneck tersembunyi dari data di atas) dan susun Action Plan taktis terukur dalam format JSON murni dengan 16 key berikut.
+Lakukan analisa silang yang tajam (temukan akar masalah/bottleneck tersembunyi dari data di atas) dan susun Action Plan taktis terukur dalam format JSON murni dengan 18 key berikut.
 
 ATURAN WAJIB (SANGAT KETAT):
-1. MAKSIMAL 35 KATA UNTUK SETIAP KEY! Buat kalimat yang super padat, to-the-point, langsung ke akar masalah dan angka sasaran (1 paragraf pendek saja per key, maksimal 35 kata).
+1. MAKSIMAL 35 KATA UNTUK SETIAP KEY cond_* dan plan_*! Buat kalimat yang super padat, to-the-point, langsung ke akar masalah dan angka sasaran (1 paragraf pendek saja per key). KHUSUS key berawalan plan_ : maksimal 40 kata (sudah mencakup target DAN cara mencapainya).
 2. GUNAKAN ANGKA TARGET RASIONAL yang sudah disediakan di dalam konteks data (JANGAN membuat target tidak masuk akal seperti memaksa STU dari 2 langsung ke 25 dalam 7 hari; gunakan angka sasaran rasional & menantang yang telah dihitung di data konteks).
 3. JANGAN gunakan tag HTML apa pun (teks polos murni).
 4. Gunakan kata 'dealer' (bukan cabang) dan istilah 'zona kritis'.
-5. Pada setiap key plan (kecuali plan_leasing), WAJIB sertakan frasa: TANPA MENURUNKAN KUALITAS DATABASE.
+5. Frasa TANPA MENURUNKAN KUALITAS DATABASE hanya wajib pada plan_dealer dan plan_md; pada plan lain sisipkan hanya bila muat dalam 40 kata.
 6. Gunakan acuan standar ideal: DB Quality (HOT/DB) = 30%, STU% (STU/DB) = 10%, Approval Leasing ACC% = 50%.
 7. Untuk Leasing: bedah masalah bottleneck konversi SPK ke Faktur Kredit (BAF/ADIRA/SOF), risiko SPK Terbuka, serta sebutkan alasan penolakan (Reject) tertinggi beserta solusinya.
+8. Key plan_* = SATU narasi utuh yang menyatukan TARGET dan HOW TO (tanpa penomoran, tanpa daftar, tanpa kata 'Target:'/'How to:'). Mulai dari target angka rasional, lalu sambung dengan 'dengan cara/lewat/melalui' langkah operasional yang LANGSUNG menjawab target itu: SIAPA melakukan APA, KAPAN, BERAPA angkanya, di KECAMATAN/LOKASI mana, lewat sumber DB apa. Target dan caranya harus nyambung satu alur kalimat. Pakai nama salesman/koordinator/type/leasing/alasan reject yang ada di data. DILARANG saran generik tanpa angka.
+9. KAITKAN HOW TO DENGAN AKTIVITAS LOKAL: bila bagian 'INTEL LOKAL RING 1' memuat panen/pencairan/event, plan_* (kecuali plan_leasing) WAJIB menyebut aksi di kecamatan tertentu beserta alasannya dari intel itu. Contoh gaya: 'Untuk capai +5 SPK, Koordinator Budi lakukan mobile test ride di Kecamatan X karena sedang panen tembakau, target 4 DB/hari.' Gunakan HANYA fakta yang tertulis di intel; DILARANG mengarang panen/event/kecamatan. Jika intel KOSONG atau TIDAK DITEMUKAN, jangan menyebut kejadian lokal, pakai cara berbasis data dealer.
+10. Key cond_lokal = ringkasan peluang perputaran uang ring 1 HANYA dari intel (sebut kecamatan, periode/sumber, akhiri '(verifikasi lapangan)'); jika intel kosong tulis intel belum ada dan sarankan survei ringan. Key plan_lokal = target + cara memanfaatkan peluang itu (kecamatan, waktu, sasaran DB/HOT, siapa yang turun) dalam satu narasi maks 40 kata.
 
 Format JSON:
 {{
   "cond_dealer": "Maks 35 kata: diagnosa tajam akar masalah STU Dealer vs Ideal/LM & bottleneck konversi DB->HOT (ideal 30%) atau HOT->STU (ideal 10%).",
-  "plan_dealer": "Maks 35 kata: target rasional tambahan STU (sesuai konteks), STU/hari, & DB/MP/hari TANPA MENURUNKAN KUALITAS DATABASE.",
+  "plan_dealer": "Maks 40 kata, target + cara menyatu: target rasional tambahan STU (sesuai konteks), STU/hari, & DB/MP/hari",
   "cond_type": "Maks 35 kata: bedah segmen type terburuk (AT PREMIUM/CLASSY/LPM), penyebab anjloknya dilihat dari DB Q, ACC%, atau STU%.",
-  "plan_type": "Maks 35 kata: target rasional tambahan STU, SPK, & DB harian fokus segmen terburuk TANPA MENURUNKAN KUALITAS DATABASE.",
+  "plan_type": "Maks 40 kata, target + cara menyatu: target rasional tambahan STU, SPK, & DB harian fokus segmen terburuk",
   "cond_leasing": "Maks 35 kata: bedah gap SPK vs Faktur Kredit (BAF/ADIRA/SOF), bahaya SPK Terbuka, & alasan Reject tertinggi.",
-  "plan_leasing": "Maks 35 kata: target eksekusi SPK Terbuka 1x24 jam, alokasi aplikasi ke leasing terkuat, & solusi mengatasi alasan Reject utama.",
+  "plan_leasing": "Maks 40 kata, target + cara menyatu: target eksekusi SPK Terbuka 1x24 jam, alokasi aplikasi ke leasing terkuat, & solusi mengatasi alasan Reject utama.",
   "cond_koor": "Maks 35 kata: diagnosa kelemahan utama Koordinator terburuk (apakah kurang DB lapangan, rendah DB Q <30%, atau macet di ACC%/STU%).",
-  "plan_koor": "Maks 35 kata: target rasional tambahan STU, SPK, & DB/MP/hari tim koordinator tersebut TANPA MENURUNKAN KUALITAS DATABASE.",
+  "plan_koor": "Maks 40 kata, target + cara menyatu: target rasional tambahan STU, SPK, & DB/MP/hari tim koordinator tersebut",
   "cond_counter": "Maks 35 kata: diagnosa kelemahan Counter terburuk dari sisi konversi walk-in/leads digital (DB Q vs 30%, STU% vs 10%, ACC% vs 50%).",
-  "plan_counter": "Maks 35 kata: target rasional tambahan STU, follow-up SPK terbuka, & input DB harian counter TANPA MENURUNKAN KUALITAS DATABASE.",
+  "plan_counter": "Maks 40 kata, target + cara menyatu: target rasional tambahan STU, follow-up SPK terbuka, & input DB harian counter",
   "cond_mp": "Maks 35 kata: diagnosa pola masalah Salesman lapangan di zona kritis (target besar tapi STU/DB Q/ACC% rendah).",
-  "plan_mp": "Maks 35 kata: kuota rasional +1 s.d +2 STU, SPK, & 4-5 DB/hari per salesman kritis TANPA MENURUNKAN KUALITAS DATABASE.",
+  "plan_mp": "Maks 40 kata, target + cara menyatu: kuota rasional +1 s.d +2 STU, SPK, & 4-5 DB/hari per salesman kritis",
   "cond_md": "Maks 35 kata: analisa aktifitas MD KHUSUS prospect type Event; sebutkan sub prospect Event yang TERLEMAH (DB, HOT/DB Q, STU/STU%) dan penyebabnya.",
-  "plan_md": "Maks 35 kata: target rasional STU & follow-up HOT untuk sub Event terlemah TANPA MENURUNKAN KUALITAS DATABASE.",
+  "plan_md": "Maks 40 kata, target + cara menyatu: target rasional STU & follow-up HOT untuk sub Event terlemah",
   "cond_sosmed": "Maks 35 kata: analisa prospect dari Media Sosial (DB, HOT/DB Q, STU/STU%) vs standar 30% dan 10%.",
-  "plan_sosmed": "Maks 35 kata: target rasional STU & follow-up HOT Media Sosial TANPA MENURUNKAN KUALITAS DATABASE."
+  "plan_sosmed": "Maks 40 kata: target rasional STU + cara (waktu respon, pindah ke WhatsApp, test ride) dalam satu narasi.",
+  "cond_lokal": "Maks 35 kata: peluang perputaran uang ring 1 HANYA dari INTEL LOKAL RING 1 pada data (panen/pencairan/event). Jika kosong, nyatakan belum ada intel.",
+  "plan_lokal": "Maks 40 kata, target + cara menyatu: aksi pemanfaatan peluang lokal (kecamatan sasaran, waktu, target DB/HOT)"
 }}"""
     if clean_key.startswith('AIza'):
         auth_variants = [
@@ -2268,12 +2610,12 @@ Format JSON:
             gen_cfg = {"temperature": 0.45, "responseMimeType": "application/json"} if api_ver == 'v1beta' else {"temperature": 0.45}
             try:
                 req = urllib.request.Request(url, data=json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": gen_cfg}).encode('utf-8'), headers=hdrs)
-                with urllib.request.urlopen(req, timeout=25) as resp:
+                with urllib.request.urlopen(req, timeout=60) as resp:
                     txt = json.loads(resp.read().decode('utf-8'))['candidates'][0]['content']['parts'][0]['text'].strip()
                     if txt.startswith("```"): txt = txt.strip("`").replace("json", "", 1).strip()
                     s_i, e_i = txt.find('{'), txt.rfind('}')
                     if s_i != -1 and e_i != -1: txt = txt[s_i:e_i+1]
-                    return {k: limit_words(v, MAX_NARRATIVE_WORDS) for k, v in json.loads(txt).items()}
+                    return {k: limit_words(v, MAX_PLAN_WORDS if str(k).startswith('plan_') else MAX_NARRATIVE_WORDS) for k, v in json.loads(txt).items()}
             except urllib.error.HTTPError as he:
                 err_body = ""
                 try: err_body = he.read().decode('utf-8')
@@ -2287,10 +2629,16 @@ Format JSON:
 
 render_sidebar_azura_logo()
 st.sidebar.markdown('### ⚔️ BUSHIDO ANALYSIS')
-MAIN_TABS, UPLOAD_TAB, MASTER_TAB = ['🏢 STU', '📊 DASHBOARD KPI'], '📁 UPLOAD FILE', '🎯 MASTER KPI'
+JEMBER_TAB = '🏙️ DASHBOARD JEMBER'
+DEALER_TAB = '🧑‍💼 DASHBOARD DEALER'
+CEK_TAB = '🔎 CEK DATA'
+JEMBER_TARGET_FILE = _ABS('jember_targets_saved.json')
+def jember_dealer_ok(n_x):
+    u_x = str(n_x).strip().upper(); return u_x.startswith('SIP') or u_x.startswith('SENTRAL YAMAHA')
+MAIN_TABS, UPLOAD_TAB, MASTER_TAB = ['📊 DASHBOARD KPI', JEMBER_TAB, DEALER_TAB, CEK_TAB], '📁 UPLOAD FILE', '🎯 MASTER KPI'
 UPLOAD_MENU = [UPLOAD_TAB, MASTER_TAB]
 if st.session_state.get('active_menu_tab') not in MAIN_TABS + UPLOAD_MENU:
-    st.session_state['active_menu_tab'] = '🏢 STU'
+    st.session_state['active_menu_tab'] = '📊 DASHBOARD KPI'
 if st.session_state.get('nav_main_radio') not in MAIN_TABS + [None]:
     del st.session_state['nav_main_radio']
 
@@ -2313,8 +2661,8 @@ st.sidebar.markdown('### 🔑 Kode Akses')
 _kode_in = (st.sidebar.text_input('Kode Akses:', type='password', key='kode_akses_input', label_visibility='collapsed', placeholder='Masukkan kode akses') or '').strip()
 IS_SPV = bool(_kode_in) and hmac.compare_digest(_kode_in.encode('utf-8'), _resolve_kode_spv().encode('utf-8'))
 if IS_SPV: st.sidebar.success('✅ Akses SPV — semua menu terlihat')
-elif _kode_in: st.sidebar.error('❌ Kode akses salah — tab Analisa & Action Plan disembunyikan')
-else: st.sidebar.caption('Kode kosong = akses standar (tab 🧠 Analisa & Action Plan disembunyikan).')
+elif _kode_in: st.sidebar.error('❌ Kode akses salah — sub menu Analisa Problem & Perbaikan (Dashboard Dealer) disembunyikan')
+else: st.sidebar.caption('Kode kosong = akses standar (sub menu 🧠 Analisa Problem & Perbaikan di Dashboard Dealer disembunyikan).')
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
 st.sidebar.markdown('### 🗄️ Arsip Data')
 _arsip_do_export = st.sidebar.button('📤 EXPORT', use_container_width=True, key='btn_arsip_export', help='Simpan seluruh data & pengaturan ke 1 file arsip (.zip) agar dashboard bulan ini bisa dibuka lagi kapan saja.')
@@ -2322,7 +2670,7 @@ if st.sidebar.button('📥 IMPORT', use_container_width=True, key='btn_arsip_imp
 _arsip_slot = st.sidebar.container()
 with _arsip_slot:
     if ARCHIVE_MODE:
-        st.markdown(f'<div style="font-size:12px;font-weight:700;color:#FFEA00;line-height:1.5;">📦 MODE ARSIP aktif<br>{ARCHIVE_META.get("periode", "-")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:12px;font-weight:700;color:#D68A00;line-height:1.5;">📦 MODE ARSIP aktif<br>{ARCHIVE_META.get("periode", "-")}</div>', unsafe_allow_html=True)
         if st.button('↩️ Kembali ke data terkini', use_container_width=True, key='btn_arsip_back'):
             bsg_arsip_reset(); st.rerun()
     if st.session_state.get('arsip_show_import'):
@@ -2333,7 +2681,7 @@ with _arsip_slot:
             except Exception as _e_arsip: st.error(f'Gagal membuka arsip: {_e_arsip}')
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
 if ARCHIVE_MODE:
-    st.markdown(f'<div style="margin:0 0 12px 0;padding:10px 14px;border:1px solid #2D3748;border-left:5px solid #FFEA00;border-radius:8px;background:linear-gradient(90deg,rgba(255,234,0,0.12) 0%,rgba(14,17,23,0.96) 100%);font-size:13.5px;line-height:1.6;color:#E2E8F0;">📦 <b>MODE ARSIP</b> — dashboard periode <b>{ARCHIVE_META.get("periode", "-")}</b> · diekspor {ARCHIVE_META.get("exported_at", "-")} · file <code>{st.session_state.get("arsip_name", "")}</code>. Data terkini Anda <b>tidak berubah</b>. Klik <b>↩️ Kembali ke data terkini</b> di sidebar untuk keluar dari mode ini.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="margin:0 0 12px 0;padding:10px 14px;border:1px solid #8FA8F0;border-left:5px solid #D68A00;border-radius:8px;background:linear-gradient(90deg,rgba(255,234,0,0.12) 0%,#1E3A8A 100%);font-size:13.5px;line-height:1.6;color:#1E3A8A;">📦 <b>MODE ARSIP</b> — dashboard periode <b>{ARCHIVE_META.get("periode", "-")}</b> · diekspor {ARCHIVE_META.get("exported_at", "-")} · file <code>{st.session_state.get("arsip_name", "")}</code>. Data terkini Anda <b>tidak berubah</b>. Klik <b>↩️ Kembali ke data terkini</b> di sidebar untuk keluar dari mode ini.</div>', unsafe_allow_html=True)
 menu_pilihan = st.session_state['active_menu_tab']
 
 def smart_parse_datetime(s):
@@ -2407,23 +2755,40 @@ def detect_type_col(df, map_d, map_ns):
         if cand in cu: return df.columns[cu.index(cand)]
     return next((df.columns[i] for i, c in enumerate(cu) if c not in ign and not any(x in c for x in ['DATA TYPE', 'PAYMENT', 'BAYAR', 'TRANSAKSI']) and any(k in c for k in ['TYPE', 'TIPE', 'MODEL', 'PRODUK', 'PRODUCT', 'UNIT', 'MOTOR'])), None)
 
-def assign_type_from_lookup(df, map_d, map_ns, unmapped=None):
+def assign_type_from_lookup(df, map_d, map_ns, unmapped=None, col_idx=None):
+    """Type motor = nilai kolom type di file dicocokkan dengan Data Lookup kolom A (type) -> kolom B (kelompok type).
+    col_idx: paksa kolom tertentu (mis. 11 = kolom L file Database). Bila kolom itu tidak ada yang cocok, dipakai deteksi otomatis."""
     if df is None or df.empty:
         if df is not None: df['Type_Clean'] = 'LAIN-LAIN'
         return df
-    tc = detect_type_col(df, map_d, map_ns)
-    if tc is not None and map_d:
+    if not map_d:
+        df['Type_Clean'] = 'LAIN-LAIN'
+        return df
+    map_an = {alnum_str(k_): v_ for k_, v_ in map_d.items() if alnum_str(k_)}
+    def _mk_fn(track):
         def map_fn(val):
             k = clean_str(val)
             if not k or k in ['NAN', 'NONE', '', 'NA', '-', 'TOTAL', 'JUMLAH']: return 'LAIN-LAIN'
             if k in map_d: return map_d[k]
             k_ns = nospace_str(val)
             if k_ns in map_ns: return map_ns[k_ns]
-            if unmapped is not None: unmapped.add(k)
+            k_an = alnum_str(val)
+            if k_an in map_an: return map_an[k_an]
+            if track is not None: track.add(k)
             return 'LAIN-LAIN'
-        s_t = df[tc].iloc[:, 0] if isinstance(df[tc], pd.DataFrame) else df[tc]
-        df['Type_Clean'] = s_t.apply(map_fn)
-    else: df['Type_Clean'] = 'LAIN-LAIN'
+        return map_fn
+    def _col(c_): return df[c_].iloc[:, 0] if isinstance(df[c_], pd.DataFrame) else df[c_]
+    res = None
+    if col_idx is not None and df.shape[1] > col_idx:   # kolom yang diminta (Database kolom L) lebih dulu
+        tmp_un = set()
+        r_ = _col(df.columns[col_idx]).apply(_mk_fn(tmp_un))
+        if (r_ != 'LAIN-LAIN').any():
+            res = r_
+            if unmapped is not None: unmapped.update(tmp_un)
+    if res is None:
+        tc = detect_type_col(df, map_d, map_ns)
+        res = _col(tc).apply(_mk_fn(unmapped)) if tc is not None else pd.Series('LAIN-LAIN', index=df.index)
+    df['Type_Clean'] = res
     return df
 
 def get_file_mtime(fpath):
@@ -2445,7 +2810,7 @@ def read_single_db_file_cached(fpath, mtime):
     _keep_hdr = ~nm_up.isin(['CUSTOMER NAME', 'NO', 'NO.', 'TOTAL', 'JUMLAH'])   # baris judul/total dibuang
     df = df[_keep_hdr.values].reset_index(drop=True)
     nm_up = nm_up[_keep_hdr.values].reset_index(drop=True)
-    df['Nama_Dealer_Clean'] = normalize_dealer_name(os.path.splitext(os.path.basename(fpath))[0]) or 'TIDAK DIKETAHUI'
+    df['Nama_Dealer_Clean'] = jb_file_dealer(os.path.splitext(os.path.basename(fpath))[0]) or 'TIDAK DIKETAHUI'
     col_k = df.iloc[:, cu.index('POINT NAME')].astype(str).str.strip().str.upper() if 'POINT NAME' in cu else (df.iloc[:, 10].astype(str).str.strip().str.upper() if df.shape[1] > 10 else None)
     if col_k is not None: df.loc[col_k == 'SIP PANJI BESUKI', 'Nama_Dealer_Clean'] = 'SIP BESUKI'
     df['Data_Type_Clean'] = df.iloc[:, cu.index('DATA TYPE')].astype(str).str.strip().str.upper() if 'DATA TYPE' in cu else (df.iloc[:, 5].astype(str).str.strip().str.upper() if df.shape[1] > 5 else '')
@@ -2567,7 +2932,7 @@ def assign_rating_dealer_and_koor(df, map_dlr_code):
             if 'mapping_koor_dealer' in globals() and kr_resolved in mapping_koor_dealer:
                 return mapping_koor_dealer[kr_resolved]
             norm_kr = normalize_dealer_name(kr_resolved)
-            if norm_kr in daftar_dealer:
+            if is_dealer_name(norm_kr):
                 return norm_kr
 
         # 3. Fallback: Kode Dealer atau Nama Dealer di baris file
@@ -2579,15 +2944,15 @@ def assign_rating_dealer_and_koor(df, map_dlr_code):
             elif k_alnum in map_dlr_code: dl = map_dlr_code[k_alnum]
             elif k_code == 'SIP PANJI BESUKI': dl = 'SIP BESUKI'
             else: dl = normalize_dealer_name(k_code)
-            if dl in daftar_dealer: return dl
+            if is_dealer_name(dl): return dl
             
         d_name = clean_str(dn_val)
         if d_name:
             if d_name == 'SIP PANJI BESUKI': return 'SIP BESUKI'
             norm_dn = normalize_dealer_name(d_name)
-            if norm_dn in daftar_dealer: return norm_dn
+            if is_dealer_name(norm_dn): return norm_dn
                 
-        return fallback_file_dlr if fallback_file_dlr in daftar_dealer else (normalize_dealer_name(d_name) or 'TIDAK DIKETAHUI')
+        return fallback_file_dlr if is_dealer_name(fallback_file_dlr) else (normalize_dealer_name(d_name) or 'TIDAK DIKETAHUI')
 
     dealers, sm_cleans, koors, kode_dealers = [], [], [], []
     for _, row in df.iterrows():
@@ -2640,8 +3005,8 @@ if menu_pilihan == '📁 UPLOAD FILE':
     def _status_line(kp, lbl):
         m_ = meta_info.get(kp)
         if m_ and os.path.exists(m_.get('saved_path', '')):
-            st.markdown(f"<div style='font-size:12px;color:#94A3B8;line-height:1.5;'>📌 <b>Aktif:</b> <code style='font-size:11px;'>{m_['original_name']}</code> · {m_['updated_at']}</div>", unsafe_allow_html=True)
-        else: st.markdown("<div style='font-size:12px;color:#FBBF24;'>⚠️ Belum ada file.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:12px;color:#3B5BC8;line-height:1.5;'>📌 <b>Aktif:</b> <code style='font-size:11px;'>{m_['original_name']}</code> · {m_['updated_at']}</div>", unsafe_allow_html=True)
+        else: st.markdown("<div style='font-size:12px;color:#D68A00;'>⚠️ Belum ada file.</div>", unsafe_allow_html=True)
 
     # ---------- Grup 1: Data Penjualan & Master ----------
     with st.container(border=True):
@@ -2727,12 +3092,40 @@ def get_koor_or_counter_target(ent_name, saved_tk_dict):
     fix_c = get_fixed_counter_target(ent_name)
     return fix_c if fix_c is not None else safe_int(saved_tk_dict.get(ent_name, 0))
 
+def master_kpi_stu_target(ent_name):
+    """Target STU Koordinator / Counter = sama persis dengan kolom T. STU di tabel MASTER KPI (tersimpan → target koor → default 25 koor / 20 counter)."""
+    e = clean_str(ent_name); sec = 'counter' if e.startswith('COUNTER') else 'koor'
+    sv = (load_json(KPI_SAVED_FILE).get(sec, {}) or {}).get(e, {}) or {}
+    if 'T. STU' in sv: return safe_int(sv['T. STU'])
+    return get_koor_or_counter_target(e, load_json(TARGET_KOOR_FILE)) or (20 if sec == 'counter' else 25)
+
+def master_kpi_dealer_target(dealer_upper):
+    """Target STU dealer = sama persis dengan kolom T. STU di tabel MASTER KPI Dealer (tersimpan di KPI → target 7 inti → target Jember)."""
+    k = _nrm_dlr(dealer_upper)
+    for n_, v_ in (load_json(KPI_SAVED_FILE).get('dealer', {}) or {}).items():
+        if _nrm_dlr(n_) == k and isinstance(v_, dict) and 'T. STU' in v_: return safe_int(v_['T. STU'])
+    for fl in (TARGET_DEALER_FILE, JEMBER_TARGET_FILE):
+        for n_, v_ in load_json(fl).items():
+            if _nrm_dlr(n_) == k: return safe_int(v_)
+    return 0
+
+def get_resigned_koor(): return {clean_str(x) for x in (load_json(KPI_RESIGNED_FILE).get('names', []) or [])}
+def set_resigned_koor(names): save_json({'names': sorted({clean_str(x) for x in names})}, KPI_RESIGNED_FILE)
+
 mapping_salesman_koor, mapping_salesman_dealer, mapping_dealer_spk, mapping_type_lookup, mapping_type_lookup_nospace, daftar_kategori_type = {}, {}, {}, {}, {}, []
 if path_lookup:
     try:
         xl_lk = pd.ExcelFile(path_lookup)
         sh_lk = next((s for s in xl_lk.sheet_names if 'LOOKUP' in s.strip().upper()), xl_lk.sheet_names[0])
         df_lk = pd.read_excel(path_lookup, sheet_name=sh_lk, header=None)
+        try:   # nama dealer dari Data Lookup: blok NAMA DEALER | STATUS | KOTA, kolom X (dealer Point Code) & kolom J (nama dealer SPK)
+            for r_i in range(min(60, len(df_lk))):
+                for c_i in range(df_lk.shape[1] - 2):
+                    if clean_str(df_lk.iloc[r_i, c_i]) == 'NAMA DEALER' and clean_str(df_lk.iloc[r_i, c_i + 1]) == 'STATUS':
+                        LOOKUP_DEALERS.update(clean_str(v_) for v_ in df_lk.iloc[r_i + 1:, c_i].dropna() if clean_str(v_) not in ('', 'NAN', 'NONE'))
+            for c_i in (9, 23):
+                if df_lk.shape[1] > c_i: LOOKUP_DEALERS.update(clean_str(v_) for v_ in df_lk.iloc[:, c_i].dropna() if clean_str(v_).startswith(('SIP', 'SENTRAL YAMAHA')))
+        except Exception: pass
         if df_lk.shape[1] >= 2:
             skip_h = {'TYPE', 'TIPE', 'NAMA TYPE', 'NAMA TIPE', 'UNIT', 'MODEL', 'KATEGORI', 'GROUP TYPE', 'JENIS', 'ROW LABELS', 'NAN', 'NONE', ''}
             for i in range(len(df_lk)):
@@ -2757,7 +3150,7 @@ if path_lookup:
                     if kr and kr not in ['NAN', 'NONE']: mapping_salesman_koor[sm] = kr
                     if dlr_lk and dlr_lk not in ['NAN', 'NONE']:
                         norm_dlr = normalize_dealer_name(dlr_lk)
-                        if norm_dlr in daftar_dealer:
+                        if is_dealer_name(norm_dlr):
                             mapping_salesman_dealer[sm] = norm_dlr
         if df_lk.shape[1] > 9:
             for i in range(len(df_lk)):
@@ -2766,9 +3159,9 @@ if path_lookup:
                 if rj.endswith('.0'): rj = rj[:-2].strip()
                 if ri and rj and ri not in ['NAN', 'NONE'] and rj not in ['NAN', 'NONE']:
                     ni, nj = normalize_dealer_name(ri), normalize_dealer_name(rj)
-                    if nj in daftar_dealer:
+                    if is_dealer_name(nj):
                         mapping_dealer_spk[ri] = mapping_dealer_spk[alnum_str(ri)] = nj
-                    elif ni in daftar_dealer:
+                    elif is_dealer_name(ni):
                         mapping_dealer_spk[rj] = mapping_dealer_spk[alnum_str(rj)] = ni
                     else:
                         mapping_dealer_spk[ri] = nj
@@ -2779,11 +3172,41 @@ if path_lookup:
                 if v2.endswith('.0'): v2 = v2[:-2].strip()
                 if not v1 or not v2 or v1 in ['NAN', 'NONE'] or v2 in ['NAN', 'NONE']: continue
                 n1, n2 = normalize_dealer_name(v1), normalize_dealer_name(v2)
-                if n2 in daftar_dealer and v1 not in daftar_dealer:
+                if is_dealer_name(n2) and not is_dealer_name(v1):
                     mapping_dealer_spk[v1] = mapping_dealer_spk[alnum_str(v1)] = n2
-                elif n1 in daftar_dealer and v2 not in daftar_dealer:
+                elif is_dealer_name(n1) and not is_dealer_name(v2):
                     mapping_dealer_spk[v2] = mapping_dealer_spk[alnum_str(v2)] = n1
     except Exception as e: st.error(f'Error Lookup: {e}')
+    try:   # tambahan: pindai semua sheet & semua blok tabel (Nama Sales | Koordinator | Dealer), agar salesman dealer mana pun ikut terbaca
+        def _scan_lookup_sales(df_x):
+            out_, nr_ = [], len(df_x)
+            for r_ in range(min(80, nr_)):
+                row_ = [clean_str(v_) for v_ in df_x.iloc[r_].tolist()]
+                s_cols = [c_ for c_, v_ in enumerate(row_) if v_ and 'KOOR' not in v_ and any(k_ in v_ for k_ in ['NAMA SALES', 'SALESMAN', 'SALES NAME', 'PRAMUNIAGA', 'PEGAWAI'])]
+                k_cols = [c_ for c_, v_ in enumerate(row_) if v_ and 'KOOR' in v_]
+                if not s_cols or not k_cols: continue
+                d_cols = [c_ for c_, v_ in enumerate(row_) if v_ and any(k_ in v_ for k_ in ['DEALER', 'CABANG', 'OUTLET', 'POINT NAME'])]
+                for sc_ in s_cols:
+                    kc_ = min(k_cols, key=lambda c_: abs(c_ - sc_))
+                    if abs(kc_ - sc_) > 4: continue
+                    dc_ = min(d_cols, key=lambda c_: abs(c_ - sc_)) if d_cols else None
+                    sv_, kv_ = df_x.iloc[r_ + 1:, sc_].tolist(), df_x.iloc[r_ + 1:, kc_].tolist()
+                    dv_ = df_x.iloc[r_ + 1:, dc_].tolist() if dc_ is not None else [None] * len(sv_)
+                    for sm_, kr_, dl_ in zip(sv_, kv_, dv_):
+                        sm_, kr_ = clean_str(sm_), clean_str(kr_)
+                        if sm_ and sm_ not in ('NAN', 'NONE') and kr_ and kr_ not in ('NAN', 'NONE', '-', 'LAIN-LAIN'): out_.append((sm_, kr_, clean_str(dl_)))
+            return out_
+        if df_lk.shape[1] > 31:   # dealer di luar 7 inti: Data Lookup kolom AE (nama salesman) -> kolom AF (koordinator)
+            for sm_, kr_ in zip(df_lk.iloc[:, 30].tolist(), df_lk.iloc[:, 31].tolist()):
+                sm_, kr_ = clean_str(sm_), clean_str(kr_)
+                if (sm_ and kr_ and sm_ not in ('NAN', 'NONE') and kr_ not in ('NAN', 'NONE', '-', 'LAIN-LAIN')
+                        and 'KOOR' not in kr_ and not sm_.startswith(('SALESMAN', 'NAMA SALES'))):
+                    mapping_salesman_koor.setdefault(sm_, kr_)
+        for sh_ in xl_lk.sheet_names:
+            df_sh = df_lk if sh_ == sh_lk else pd.read_excel(path_lookup, sheet_name=sh_, header=None)
+            for sm_, kr_, dl_ in _scan_lookup_sales(df_sh):
+                mapping_salesman_koor.setdefault(sm_, kr_)
+    except Exception as e_sc: st.warning(f'Pemindaian tabel Salesman/Koordinator pada Data Lookup tidak lengkap: {e_sc}')
 
 unmapped_types_all, sales_tanpa_koor, sales_tanpa_koor_db, sales_tanpa_koor_spk, sales_tanpa_koor_rating = set(), set(), set(), set(), set()
 
@@ -2808,9 +3231,21 @@ def assign_koor_and_sales(df, col_idx_override=None, tracker=None, koor_col_name
         s_s = df[sc_name].iloc[:, 0] if isinstance(df[sc_name], pd.DataFrame) else df[sc_name]
         s_cl = s_s.astype(str).str.split().str.join(' ').str.upper()
         df['Salesman_Clean'] = s_cl.where(~s_cl.isin(['NAN', 'NONE', '', 'NA', '-', 'TOTAL', 'JUMLAH']), None)
+        import difflib
+        _an_kr = {alnum_str(k_): v_ for k_, v_ in mapping_salesman_koor.items() if alnum_str(k_)}
+        _an_keys, _fz_cache = list(_an_kr.keys()), {}
+        def _koor_toleran(s):   # 1) abaikan spasi/tanda baca  2) nama sangat mirip (>= 92%)
+            a_ = alnum_str(s)
+            if a_ in _an_kr: return _an_kr[a_]
+            if len(a_) < 6 or not _an_keys: return ''
+            if a_ not in _fz_cache:
+                m_ = difflib.get_close_matches(a_, _an_keys, n=1, cutoff=0.92)
+                _fz_cache[a_] = _an_kr[m_[0]] if m_ else ''
+            return _fz_cache[a_]
         def map_kr(s):
             if s and pd.notna(s):
                 kr_val = clean_str(mapping_salesman_koor.get(s, '')) if mapping_salesman_koor else ''
+                if not kr_val or kr_val in ['NAN', 'NONE', '-', 'LAIN-LAIN']: kr_val = clean_str(_koor_toleran(s))
                 if not kr_val or kr_val in ['NAN', 'NONE', '-', 'LAIN-LAIN']:
                     if tracker is not None: tracker.add(s)
                     return 'LAIN-LAIN'
@@ -2820,14 +3255,61 @@ def assign_koor_and_sales(df, col_idx_override=None, tracker=None, koor_col_name
     else: df['Salesman_Clean'], df[koor_col_name] = None, 'LAIN-LAIN'
     return df
 
-df_faktur, df_faktur_all = None, None
+def _nrm_dlr(x): return re.sub(r'\s+', ' ', str(x).strip().upper())
+mapping_dealer_status, mapping_dealer_kota = {}, {}
+if path_lookup:   # Data Lookup kolom NAMA DEALER | STATUS | KOTA (AL:AN) -> otomatis ditambahkan ke file Faktur
+    try:
+        _found_sk = False
+        for r_i in range(min(60, len(df_lk))):
+            for c_i in range(df_lk.shape[1] - 2):
+                if _nrm_dlr(df_lk.iloc[r_i, c_i]) == 'NAMA DEALER' and _nrm_dlr(df_lk.iloc[r_i, c_i + 1]) == 'STATUS' and _nrm_dlr(df_lk.iloc[r_i, c_i + 2]) == 'KOTA':
+                    for r_j in range(r_i + 1, len(df_lk)):
+                        nm_j = _nrm_dlr(df_lk.iloc[r_j, c_i])
+                        if not nm_j or nm_j in ('NAN', 'NONE'): continue
+                        st_j, kt_j = _nrm_dlr(df_lk.iloc[r_j, c_i + 1]), _nrm_dlr(df_lk.iloc[r_j, c_i + 2])
+                        if st_j not in ('', 'NAN', 'NONE'): mapping_dealer_status[nm_j] = st_j
+                        if kt_j not in ('', 'NAN', 'NONE'): mapping_dealer_kota[nm_j] = kt_j
+                    _found_sk = True; break
+            if _found_sk: break
+    except Exception as e_sk: st.warning(f'Status/Kota dealer pada Data Lookup tidak terbaca: {e_sk}')
+def is_mds_dealer(n_):
+    """Dealer dianalisa hanya bila STATUS = MDS di Data Lookup (kolom AM). Dealer yang belum ada di lookup: SIP / SENTRAL YAMAHA dianggap MDS."""
+    k_ = _nrm_dlr(n_) if n_ is not None else ''
+    if not k_ or k_ in ('NAN', 'NONE'): return False
+    st_ = mapping_dealer_status.get(k_)
+    if st_: return st_ == 'MDS'
+    return k_.startswith('SIP') or k_.startswith('SENTRAL YAMAHA')
+COL_STATUS, COL_KOTA = 'STATUS', 'KOTA'
+def add_status_kota(df_x):
+    """Tambah kolom STATUS (MDS / DEALER) & KOTA ke faktur berdasar Data Lookup (AL:AN). Dealer SIP/SENTRAL YAMAHA yang belum ada di lookup otomatis = MDS."""
+    global COL_STATUS, COL_KOTA
+    if df_x is None or df_x.empty or 'Nama Dealer' not in df_x.columns: return df_x
+    df_x = df_x.copy()
+    COL_STATUS = 'STATUS' if 'STATUS' not in df_x.columns else 'STATUS DEALER'
+    COL_KOTA = 'KOTA' if 'KOTA' not in df_x.columns else 'KOTA DEALER'
+    key_x = df_x['Nama Dealer'].astype(str).map(_nrm_dlr)
+    df_x[COL_STATUS] = key_x.map(lambda k_: mapping_dealer_status.get(k_) or ('MDS' if (k_.startswith('SIP') or k_.startswith('SENTRAL YAMAHA')) else 'DEALER'))
+    df_x[COL_KOTA] = key_x.map(lambda k_: mapping_dealer_kota.get(k_, '-'))
+    return df_x
+
+def lookup_dealer_name(val):
+    """Samakan penamaan dealer dengan Data Lookup (mapping nama dealer). Bila tidak ada di lookup, nama aslinya dipertahankan."""
+    k_ = clean_str(val)
+    if not k_ or k_ in ('NAN', 'NONE') or k_ in daftar_dealer: return val
+    m_ = mapping_dealer_spk.get(k_) or mapping_dealer_spk.get(alnum_str(k_))
+    return m_ if m_ else val
+
+df_faktur, df_faktur_all, df_faktur_kontribusi = None, None, None   # df_faktur_kontribusi = SEMUA dealer, hanya untuk pie kontribusi di tab Penjualan
 if path_faktur:
     try:
         df_faktur_raw = pd.read_excel(path_faktur, header=8)
         if 'Tanggal' not in df_faktur_raw.columns and 'Tgl Pengajuan' not in df_faktur_raw.columns: df_faktur_raw = pd.read_excel(path_faktur, header=0)
-        df_faktur_raw = assign_leasing_faktur(parse_date_cols(df_faktur_raw))
-        df_faktur_all = df_faktur_raw.copy()
-        df_faktur = df_faktur_raw[df_faktur_raw['Nama Dealer'].isin(daftar_dealer)].reset_index(drop=True) if 'Nama Dealer' in df_faktur_raw.columns else df_faktur_raw.copy()
+        if 'Nama Dealer' in df_faktur_raw.columns: df_faktur_raw['Nama Dealer'] = df_faktur_raw['Nama Dealer'].map(lookup_dealer_name)
+        df_faktur_raw = add_status_kota(assign_leasing_faktur(parse_date_cols(df_faktur_raw)))
+        df_faktur_kontribusi = assign_koor_and_sales(assign_type_from_lookup(df_faktur_raw.copy(), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all), tracker=None)   # semua dealer (hanya untuk kontribusi)
+        _m_mds_f = df_faktur_raw['Nama Dealer'].map(is_mds_dealer).values if 'Nama Dealer' in df_faktur_raw.columns else pd.Series(True, index=df_faktur_raw.index).values
+        df_faktur_all = df_faktur_kontribusi[_m_mds_f].reset_index(drop=True)   # analisa: hanya dealer berstatus MDS
+        df_faktur = df_faktur_raw[_m_mds_f].reset_index(drop=True)
         df_faktur = assign_koor_and_sales(assign_type_from_lookup(df_faktur, mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all), tracker=sales_tanpa_koor)
     except Exception as e: st.error(f'Error Faktur: {e}')
 
@@ -2837,18 +3319,66 @@ if path_nota:
         df_nt = pd.read_excel(path_nota, header=5)
         df_nota = parse_date_cols(pd.read_excel(path_nota, header=0) if not any(k in df_nt.columns for k in ['Nama Dealer', 'Dealer', 'Tanggal']) else df_nt)
         cd = 'Nama Dealer' if 'Nama Dealer' in df_nota.columns else ('Dealer' if 'Dealer' in df_nota.columns else None)
-        if cd: df_nota = df_nota[df_nota[cd].isin(daftar_dealer)].reset_index(drop=True)
+        if cd: df_nota[cd] = df_nota[cd].map(lookup_dealer_name); df_nota = df_nota[df_nota[cd].map(is_mds_dealer)].reset_index(drop=True)   # hanya dealer MDS
         df_nota = assign_koor_and_sales(assign_type_from_lookup(df_nota, mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all), tracker=sales_tanpa_koor)
     except Exception as e: st.error(f'Error Nota: {e}')
 
 df_database = None
 if paths_database:
-    l_db = [assign_type_from_lookup(read_single_db_file(p), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all) for p in paths_database]
+    l_db = [assign_type_from_lookup(read_single_db_file(p), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all, col_idx=11) for p in paths_database]   # type motor = Database kolom L -> Data Lookup kolom A & B
     l_db = [d for d in l_db if not d.empty]
-    if l_db: df_database = assign_koor_and_sales(pd.concat(l_db, ignore_index=True), tracker=sales_tanpa_koor_db)
-df_database_alldlr = df_database   # sebelum difilter (untuk rekonsiliasi)
-if df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns and df_database['Nama_Dealer_Clean'].isin(daftar_dealer).any():
-    df_database = df_database[df_database['Nama_Dealer_Clean'].isin(daftar_dealer)].reset_index(drop=True)   # KPI & Proses memakai basis data yang sama
+    if l_db:
+        _db_cat = pd.concat(l_db, ignore_index=True)
+        _ac_ok = _db_cat.shape[1] > 28 and str(_db_cat.columns[28]).strip().upper() in ('SALESMAN', 'SALESMAN NAME', 'NAMA SALES', 'NAMA SALESMAN')   # kolom AC file Database
+        df_database = assign_koor_and_sales(_db_cat, col_idx_override=(28 if _ac_ok else None), tracker=sales_tanpa_koor_db)
+# ---- Lookup Point Code (kolom J file Database) -> Nama Dealer: Data Lookup kolom V (Point Code) & kolom X (Dealer) ----
+def _pc_key(x_):
+    """Kunci Point Code: buang spasi, huruf besar, dan akhiran '.0' (angka Excel 12345.0 = 12345)."""
+    s_ = re.sub(r'\s+', '', str(x_)).upper()
+    return s_[:-2] if s_.endswith('.0') else s_
+def _pc_dealer_norm(n_):
+    """Samakan nama dealer hasil lookup dengan nama baku di aplikasi (SIP BALUNG, SIP BONDOWOSO, SIP NANGKAAN, SENTRAL YAMAHA JEMBER, dst)."""
+    s_ = clean_str(n_); u_ = re.sub(r'[^A-Z0-9]', '', s_)
+    if not s_ or s_ in ('NAN', 'NONE'): return ''
+    for k_, v_ in (('BALUNG', 'SIP BALUNG'), ('BONDOWOSO', 'SIP BONDOWOSO'), ('NANGKAAN', 'SIP NANGKAAN')):
+        if k_ in u_: return v_
+    if 'SENTRAL' in u_: return 'SENTRAL YAMAHA JEMBER'
+    return normalize_dealer_name(s_)
+mapping_point_code = {}
+try:
+    if 'df_lk' in globals() and df_lk is not None and df_lk.shape[1] > 23:
+        for _v_pc, _x_pc in zip(df_lk.iloc[:, 21], df_lk.iloc[:, 23]):   # kolom V = Point Code, kolom X = Dealer
+            if pd.notna(_v_pc) and pd.notna(_x_pc):
+                _k_pc, _d_pc = _pc_key(_v_pc), _pc_dealer_norm(_x_pc)
+                if _k_pc and _d_pc and _k_pc not in ('NAN', 'NONE', 'POINTCODE'): mapping_point_code.setdefault(_k_pc, _d_pc)
+except Exception: mapping_point_code = {}
+if df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns:
+    df_database['Dealer_File_Asal'] = df_database['Nama_Dealer_Clean']   # dealer menurut nama file (untuk rekonsiliasi)
+if mapping_point_code and df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns:
+    _pc_col = next((c_ for c_ in df_database.columns if str(c_).strip().upper() == 'POINT CODE'), (df_database.columns[9] if df_database.shape[1] > 9 else None))   # kolom J
+    if _pc_col is not None:
+        _pc_ser = df_database[_pc_col]
+        if isinstance(_pc_ser, pd.DataFrame): _pc_ser = _pc_ser.iloc[:, 0]
+        _pc_dlr = _pc_ser.map(lambda v_: mapping_point_code.get(_pc_key(v_)) if pd.notna(v_) else None)
+        # Aturan pemecahan: baris di file SENTRAL yang Point Code-nya SIP BALUNG -> SIP BALUNG (Sentral otomatis berkurang);
+        # baris di file NANGKAAN yang Point Code-nya SIP BONDOWOSO -> SIP BONDOWOSO (Nangkaan otomatis berkurang). Tanpa kecocokan tetap dari nama file.
+        _asal = df_database['Dealer_File_Asal']
+        _pn_col = next((c_ for c_ in df_database.columns if str(c_).strip().upper() == 'POINT NAME'), (df_database.columns[10] if df_database.shape[1] > 10 else None))   # kolom K
+        _pn_ser = df_database[_pn_col] if _pn_col is not None else pd.Series('', index=df_database.index)
+        if isinstance(_pn_ser, pd.DataFrame): _pn_ser = _pn_ser.iloc[:, 0]
+        _pn_u = _pn_ser.astype(str).str.upper()
+        _pc_str = _pc_ser.astype(str).map(_pc_key)
+        # File SENTRAL & file NANGKAAN: HANYA baris Balung / Bondowoso yang dipisah; seluruh baris lain (Mother Shop, NEQ Puger, dst) tetap di file asalnya.
+        _is_balung = (_pc_dlr == 'SIP BALUNG') | _pn_u.str.contains('BALUNG', na=False) | (_pc_str == 'EA05001-02')
+        _is_bwso = (_pc_dlr == 'SIP BONDOWOSO') | _pn_u.str.contains('BONDOWOSO', na=False)
+        _m_sentral, _m_nangkaan = (_asal == 'SENTRAL YAMAHA JEMBER'), (_asal == 'SIP NANGKAAN')
+        _new = _pc_dlr.where(_pc_dlr.notna(), _asal)   # SEMUA file sama: dealer = Point Code (kolom J Database) -> Data Lookup kolom V (Point Code) & X (Dealer); tanpa kecocokan = nama file
+        _new = _new.mask(_pc_dlr.isna() & _m_sentral & _is_balung, 'SIP BALUNG').mask(_pc_dlr.isna() & _m_nangkaan & _is_bwso, 'SIP BONDOWOSO')   # cadangan bila Point Code belum ada di lookup
+        df_database['Nama_Dealer_Clean'] = _new
+df_database_unfiltered = df_database   # semua dealer (hanya untuk cek pemecahan Point Code)
+if df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns:
+    df_database = df_database[df_database['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)   # analisa: hanya dealer MDS
+df_database_alldlr = df_database
 
 def strip_sub_code(v):
     """Buang kode di depan nama sub prospect (mis. '03 - Pameran' / 'EV01: Pameran' -> 'PAMERAN')."""
@@ -2865,12 +3395,17 @@ def ktp_norm(v):
     return t if len(t) >= 10 else ''
 
 # Kolom STU otomatis di Database: KTP (kolom C Database) dicocokkan dengan KTP kolom I file Faktur -> keterangan 'STU'
-if df_database is not None and not df_database.empty:
-    df_database['STU'] = ''
-    if df_database.shape[1] > 2 and df_faktur_all is not None and not df_faktur_all.empty and df_faktur_all.shape[1] > 8:
+def _tandai_stu(df_d):
+    """Isi kolom STU: KTP kolom C Database ditemukan di KTP kolom I Faktur -> 'STU'."""
+    if df_d is None or df_d.empty: return
+    df_d['STU'] = ''
+    if df_d.shape[1] > 2 and df_faktur_all is not None and not df_faktur_all.empty and df_faktur_all.shape[1] > 8:
         _ktp_fak = set(k for k in df_faktur_all.iloc[:, 8].apply(ktp_norm) if k)
-        _ktp_db = df_database.iloc[:, 2].apply(ktp_norm)
-        df_database['STU'] = ['STU' if (k and k in _ktp_fak) else '' for k in _ktp_db]
+        _ktp_db = df_d.iloc[:, 2].apply(ktp_norm)
+        df_d['STU'] = ['STU' if (k and k in _ktp_fak) else '' for k in _ktp_db]
+
+_tandai_stu(df_database)
+if df_database_alldlr is not None and df_database_alldlr is not df_database: _tandai_stu(df_database_alldlr)   # database semua dealer (Dashboard Jember) juga perlu kolom STU
 
 df_spk = None
 if path_spk:
@@ -2882,18 +3417,25 @@ if path_spk:
             df_spk.columns = make_unique_columns([str(c).strip() for c in df_sr.iloc[hi].values])
             df_spk = df_spk.dropna(how='all').reset_index(drop=True)
             df_spk['Nama_Dealer_SPK'] = df_spk.iloc[:, 3].apply(lambda x: mapping_dealer_spk.get(clean_str(x), mapping_dealer_spk.get(normalize_dealer_name(x), normalize_dealer_name(x)))) if df_spk.shape[1] > 3 else 'TIDAK DIKETAHUI'
-            df_spk = df_spk[df_spk['Nama_Dealer_SPK'].isin(daftar_dealer)].reset_index(drop=True)
+            df_spk = df_spk[~df_spk['Nama_Dealer_SPK'].astype(str).str.strip().str.upper().isin(['', 'NAN', 'NONE'])].reset_index(drop=True)   # semua dealer diproses sama
             df_spk['Leasing_SPK_Clean'] = df_spk.iloc[:, 16].apply(normalize_leasing_val) if df_spk.shape[1] > 16 else ''
             df_spk['Alasan_Reject_Clean'] = df_spk.iloc[:, 18].apply(lambda x: clean_str(x) if clean_str(x) not in ['', 'NAN', 'NONE', '-'] else 'TANPA KETERANGAN') if df_spk.shape[1] > 18 else 'TANPA KETERANGAN'
             if df_spk.shape[1] > 17:
                 df_spk['Status_SPK_Clean'] = df_spk.iloc[:, 17].apply(clean_str)
                 df_spk = df_spk[df_spk['Status_SPK_Clean'].isin(['DISETUJUI', 'DITOLAK', 'TERBUKA'])].reset_index(drop=True)
             else: df_spk['Status_SPK_Clean'] = ''
+            # SPK = isi file SPK berstatus DISETUJUI / DITOLAK / TERBUKA. SPK tunai (leasing CASH/TUNAI) dan SPK batal TIDAK dihitung di tabel mana pun.
+            _m_spk_ok = (df_spk['Leasing_SPK_Clean'] != 'CASH')
+            if df_spk.shape[1] > 16: _m_spk_ok &= ~df_spk.iloc[:, 16].astype(str).str.upper().str.contains('BATAL|CANCEL', regex=True, na=False)
+            df_spk = df_spk[_m_spk_ok].reset_index(drop=True)
             if df_spk.shape[1] > 5:
                 df_spk['Tanggal_Parsed'] = smart_parse_datetime(df_spk.iloc[:, 5])
                 df_spk['bulan'], df_spk['hari'], df_spk['tahun'] = df_spk['Tanggal_Parsed'].dt.month, df_spk['Tanggal_Parsed'].dt.day, df_spk['Tanggal_Parsed'].dt.year
             df_spk = assign_type_from_lookup(assign_koor_and_sales(df_spk, col_idx_override=25, tracker=sales_tanpa_koor_spk, koor_col_name='Koor_SPK'), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all)
     except Exception as e: st.error(f'Error SPK: {e}')
+if df_spk is not None and not df_spk.empty and 'Nama_Dealer_SPK' in df_spk.columns:
+    df_spk = df_spk[df_spk['Nama_Dealer_SPK'].map(is_mds_dealer)].reset_index(drop=True)   # analisa: hanya dealer MDS
+df_spk_alldlr = df_spk
 
 # Lengkapi mapping_salesman_dealer dan mapping_koor_dealer dari seluruh sumber data (Database, Faktur, Nota, SPK)
 mapping_koor_dealer = {'ADI MOKHTAR': 'SIP BESUKI', 'COUNTER BESUKI': 'SIP BESUKI'}
@@ -2905,16 +3447,16 @@ for _df_s, _dlr_c, _kr_c in [
 ]:
     if _df_s is not None and not _df_s.empty and _dlr_c in _df_s.columns:
         if 'Salesman_Clean' in _df_s.columns:
-            _sub_sm = _df_s[_df_s['Salesman_Clean'].notna() & _df_s[_dlr_c].isin(daftar_dealer)][['Salesman_Clean', _dlr_c]].drop_duplicates()
+            _sub_sm = _df_s[_df_s['Salesman_Clean'].notna() & _df_s[_dlr_c].map(is_dealer_name)][['Salesman_Clean', _dlr_c]].drop_duplicates()
             for _, _r in _sub_sm.iterrows():
                 _sm_n, _dl_n = clean_str(_r['Salesman_Clean']), clean_str(_r[_dlr_c])
-                if _sm_n and _dl_n in daftar_dealer and _sm_n not in mapping_salesman_dealer:
+                if _sm_n and is_dealer_name(_dl_n) and _sm_n not in mapping_salesman_dealer:
                     mapping_salesman_dealer[_sm_n] = _dl_n
         if _kr_c in _df_s.columns:
-            _sub_kr = _df_s[_df_s[_kr_c].notna() & (_df_s[_kr_c] != 'LAIN-LAIN') & _df_s[_dlr_c].isin(daftar_dealer)][[_kr_c, _dlr_c]].drop_duplicates()
+            _sub_kr = _df_s[_df_s[_kr_c].notna() & (_df_s[_kr_c] != 'LAIN-LAIN') & _df_s[_dlr_c].map(is_dealer_name)][[_kr_c, _dlr_c]].drop_duplicates()
             for _, _r in _sub_kr.iterrows():
                 _kr_n, _dl_n = clean_str(_r[_kr_c]), clean_str(_r[_dlr_c])
-                if _kr_n and _dl_n in daftar_dealer and _kr_n not in mapping_koor_dealer:
+                if _kr_n and is_dealer_name(_dl_n) and _kr_n not in mapping_koor_dealer:
                     mapping_koor_dealer[_kr_n] = _dl_n
 
 for _sm_k, _kr_v in mapping_salesman_koor.items():
@@ -2924,14 +3466,50 @@ for _sm_k, _kr_v in mapping_salesman_koor.items():
             mapping_salesman_dealer[_sm_k] = mapping_koor_dealer[_kr_c]
         else:
             _norm_k = normalize_dealer_name(_kr_c)
-            if _norm_k in daftar_dealer:
+            if is_dealer_name(_norm_k):
                 mapping_salesman_dealer[_sm_k] = _norm_k
 
 df_rating = None
 if paths_rating:
     l_rt = [assign_type_from_lookup(assign_rating_dealer_and_koor(read_single_rating_file(p), mapping_dealer_spk), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all) for p in paths_rating]
     l_rt = [d for d in l_rt if not d.empty]
-    if l_rt: df_rating = pd.concat(l_rt, ignore_index=True)
+    if l_rt:
+        df_rating = pd.concat(l_rt, ignore_index=True)
+        if 'Nama_Dealer_Clean' in df_rating.columns: df_rating = df_rating[df_rating['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)   # hanya dealer MDS
+
+# ---- Aturan MDS: yang dihitung & dianalisa hanya salesman yang namanya muncul di file DATABASE ----
+DB_SALESMAN, FILTER_SM_LOG = set(), {}
+if df_database is not None and not df_database.empty and 'Salesman_Clean' in df_database.columns:
+    DB_SALESMAN = {clean_str(x_) for x_ in df_database['Salesman_Clean'].dropna().unique() if clean_str(x_) and clean_str(x_) not in ('NAN', 'NONE', 'TOTAL', 'JUMLAH', '-')}
+_DB_SM_AN = {alnum_str(x_) for x_ in DB_SALESMAN}
+_DB_SM_FZ = {}
+def _sm_in_database(v_):
+    if v_ is None or (not isinstance(v_, str) and pd.isna(v_)): return False
+    c_ = clean_str(v_)
+    if c_ in DB_SALESMAN: return True
+    a_ = alnum_str(c_)
+    if a_ in _DB_SM_AN: return True
+    if len(a_) < 6: return False
+    if a_ not in _DB_SM_FZ:   # selisih ejaan kecil (mis. EFENDI / EFFENDI) tetap dianggap salesman yang sama
+        import difflib
+        _DB_SM_FZ[a_] = bool(difflib.get_close_matches(a_, list(_DB_SM_AN), n=1, cutoff=0.92))
+    return _DB_SM_FZ[a_]
+def only_db_salesmen(df_x, label, koor_col='Koor'):
+    """Buang baris yang salesmannya tidak ada di file Database. Counter (Koordinator berawalan COUNTER) tetap dihitung."""
+    if df_x is None or df_x.empty or 'Salesman_Clean' not in df_x.columns or not DB_SALESMAN: return df_x
+    ok_ = df_x['Salesman_Clean'].map(_sm_in_database)
+    if koor_col in df_x.columns: ok_ = ok_ | df_x[koor_col].astype(str).str.upper().str.startswith('COUNTER')
+    dropped_ = {clean_str(v_) for v_ in df_x.loc[~ok_, 'Salesman_Clean'].dropna().unique() if clean_str(v_)}
+    prev_ = FILTER_SM_LOG.get(label, (0, 0, set()))
+    FILTER_SM_LOG[label] = (prev_[0] + len(df_x), prev_[1] + int(ok_.sum()), prev_[2] | dropped_)
+    return df_x[ok_.values].reset_index(drop=True)
+if DB_SALESMAN:
+    df_faktur_all = only_db_salesmen(df_faktur_all, 'FAKTUR')
+    df_faktur = only_db_salesmen(df_faktur, 'FAKTUR (menu lain)')
+    df_nota = only_db_salesmen(df_nota, 'NOTA')
+    df_spk = only_db_salesmen(df_spk, 'SPK', 'Koor_SPK')
+    df_spk_alldlr = df_spk
+    df_rating = only_db_salesmen(df_rating, 'RATING')
 
 def detect_customer_col(df, is_rating=False):
     if df is None or df.empty: return None
@@ -3057,6 +3635,7 @@ def get_unmapped_salesman_details():
     def collect_from_df(df_src, koor_col, dlr_col, src_label):
         if df_src is None or df_src.empty or 'Salesman_Clean' not in df_src.columns: return
         sub = df_src[df_src['Salesman_Clean'].notna() & (df_src[koor_col] == 'LAIN-LAIN')] if koor_col in df_src.columns else df_src[df_src['Salesman_Clean'].notna()]
+        sub = sub[[c_ for c_ in ('Salesman_Clean', dlr_col) if c_ in sub.columns]].drop_duplicates()   # unik per salesman-dealer (jauh lebih cepat)
         for _, r in sub.iterrows():
             sm = clean_str(r.get('Salesman_Clean', ''))
             if not sm or sm in ['NAN', 'NONE', 'TOTAL', 'JUMLAH', '-']: continue
@@ -3075,16 +3654,17 @@ def get_unmapped_salesman_details():
 def render_unmapped_salesman_alert(key_prefix='sales'):
     unmapped_info = get_unmapped_salesman_details()
     if not unmapped_info:
-        st.markdown('<div class="unmapped-sales-box" style="border-left-color:#00FF66; background:linear-gradient(90deg, rgba(0,255,102,0.10) 0%, rgba(14,17,23,0.96) 100%);">✅ <b>Status Data Lookup Koordinator:</b> Seluruh nama salesman pada Database, Faktur, Nota, dan SPK sudah memiliki Koordinator.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="unmapped-sales-box" style="border-left-color:#12A150; background:linear-gradient(90deg, rgba(0,255,102,0.10) 0%, #1E3A8A 100%);">✅ <b>Status Data Lookup Koordinator:</b> Seluruh nama salesman pada Database, Faktur, Nota, dan SPK sudah memiliki Koordinator.</div>', unsafe_allow_html=True)
         return
     sorted_names = sorted(unmapped_info.keys())
+    bsg_toast_once(f'unmapped_{key_prefix}_{len(sorted_names)}', f'{len(sorted_names)} salesman belum punya Koordinator di Data Lookup', '⚠️')
     db_only_names = [nm for nm in sorted_names if 'Database' in unmapped_info[nm]['sources']]
     badges_html = []
     rows_detail = []
     for nm in sorted_names:
         dlrs = ', '.join(sorted(unmapped_info[nm]['dealers'])) or '-'
         srcs = ', '.join(sorted(unmapped_info[nm]['sources']))
-        badges_html.append(f'<span class="unmapped-badge">{nm} <span style="color:#94A3B8;font-weight:400;">({dlrs} | {srcs})</span></span>')
+        badges_html.append(f'<span class="unmapped-badge">{nm} <span style="color:#3B5BC8;font-weight:400;">({dlrs} | {srcs})</span></span>')
         rows_detail.append({'NAMA SALESMAN (BELUM ADA KOORDINATOR)': nm, 'DEALER': dlrs, 'SUMBER DATA': srcs})
     st.markdown(f"""<div class="unmapped-sales-box">
         <div>⚠️ <b>Ditemukan {len(sorted_names)} Nama Salesman Belum Memiliki Koordinator di Data Lookup ({len(db_only_names)} dari Database):</b></div>
@@ -3165,8 +3745,8 @@ _rm_js = """<script>
   function beep(){ try { const A = new (P.AudioContext || P.webkitAudioContext)(), o = A.createOscillator(), g = A.createGain(); o.connect(g); g.connect(A.destination); o.frequency.value = 880; g.gain.value = 0.08; o.start(); setTimeout(() => { o.stop(); A.close(); }, 450); } catch(e) {} }
   function show(it){
     const d = D.createElement('div'); d.className = 'bushido-alarm-pop'; d.dataset.key = it.key;
-    d.style.cssText = 'background:#1E1B4B;color:#fff;border:2px solid #FFEA00;border-left:6px solid #FF007F;border-radius:10px;padding:12px 14px;font-family:sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.5);';
-    d.innerHTML = '<div style=\"font-weight:800;font-size:15px;\">🔔 ' + it.label + '</div><div style=\"font-size:12px;margin-top:4px;color:#CBD5E1;\">Jadwal ' + it.time + ' WIB</div><div style=\"margin-top:8px;display:flex;gap:8px;\"><button class=\"x\" style=\"cursor:pointer;\">Tutup</button></div>';
+    d.style.cssText = 'background:#FFFFFF;color:#1E3A8A;border:2px solid #4318FF;border-left:6px solid #E0115F;border-radius:10px;padding:12px 14px;font-family:sans-serif;box-shadow:0 6px 24px rgba(67,24,255,.25);';
+    d.innerHTML = '<div style=\"font-weight:800;font-size:15px;\">🔔 ' + it.label + '</div><div style=\"font-size:12px;margin-top:4px;color:#1E3A8A;\">Jadwal ' + it.time + ' WIB</div><div style=\"margin-top:8px;display:flex;gap:8px;\"><button class=\"x\" style=\"cursor:pointer;\">Tutup</button></div>';
     d.querySelector('.x').onclick = () => d.remove();
     holder().appendChild(d); beep();
     try { if (P.Notification && P.Notification.permission === 'granted') new P.Notification(it.label, { body: 'Jadwal ' + it.time + ' WIB' }); } catch(e) {}
@@ -3179,6 +3759,15 @@ _rm_js = """<script>
 } catch(e) {} })();
 </script>"""
 with st.sidebar: components.html(_rm_js.replace('__ITEMS__', json.dumps(_rm_pending)).replace('__TODAY__', _today_s), height=0)
+
+_FIT_JS = """<script>(function(){try{var P=window.parent,D=P.document;if(D.getElementById('bsg-fit-js'))return;
+var code="(function(){function fit(){document.querySelectorAll('iframe').forEach(function(f){try{var d=f.contentDocument,c=d&&d.getElementById('fit');if(!c)return;"
++"var h=Math.ceil(c.getBoundingClientRect().height)+8;if(Math.abs(f.getBoundingClientRect().height-h)<=2)return;"
++"f.style.setProperty('height',h+'px','important');f.setAttribute('height',h);var el=f.parentElement,i=0;"
++"while(el&&el.children.length===1&&i<6){el.style.setProperty('height',h+'px','important');el.style.setProperty('min-height',h+'px','important');el=el.parentElement;i++;}}catch(e){}});}"
++"setInterval(fit,500);window.addEventListener('resize',fit);})();";
+var s=D.createElement('script');s.id='bsg-fit-js';s.textContent=code;D.head.appendChild(s);}catch(e){}})();</script>"""
+components.html(_FIT_JS, height=0)
 
 with st.sidebar.expander('📆 Hari Libur Nasional', expanded=False):
     st.caption('Hari Minggu & tanggal libur di bawah ini tidak dihitung sebagai hari aktif (AVG, AVG 3/7, Forecast).')
@@ -3369,6 +3958,32 @@ def get_dealer_master_row(dealer):
         _DLR_ROW_CACHE[ck] = zero if (df_d is None or df_d.empty) else {k: safe_int(df_d.iloc[0][k]) for k in zero}
     return _DLR_ROW_CACHE[ck]
 
+def _dlr_sub(df_x, col, ent):
+    """Filter baris dealer tanpa peduli huruf besar/kecil & spasi ganda."""
+    if df_x is None or df_x.empty or col not in df_x.columns: return pd.DataFrame()
+    k_ = _nrm_dlr(ent)
+    return df_x[df_x[col].astype(str).map(_nrm_dlr) == k_]
+
+def _tj_nonkor():
+    """Target dealer non-inti (disimpan di JEMBER_TARGET_FILE, sama dengan input Dashboard Jember)."""
+    return {_nrm_dlr(k_): v_ for k_, v_ in load_json(JEMBER_TARGET_FILE).items()}
+
+def get_mds_dealer_list():
+    """Semua dealer MDS: 7 dealer inti + dealer MDS lain dari Data Lookup & data Faktur/Database/SPK bulan berjalan."""
+    out, seen = list(daftar_dealer), {alnum_str(d_) for d_ in daftar_dealer}
+    cand = set()
+    for k_, st_ in mapping_dealer_status.items():
+        if st_ == 'MDS': cand.add(k_)
+    for df_x, col in ((df_fak_curr_g, 'Nama Dealer'), (df_db_curr_g, 'Nama_Dealer_Clean'), (df_spk_curr_g, 'Nama_Dealer_SPK')):
+        if df_x is not None and not df_x.empty and col in df_x.columns:
+            cand |= {_nrm_dlr(v_) for v_ in df_x[col].dropna().unique()}
+    for n_ in sorted(cand):
+        if not n_ or n_ in ('NAN', 'NONE', 'TOTAL') or not is_mds_dealer(n_): continue
+        a_ = alnum_str(n_)
+        if a_ in seen: continue
+        seen.add(a_); out.append(n_)
+    return out
+
 def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
     sec_saved = saved_kpi.get(section_key, {})
     rows = []
@@ -3376,12 +3991,13 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
     for ent in entity_list:
         ent_saved = sec_saved.get(ent, {})
         if filter_mode == 'dealer':
-            f_sub = df_fak_curr_g[df_fak_curr_g['Nama Dealer'] == ent] if not df_fak_curr_g.empty else pd.DataFrame()
-            db_sub = df_db_curr_g[df_db_curr_g['Nama_Dealer_Clean'] == ent] if not df_db_curr_g.empty else pd.DataFrame()
-            spk_sub = df_spk_curr_g[df_spk_curr_g['Nama_Dealer_SPK'] == ent] if not df_spk_curr_g.empty else pd.DataFrame()
-            rt_sub = df_rating_curr_g[df_rating_curr_g['Nama_Dealer_Clean'] == ent] if not df_rating_curr_g.empty else pd.DataFrame()
+            f_sub = _dlr_sub(df_fak_curr_g, 'Nama Dealer', ent)
+            db_sub = _dlr_sub(df_db_curr_g, 'Nama_Dealer_Clean', ent)
+            spk_sub = _dlr_sub(df_spk_curr_g, 'Nama_Dealer_SPK', ent)
+            rt_sub = _dlr_sub(df_rating_curr_g, 'Nama_Dealer_Clean', ent)
             def_vals = DEFAULT_KPI_DEALER.get(ent, {})
-            def_t_stu = safe_int(saved_td.get(ent, def_vals.get('T. STU', 0)))
+            if ent in daftar_dealer: def_t_stu = safe_int(saved_td.get(ent, def_vals.get('T. STU', 0)))
+            else: def_t_stu = safe_int(_tj_nonkor().get(_nrm_dlr(ent), 0))
             def_t_maxi = def_vals.get('T. MAXI', 0)
             def_t_classy = def_vals.get('T. CLASSY', 0)
             def_t_mp = def_vals.get('T. MP', 0)
@@ -3516,6 +4132,7 @@ def kpi_score_entity(tr, scheme='MDS'):
         t, r = tr.get(c, (0, 0))
         t, r = float(t or 0), float(r or 0)
         achv = (r / t) if t > 0 else 0.0
+        if c == 'OPR': r, achv = t, 1.0   # Operational Dealer dikunci: pasti Achieve 100% (poin penuh)
         w = weights[c]
         if c == 'GRT': pt = kpi_point_grt(t, r, w, scheme)
         else: pt = kpi_point_generic(achv, KPI_MIN_ACV[c], w, 0.75 if (scheme == 'DEALER' and c in KPI_SALES_CODES) else 0.5)
@@ -3539,7 +4156,7 @@ def get_dashboard_kpi_inputs():
         mv = {**DEFAULT_KPI_MANUAL.get(d, {}), **man_d.get(d, {})}
         r = df_it[df_it['NAMA DEALER'] == d].iloc[0] if (df_it is not None and not df_it.empty and d in df_it['NAMA DEALER'].values) else None
         inputs[d] = {'STU': (_g(r, 'T. STU'), _g(r, 'R. STU')), 'MAX': (_g(r, 'T. MAXI'), _g(r, 'R. MAXI')), 'CLS': (_g(r, 'T. CLASSY'), _g(r, 'R. CLASSY')),
-                     'OPR': (safe_float(mv.get('T. OPR')), safe_float(mv.get('R. OPR'))), 'SAL': (_g(r, 'T. MP'), _g(r, 'R. MP')),
+                     'OPR': (safe_float(mv.get('T. OPR')), safe_float(mv.get('T. OPR'))), 'SAL': (_g(r, 'T. MP'), _g(r, 'R. MP')),
                      'APV': (_g(r, 'T. ACC%') / 100.0, _g(r, 'R. ACC%') / 100.0), 'INC': (_g(r, 'T. INC'), _g(r, 'R. INC')),
                      'MYM': (safe_float(mv.get('T. MYM')) / 100.0, safe_float(mv.get('R. MYM')) / 100.0), 'MYD': (_g(r, 'T. MYDR'), _g(r, 'R. MYDR')),
                      'GRT': (safe_float(mv.get('T. GRT')), safe_float(mv.get('R. GRT'))), 'GRV': (_g(r, 'T. G REV'), _g(r, 'R. G REV')), 'OPS': ops_pair}
@@ -3549,7 +4166,7 @@ def get_dashboard_kpi_inputs():
     def _mean(idx, pos): return sum(inputs[d][idx][pos] for d in ds) / len(ds)
     mym_r = (sum(inputs[d]['MYM'][1] * w for d, w in zip(ds, stu_w)) / sum(stu_w)) if sum(stu_w) > 0 else _mean('MYM', 1)
     inputs['TOTAL BUSHIDO'] = {'STU': (_g(rt, 'T. STU'), _g(rt, 'R. STU')), 'MAX': (_g(rt, 'T. MAXI'), _g(rt, 'R. MAXI')), 'CLS': (_g(rt, 'T. CLASSY'), _g(rt, 'R. CLASSY')),
-                     'OPR': (sum(inputs[d]['OPR'][0] for d in ds), sum(inputs[d]['OPR'][1] for d in ds)), 'SAL': (_g(rt, 'T. MP'), _g(rt, 'R. MP')),
+                     'OPR': (sum(inputs[d]['OPR'][0] for d in ds), sum(inputs[d]['OPR'][0] for d in ds)), 'SAL': (_g(rt, 'T. MP'), _g(rt, 'R. MP')),
                      'APV': (_g(rt, 'T. ACC%') / 100.0, _g(rt, 'R. ACC%') / 100.0), 'INC': (_g(rt, 'T. INC'), _g(rt, 'R. INC')),
                      'MYM': (_mean('MYM', 0), mym_r), 'MYD': (_g(rt, 'T. MYDR'), _g(rt, 'R. MYDR')),
                      'GRT': (_mean('GRT', 0), _mean('GRT', 1)), 'GRV': (_g(rt, 'T. G REV'), _g(rt, 'R. G REV')), 'OPS': ops_pair}
@@ -3558,7 +4175,7 @@ def get_dashboard_kpi_inputs():
 # ===================== DASHBOARD KPI: tampilan HTML =====================
 DASH_NAVY, DASH_TEAL = '#0B2A5B', '#1B5E75'
 DASH_ABBR = {1:'JAN',2:'FEB',3:'MAR',4:'APR',5:'MEI',6:'JUN',7:'JUL',8:'AGU',9:'SEP',10:'OKT',11:'NOV',12:'DES'}
-DASH_GRADE_COL = {'A':'#00FF66','B':'#00E5FF','C':'#FFEA00','D':'#FF4D8D'}
+DASH_GRADE_COL = {'A':'#12A150','B':'#0891B2','C':'#D68A00','D':'#E0115F'}
 
 _BATCH_PREFIX = ('Review_1_Penjualan_', 'Review_2_Proses_', 'Review_3_Leasing_', 'Review_4_Type_', 'Review_5_Salesman_', 'Review_Aktifitas_PT_', 'Review_Aktifitas_Sub_')
 
@@ -3573,12 +4190,12 @@ def bsg_kpi_capture_html(sel_dash):
     date_lbl = f'{tanggal_akhir} {DASH_ABBR.get(current_month, "")} {current_year}'; date_short = f'{tanggal_akhir:02d}/{current_month:02d}/{current_year}'
     note = ('Bobot skema MDS (sesuai gambar): OPS level supervisor, nilainya sama untuk semua dealer.' if scheme == 'MDS' else 'Bobot skema Dealer (Excel R-MDS): OPR 15 & OPS 0; STU/MAX/CLS memakai 75% poin dasar.') + ' Kolom NOTE: PROCESS ≥45 tanpa potongan, 30–44 = CUT 30%, <30 = CUT 50%. CONCLUTION tampil mulai tgl 27.'
     h_ = build_dashboard_kpi_html(sel_dash, date_lbl, date_short, rows_s, s_s, p_s, t_s, d_tbl, sel_dash, tanggal_akhir >= 27, note, with_rank=False)
-    return f'<div style="width:1320px;background-color:#0E1117;padding:18px 20px;box-sizing:border-box;">{h_}</div>'
+    return f'<div style="width:1320px;background-color:#FFFFFF;padding:18px 20px;box-sizing:border-box;">{h_}</div>'
 
 _BATCH_HTML = """<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>body{margin:0;padding:2px 0;background:transparent;font-family:'Source Sans Pro',sans-serif;display:flex;align-items:center;gap:10px;}
 .b{background:#4318FF;color:#fff;border:1px solid #4318FF;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;}.b:hover{background:#3311CC;}.b:disabled{opacity:.6;cursor:wait;}
-#st{font-size:12.5px;color:#FFEA00;font-weight:600;}</style></head><body>
+#st{font-size:12.5px;color:#D68A00;font-weight:600;}</style></head><body>
 <button class="b" id="go" onclick="runAll()">📥 Download SEMUA gambar untuk PPT (__N__ gambar · 1 file ZIP)</button><span id="st"></span><div id="hold" style="position:fixed;left:-20000px;top:0;"></div>
 <script>
 const ITEMS=__ITEMS__, ZIPNAME=__ZIPNAME__;
@@ -3594,13 +4211,13 @@ async function runAll(){
     if(it.kind==='panel'){const f=document.createElement('iframe');f.style.cssText='position:fixed;left:-20000px;top:0;width:1500px;height:1400px;border:0;';f.srcdoc=it.html;document.body.appendChild(f);
      const good=await waitFor(()=>f.contentWindow&&f.contentWindow.pnCapData&&typeof f.contentWindow.html2canvas!=='undefined',25000);if(!good)throw new Error('panel tidak termuat');
      await sleep(600);url=await f.contentWindow.pnCapData();f.remove();}
-    else{const h=document.getElementById('hold');h.innerHTML=it.html;await sleep(300);const c=await html2canvas(h.firstElementChild,{backgroundColor:'#0E1117',scale:2,useCORS:true,logging:false});h.innerHTML='';url=c.toDataURL('image/jpeg',0.95);}
+    else{const h=document.getElementById('hold');h.innerHTML=it.html;await sleep(300);const c=await html2canvas(h.firstElementChild,{backgroundColor:'#FFFFFF',scale:2,useCORS:true,logging:false});h.innerHTML='';url=c.toDataURL('image/jpeg',0.95);}
     zip.file(it.fn+'.jpg',url.split(',')[1],{base64:true});ok++;
    }catch(e){fail.push(it.fn+' ('+e.message+')');}}
   if(!ok)throw new Error('tidak ada gambar yang berhasil dibuat');
   const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ZIPNAME;document.body.appendChild(a);a.click();a.remove();
-  st.style.color=fail.length?'#FFEA00':'#00FF66';st.textContent='✅ '+ok+' gambar tersimpan di '+ZIPNAME+(fail.length?' · gagal: '+fail.join('; '):'')+' — unggah file ZIP ini di bawah.';
- }catch(e){st.style.color='#FF4D8D';st.textContent='Gagal: '+e.message;}
+  st.style.color=fail.length?'#D68A00':'#12A150';st.textContent='✅ '+ok+' gambar tersimpan di '+ZIPNAME+(fail.length?' · gagal: '+fail.join('; '):'')+' — unggah file ZIP ini di bawah.';
+ }catch(e){st.style.color='#E0115F';st.textContent='Gagal: '+e.message;}
  btn.disabled=false;}
 </script></body></html>"""
 
@@ -3625,7 +4242,7 @@ def bsg_entity_kpi_capture_html(ent):
     rank_tbl.sort(key=lambda x_d: (-x_d['point'], -x_d['process'], x_d['name']))
     date_lbl = f'{tanggal_akhir} {DASH_ABBR.get(current_month, "")} {current_year}'; date_short = f'{tanggal_akhir:02d}/{current_month:02d}/{current_year}'
     h_ = build_dashboard_kpi_html(ent, date_lbl, date_short, rows_e, s_e, p_e, t_e, rank_tbl, ent, False, note_e, codes=KPI_ENT_CODES[kind], rank_kind=kind, with_rank=False)
-    return kind, f'<div style="width:1320px;background-color:#0E1117;padding:18px 20px;box-sizing:border-box;">{h_}</div>'
+    return kind, f'<div style="width:1320px;background-color:#FFFFFF;padding:18px 20px;box-sizing:border-box;">{h_}</div>'
 
 def bsg_render_ppt_batch(zip_label, kpi_dealer=None, kpi_entities=None):
     """Satu tombol: unduh semua gambar panel yang sedang tampil (+ Dashboard KPI) sebagai ZIP, siap diunggah ke kotak gambar PPT."""
@@ -3673,7 +4290,7 @@ def bsg_ppt_kpi_payload(sel_dash):
 
 def _ppt_ai_cache(dealer):
     """Narasi Condition/Plan hasil tab 'Analisa & Action Plan' (Gemini / Smart Analyzer) bila sudah pernah dibuat untuk dealer & tanggal ini."""
-    pre = f'ai_tbl6_v10_35w_{dealer}_{int(tanggal_akhir)}_'
+    pre = f'ai_tbl6_v11_40w_{dealer}_{int(tanggal_akhir)}_'
     try:
         for k_ in reversed(list(st.session_state.keys())):
             if isinstance(k_, str) and k_.startswith(pre) and isinstance(st.session_state.get(k_), dict) and st.session_state[k_]: return st.session_state[k_]
@@ -3711,11 +4328,11 @@ def _dash_fmt(code, v):
     if code == 'PRD': return f'{v:.2f}'
     return f'{v:,.0f}'
 
-DASH_ST_COL = {'ok': '#22C55E', 'warn': '#FACC15', 'bad': '#FB7185', 'na': '#64748B'}
+DASH_ST_COL = {'ok': '#16A34A', 'warn': '#D68A00', 'bad': '#E11D48', 'na': '#64748B'}
 DASH_ST_BG = {'ok': 'rgba(34,197,94,0.15)', 'warn': 'rgba(250,204,21,0.14)', 'bad': 'rgba(251,113,133,0.17)', 'na': 'rgba(148,163,184,0.10)'}
 DASH_GRADE_BG = {'A': 'rgba(0,255,102,0.14)', 'B': 'rgba(0,229,255,0.14)', 'C': 'rgba(255,234,0,0.14)', 'D': 'rgba(255,77,141,0.16)'}
-DASH_CONCL = {'VERY GOOD': ('#22C55E', 'rgba(34,197,94,0.15)', 'rgba(34,197,94,0.45)'), 'GOOD': ('#FACC15', 'rgba(250,204,21,0.14)', 'rgba(250,204,21,0.45)'),
-              'NOT GOOD': ('#FB7185', 'rgba(251,113,133,0.16)', 'rgba(251,113,133,0.45)')}
+DASH_CONCL = {'VERY GOOD': ('#16A34A', 'rgba(34,197,94,0.15)', 'rgba(34,197,94,0.45)'), 'GOOD': ('#D68A00', 'rgba(250,204,21,0.14)', 'rgba(250,204,21,0.45)'),
+              'NOT GOOD': ('#E11D48', 'rgba(251,113,133,0.16)', 'rgba(251,113,133,0.45)')}
 
 def _dash_status(r):
     if r['weight'] == 0: return 'na'
@@ -3729,54 +4346,54 @@ def _dash_tile(label, value, suffix, color, prog=None, concl=None):
     bar = ''
     if prog is not None:
         p = max(0.0, min(100.0, prog))
-        bar = f'<div style="height:7px;border-radius:4px;background:#1E293B;margin-top:9px;overflow:hidden;"><div style="width:{p:.1f}%;height:100%;border-radius:4px;background:{color};"></div></div>'
+        bar = f'<div style="height:7px;border-radius:4px;background:#EAF0FF;margin-top:9px;overflow:hidden;"><div style="width:{p:.1f}%;height:100%;border-radius:4px;background:{color};"></div></div>'
     ch = ''
     if concl:
         fg, bg, bd = DASH_CONCL.get(concl, ('#94A3B8', 'rgba(148,163,184,0.10)', 'rgba(148,163,184,0.3)'))
         ch = f'<div style="margin-top:8px;">{_dash_chip(concl, fg, bg, bd)}</div>'
-    return (f'<div style="flex:1 1 128px;min-width:120px;background:linear-gradient(160deg,#151B2B 0%,#0E1117 100%);border:1px solid #232B3E;border-top:3px solid {color};border-radius:12px;padding:10px 14px 12px 14px;box-sizing:border-box;">'
-            f'<div style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#94A3B8;">{label}</div>'
-            f'<div style="font-size:36px;font-weight:900;color:{color};line-height:1.1;margin-top:2px;">{value}<span style="font-size:14px;font-weight:700;color:#64748B;"> {suffix}</span></div>{bar}{ch}</div>')
+    return (f'<div style="flex:1 1 128px;min-width:120px;background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-top:3px solid {color};border-radius:12px;padding:10px 14px 12px 14px;box-sizing:border-box;">'
+            f'<div style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#3B5BC8;">{label}</div>'
+            f'<div style="font-size:36px;font-weight:900;color:{color};line-height:1.1;margin-top:2px;">{value}<span style="font-size:14px;font-weight:700;color:#3B5BC8;"> {suffix}</span></div>{bar}{ch}</div>')
 
 def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, tot_pt, dealer_tbl, hl_dealer, show_concl, scheme_note, codes=None, rank_kind=None, with_rank=True):
     codes_l = list(codes) if codes else list(KPI_CODES)
-    grade = kpi_grade(tot_pt); gcol = DASH_GRADE_COL.get(grade, '#FFFFFF')
+    grade = kpi_grade(tot_pt); gcol = DASH_GRADE_COL.get(grade, '#1E3A8A')
     res_set = set(KPI_ENT_RESULT_CODES) if rank_kind else set(KPI_SALES_CODES)
     max_res = sum(rows[c]['weight'] for c in codes_l if c in res_set); max_prc = sum(rows[c]['weight'] for c in codes_l if c not in res_set)
     res_c = ('VERY GOOD' if s_pt >= 38 else ('GOOD' if s_pt >= 20 else 'NOT GOOD')) if show_concl else None
     prc_c = ('VERY GOOD' if p_pt >= 57 else ('GOOD' if p_pt >= 45 else 'NOT GOOD')) if show_concl else None
     # ---------- baris hero: identitas + 4 tile ----------
     identity = (f'<div style="flex:1.35 1 340px;background:linear-gradient(120deg,{DASH_NAVY} 0%,#1E3A8A 100%);border:1px solid #1E3A8A;border-radius:12px;padding:14px 20px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;">'
-                f'<div style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:#93C5FD;">KEY PERFORMANCE INDICATOR REPORT</div>'
+                f'<div style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:#BFD3FF;">KEY PERFORMANCE INDICATOR REPORT</div>'
                 f'<div style="font-size:27px;font-weight:900;color:#FFFFFF;line-height:1.15;margin:5px 0 9px 0;">{sel_name}</div>'
-                f'<div>{_dash_chip("📅 " + date_lbl, "#E0F2FE", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.25)")}</div></div>')
-    grade_tile = (f'<div style="flex:0.75 1 118px;min-width:110px;background:linear-gradient(160deg,#151B2B 0%,#0E1117 100%);border:1px solid #232B3E;border-top:3px solid {gcol};border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;">'
-                  f'<div style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#94A3B8;">GRADE</div>'
-                  f'<div style="width:62px;height:62px;border-radius:16px;background:{DASH_GRADE_BG.get(grade, "rgba(255,255,255,0.08)")};border:2px solid {gcol};color:{gcol};font-size:40px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:6px;">{grade}</div></div>')
-    tiles = (grade_tile + _dash_tile('TOTAL POINT', f'{tot_pt}', '/ 100', '#E2E8F0', tot_pt)
-             + _dash_tile('RESULT', f'{s_pt}', f'/ {max_res}', '#60A5FA', (s_pt / max_res * 100) if max_res else 0, res_c)
-             + _dash_tile('PROCESS', f'{p_pt}', f'/ {max_prc}', '#A78BFA', (p_pt / max_prc * 100) if max_prc else 0, prc_c))
+                f'<div>{_dash_chip("📅 " + date_lbl, "#FFFFFF", "rgba(255,255,255,0.18)", "rgba(255,255,255,0.45)")}</div></div>')
+    grade_tile = (f'<div style="flex:0.75 1 118px;min-width:110px;background:linear-gradient(160deg,#FFFFFF 0%,#FFFFFF 100%);border:1px solid #8FA8F0;border-top:3px solid {gcol};border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;">'
+                  f'<div style="font-size:10.5px;font-weight:800;letter-spacing:.9px;color:#3B5BC8;">GRADE</div>'
+                  f'<div style="width:62px;height:62px;border-radius:16px;background:{DASH_GRADE_BG.get(grade, "rgba(67,24,255,0.07)")};border:2px solid {gcol};color:{gcol};font-size:40px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:6px;">{grade}</div></div>')
+    tiles = (grade_tile + _dash_tile('TOTAL POINT', f'{tot_pt}', '/ 100', '#1E3A8A', tot_pt)
+             + _dash_tile('RESULT', f'{s_pt}', f'/ {max_res}', '#2563EB', (s_pt / max_res * 100) if max_res else 0, res_c)
+             + _dash_tile('PROCESS', f'{p_pt}', f'/ {max_prc}', '#6D4DFF', (p_pt / max_prc * 100) if max_prc else 0, prc_c))
     hero = f'<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;margin-bottom:12px;">{identity}<div style="flex:2.4 1 560px;display:flex;gap:12px;flex-wrap:wrap;">{tiles}</div></div>'
     # ---------- sorotan ----------
     lost = sorted([(c, rows[c]['weight'] - rows[c]['point']) for c in codes_l if rows[c]['weight'] > 0 and not rows[c].get('fixed') and rows[c]['point'] < rows[c]['weight']], key=lambda t: -t[1])
     zero = [c for c, _ in lost if rows[c]['point'] == 0]
     full = [c for c in codes_l if rows[c]['weight'] > 0 and (rows[c].get('fixed') or rows[c]['point'] >= rows[c]['weight'])]
     chips = ''
-    if zero: chips += _dash_chip(f'🚨 {len(zero)} KPI belum menghasilkan poin: ' + ', '.join(zero), '#FB7185', 'rgba(251,113,133,0.14)', 'rgba(251,113,133,0.4)') + ' '
-    if lost: chips += _dash_chip('📉 Poin hilang terbesar: ' + ' · '.join(f'{rows[c]["name"]} −{l}' for c, l in lost[:3]), '#FACC15', 'rgba(250,204,21,0.12)', 'rgba(250,204,21,0.4)') + ' '
-    chips += _dash_chip(f'✅ {len(full)} KPI poin penuh', '#22C55E', 'rgba(34,197,94,0.14)', 'rgba(34,197,94,0.4)')
-    spot = f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;"><span style="font-size:10.5px;font-weight:800;letter-spacing:1px;color:#94A3B8;">SOROTAN</span>{chips}</div>'
+    if zero: chips += _dash_chip(f'🚨 {len(zero)} KPI belum menghasilkan poin: ' + ', '.join(zero), '#E11D48', 'rgba(251,113,133,0.14)', 'rgba(251,113,133,0.4)') + ' '
+    if lost: chips += _dash_chip('📉 Poin hilang terbesar: ' + ' · '.join(f'{rows[c]["name"]} −{l}' for c, l in lost[:3]), '#D68A00', 'rgba(250,204,21,0.12)', 'rgba(250,204,21,0.4)') + ' '
+    chips += _dash_chip(f'✅ {len(full)} KPI poin penuh', '#16A34A', 'rgba(34,197,94,0.14)', 'rgba(34,197,94,0.4)')
+    spot = f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;"><span style="font-size:10.5px;font-weight:800;letter-spacing:1px;color:#3B5BC8;">SOROTAN</span>{chips}</div>'
     # ---------- tabel pencapaian + diagram (SATU tabel: tiap baris KPI punya sel diagram di kanan, otomatis sejajar) ----------
     th = f'background:{DASH_NAVY};color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:8px 6px;border-bottom:2px solid #1E3A8A;'
     heads = ['CODE', 'PERFORMANCE CATEGORY', 'WEIGHT', 'MIN ACV', 'TARGET', 'RESULT', 'ACHIEVEMENT', 'POINT']
-    td = 'padding:6px 6px;border-bottom:1px solid #1E293B;font-size:12.5px;color:#E2E8F0;'
+    td = 'padding:6px 6px;border-bottom:1px solid #8FA8F0;font-size:12.5px;color:#1E3A8A;'
     max_a = max([rows[c]['achv'] for c in codes_l] + [1.0]); axis = max(1.2, max_a * 1.25); mark = 100.0 / axis
     NCOL = len(heads) + 1
     body = ''
     for g_lbl, g_codes, g_pt, g_max in (('RESULT', [c for c in codes_l if c in res_set], s_pt, max_res), ('PROCESS', [c for c in codes_l if c not in res_set], p_pt, max_prc)):
         if not g_codes: continue
-        body += (f'<tr><td colspan="{NCOL}" style="background:#12304F;padding:6px 10px;border-bottom:1px solid #1E3A8A;"><span style="font-size:11px;font-weight:900;letter-spacing:1px;color:#93C5FD;">{g_lbl}</span>'
-                 f'<span style="float:right;font-size:11.5px;font-weight:800;color:#E2E8F0;">{g_pt} <span style="color:#64748B;">/ {g_max} poin</span></span></td></tr>')
+        body += (f'<tr><td colspan="{NCOL}" style="background:#EAF0FF;padding:6px 10px;border-bottom:1px solid #8FA8F0;"><span style="font-size:11px;font-weight:900;letter-spacing:1px;color:#1E3A8A;">{g_lbl}</span>'
+                 f'<span style="float:right;font-size:11.5px;font-weight:800;color:#1E3A8A;">{g_pt} <span style="color:#3B5BC8;">/ {g_max} poin</span></span></td></tr>')
         for c in g_codes:
             r = rows[c]; stt = _dash_status(r); col, bgc = DASH_ST_COL[stt], DASH_ST_BG[stt]
             pb = max(0.0, min(r['achv'], 1.0)) * 100
@@ -3784,25 +4401,25 @@ def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, t
             tgt_txt = '—' if r.get('fixed') else _dash_fmt(c, r['target']); res_txt = '—' if r.get('fixed') else _dash_fmt(c, r['result'])
             min_txt = '—' if (r['weight'] == 0 or r.get('no_min')) else f'{r["min_acv"] * 100:.0f}%'
             chart_cell = (f'<td style="{td}width:36%;min-width:230px;padding:6px 16px 6px 12px;border-left:2px solid #1E3A8A;vertical-align:middle;">'
-                          f'<div style="position:relative;height:18px;background:#141C2B;border-radius:9px;"><div style="position:absolute;left:0;top:0;height:18px;width:{w:.1f}%;background:{col};border-radius:9px;"></div>'
-                          f'<div style="position:absolute;left:{mark:.1f}%;top:-4px;height:26px;border-left:1px dashed rgba(255,255,255,0.55);"></div>'
-                          f'<div style="position:absolute;left:calc({w:.1f}% + 7px);top:1px;font-size:11px;font-weight:800;color:#E2E8F0;white-space:nowrap;">{r["achv"] * 100:.1f}%</div></div></td>')
-            body += (f'<tr style="background:{bgc};"><td style="{td}width:44px;padding:6px 6px;"><span style="display:inline-block;min-width:34px;text-align:center;padding:2px 4px;border-radius:6px;background:rgba(255,255,255,0.08);color:{col};font-weight:900;font-size:11px;">{c}</span></td>'
-                     f'<td style="{td}line-height:1.25;">{r["name"]}</td><td style="{td}text-align:right;color:#94A3B8;">{r["weight"]}</td><td style="{td}text-align:right;color:#94A3B8;">{min_txt}</td>'
+                          f'<div style="position:relative;height:18px;background:#EAF0FF;border-radius:9px;"><div style="position:absolute;left:0;top:0;height:18px;width:{w:.1f}%;background:{col};border-radius:9px;"></div>'
+                          f'<div style="position:absolute;left:{mark:.1f}%;top:-4px;height:26px;border-left:2px dashed #DC2626;"></div>'
+                          f'<div style="position:absolute;left:calc({w:.1f}% + 7px);top:1px;font-size:11px;font-weight:800;color:#1E3A8A;white-space:nowrap;">{r["achv"] * 100:.1f}%</div></div></td>')
+            body += (f'<tr style="background:{bgc};"><td style="{td}width:44px;padding:6px 6px;"><span style="display:inline-block;min-width:34px;text-align:center;padding:2px 4px;border-radius:6px;background:rgba(67,24,255,0.07);color:{col};font-weight:900;font-size:11px;">{c}</span></td>'
+                     f'<td style="{td}line-height:1.25;">{r["name"]}</td><td style="{td}text-align:right;color:#3B5BC8;">{r["weight"]}</td><td style="{td}text-align:right;color:#3B5BC8;">{min_txt}</td>'
                      f'<td style="{td}text-align:right;">{tgt_txt}</td><td style="{td}text-align:right;">{res_txt}</td>'
-                     f'<td style="{td}text-align:right;white-space:nowrap;"><span style="display:inline-block;width:56px;height:7px;border-radius:4px;background:#1E293B;vertical-align:middle;margin-right:7px;overflow:hidden;"><span style="display:block;width:{pb:.1f}%;height:100%;background:{col};"></span></span>'
+                     f'<td style="{td}text-align:right;white-space:nowrap;"><span style="display:inline-block;width:56px;height:7px;border-radius:4px;background:#EAF0FF;vertical-align:middle;margin-right:7px;overflow:hidden;"><span style="display:block;width:{pb:.1f}%;height:100%;background:{col};"></span></span>'
                      f'<span style="display:inline-block;min-width:46px;font-weight:800;color:{col};">{r["achv"] * 100:.1f}%</span></td>'
-                     f'<td style="{td}text-align:right;white-space:nowrap;"><span style="font-weight:900;color:#FFFFFF;font-size:14px;">{r["point"]}</span><span style="color:#64748B;font-size:11px;">/{r["weight"]}</span></td>{chart_cell}</tr>')
+                     f'<td style="{td}text-align:right;white-space:nowrap;"><span style="font-weight:900;color:#1E3A8A;font-size:14px;">{r["point"]}</span><span style="color:#3B5BC8;font-size:11px;">/{r["weight"]}</span></td>{chart_cell}</tr>')
     head1 = (f'<tr><th colspan="{len(heads)}" style="background:{DASH_TEAL};color:#fff;font-size:12px;font-weight:800;letter-spacing:.7px;padding:8px 14px;text-align:left;border-radius:10px 0 0 0;">ACHIEVEMENT BY PERFORMANCE CATEGORY</th>'
              f'<th style="background:{DASH_TEAL};color:#fff;font-size:12px;font-weight:800;letter-spacing:.7px;padding:8px 14px;text-align:left;white-space:nowrap;border-radius:0 10px 0 0;">ACHIEVEMENT VS TARGET PER KPI'
              f'<span style="float:right;margin-left:14px;">{date_short}</span></th></tr>')
-    head2 = '<tr>' + ''.join(f'<th style="{th}text-align:{"left" if i < 2 else "right"};">{h}</th>' for i, h in enumerate(heads)) + f'<th style="{th}text-align:left;border-left:2px solid #1E3A8A;padding-left:12px;">CAPAIAN (garis putus-putus = 100% target)</th></tr>'
-    legend = ('<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-size:10.5px;color:#94A3B8;padding:6px 14px;">'
-              '<span><span style="color:#22C55E;">●</span> poin penuh</span><span><span style="color:#FACC15;">●</span> sebagian poin</span><span><span style="color:#FB7185;">●</span> 0 poin</span></div>')
-    table_html = (f'<div style="overflow-x:auto;border:1px solid #232B3E;border-radius:10px;background:#0E1117;"><table style="width:100%;border-collapse:collapse;"><thead>{head1}{head2}</thead><tbody>{body}</tbody></table>{legend}</div>')
+    head2 = '<tr>' + ''.join(f'<th style="{th}text-align:{"left" if i < 2 else "right"};">{h}</th>' for i, h in enumerate(heads)) + f'<th style="{th}text-align:left;border-left:2px solid #1E3A8A;padding-left:12px;">CAPAIAN (garis merah putus-putus = 100% target)</th></tr>'
+    legend = ('<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;font-size:10.5px;color:#3B5BC8;padding:6px 14px;">'
+              '<span><span style="color:#16A34A;">●</span> poin penuh</span><span><span style="color:#D68A00;">●</span> sebagian poin</span><span><span style="color:#E11D48;">●</span> 0 poin</span></div>')
+    table_html = (f'<div style="overflow-x:auto;border:1px solid #8FA8F0;border-radius:10px;background:#FFFFFF;"><table style="width:100%;border-collapse:collapse;"><thead>{head1}{head2}</thead><tbody>{body}</tbody></table>{legend}</div>')
     mid = f'<div style="margin-bottom:14px;">{table_html}</div>'
     if not dealer_tbl or not with_rank:   # dashboard koordinator / counter, atau versi capture: tanpa tabel ranking
-        return f'<div style="font-family:Source Sans Pro,sans-serif;color:#E2E8F0;">{hero}{spot}{mid}<div style="font-size:11px;color:#94A3B8;margin-top:2px;">{scheme_note}</div></div>'
+        return f'<div style="font-family:Source Sans Pro,sans-serif;color:#1E3A8A;">{hero}{spot}{mid}<div style="font-size:11px;color:#3B5BC8;margin-top:2px;">{scheme_note}</div></div>'
     # ---------- tabel ranking (dealer / koordinator / counter) ----------
     rk_codes = list(KPI_ENT_CODES[rank_kind]) if rank_kind else ['STU', 'MAX', 'CLS', 'OPR', 'SAL', 'APV', 'INC', 'MYM', 'MYD', 'GRT', 'GRV']
     rk_min = (lambda c: KPI_ENT_MIN_ACV[rank_kind].get(c, 0.0)) if rank_kind else (lambda c: KPI_MIN_ACV[c])
@@ -3810,28 +4427,28 @@ def build_dashboard_kpi_html(sel_name, date_lbl, date_short, rows, s_pt, p_pt, t
     rk_name_hdr = {'koor': 'KOORDINATOR NAME', 'counter': 'COUNTER NAME'}.get(rank_kind, 'DEALER NAME')
     dh = ['#', 'CODE', rk_name_hdr, 'POINT', 'GRADE', 'SALES', 'PROCESS'] + rk_codes + ['NOTE']
     dth = f'background:{DASH_NAVY};color:#fff;font-size:11px;font-weight:800;padding:8px 6px;border-bottom:2px solid #1E3A8A;text-align:center;white-space:nowrap;'
-    medal = {1: '#FACC15', 2: '#CBD5E1', 3: '#FB923C'}
+    medal = {1: '#D68A00', 2: '#6D8BD8', 3: '#EA580C'}
     drows = ''
     for i, dr in enumerate(dealer_tbl, 1):
-        gc = DASH_GRADE_COL.get(dr['grade'], '#FFFFFF'); hl = (dr['name'] == hl_dealer)
-        outl = 'outline:2px solid #00E5FF;outline-offset:-2px;' if hl else ''
-        dtd = 'padding:6px 6px;border-bottom:1px solid #1E293B;font-size:12.5px;text-align:center;white-space:nowrap;color:#E2E8F0;'
+        gc = DASH_GRADE_COL.get(dr['grade'], '#1E3A8A'); hl = (dr['name'] == hl_dealer)
+        outl = 'outline:2px solid #0891B2;outline-offset:-2px;' if hl else ''
+        dtd = 'padding:6px 6px;border-bottom:1px solid #8FA8F0;font-size:12.5px;text-align:center;white-space:nowrap;color:#1E3A8A;'
         rk_col = medal.get(i, '#64748B')
-        pbar = f'<span style="display:inline-block;width:46px;height:6px;border-radius:3px;background:#1E293B;vertical-align:middle;margin-left:6px;overflow:hidden;"><span style="display:block;width:{max(0, min(100, dr["point"])):.0f}%;height:100%;background:{gc};"></span></span>'
-        cells = (f'<td style="{dtd}"><span style="display:inline-block;min-width:22px;padding:1px 0;border-radius:50%;font-weight:900;color:{rk_col};">{i}</span></td><td style="{dtd}color:#94A3B8;">{dr["code"]}</td>'
-                 f'<td style="{dtd}text-align:left;font-weight:800;color:#FFFFFF;">{dr["name"]}</td><td style="{dtd}font-weight:900;color:#FFFFFF;">{dr["point"]}{pbar}</td>'
+        pbar = f'<span style="display:inline-block;width:46px;height:6px;border-radius:3px;background:#EAF0FF;vertical-align:middle;margin-left:6px;overflow:hidden;"><span style="display:block;width:{max(0, min(100, dr["point"])):.0f}%;height:100%;background:{gc};"></span></span>'
+        cells = (f'<td style="{dtd}"><span style="display:inline-block;min-width:22px;padding:1px 0;border-radius:50%;font-weight:900;color:{rk_col};">{i}</span></td><td style="{dtd}color:#3B5BC8;">{dr["code"]}</td>'
+                 f'<td style="{dtd}text-align:left;font-weight:800;color:#1E3A8A;">{dr["name"]}</td><td style="{dtd}font-weight:900;color:#1E3A8A;">{dr["point"]}{pbar}</td>'
                  f'<td style="{dtd}"><span style="display:inline-block;min-width:26px;padding:1px 0;border-radius:8px;background:{DASH_GRADE_BG.get(dr["grade"], "transparent")};border:1px solid {gc};font-weight:900;color:{gc};">{dr["grade"]}</span></td>'
                  f'<td style="{dtd}">{dr["sales"]}</td><td style="{dtd}">{dr["process"]}</td>')
         for c in rk_codes:
             av = dr['achv'][c]; stt = 'ok' if av >= 1 else ('warn' if av >= rk_min(c) else 'bad')
             cells += f'<td style="{dtd}padding:4px 3px;"><span style="display:inline-block;min-width:42px;padding:2px 4px;border-radius:6px;font-weight:800;font-size:12px;color:{DASH_ST_COL[stt]};background:{DASH_ST_BG[stt]};">{av * 100:.0f}%</span></td>'
-        cells += f'<td style="{dtd}font-weight:800;color:#FF80AB;">{dr["note"]}</td>'
+        cells += f'<td style="{dtd}font-weight:800;color:#E0115F;">{dr["note"]}</td>'
         drows += f'<tr style="{outl}">{cells}</tr>'
     dealer_html = (f'<div style="background:{DASH_TEAL};color:#fff;font-size:12px;font-weight:800;letter-spacing:.7px;padding:8px 14px;border-radius:10px 10px 0 0;">{rk_title} — POINT, GRADE & ACHIEVEMENT PER KPI</div>'
-                   f'<div style="overflow-x:auto;border:1px solid #232B3E;border-radius:0 0 10px 10px;background:#0E1117;"><table style="width:100%;border-collapse:collapse;"><thead><tr>'
+                   f'<div style="overflow-x:auto;border:1px solid #8FA8F0;border-radius:0 0 10px 10px;background:#FFFFFF;"><table style="width:100%;border-collapse:collapse;"><thead><tr>'
                    + ''.join(f'<th style="{dth}">{h}</th>' for h in dh) + f'</tr></thead><tbody>{drows}</tbody></table></div>'
-                   f'<div style="font-size:11px;color:#94A3B8;margin-top:6px;">{scheme_note}</div>')
-    return f'<div style="font-family:Source Sans Pro,sans-serif;color:#E2E8F0;">{hero}{spot}{mid}{dealer_html}</div>'
+                   f'<div style="font-size:11px;color:#3B5BC8;margin-top:6px;">{scheme_note}</div>')
+    return f'<div style="font-family:Source Sans Pro,sans-serif;color:#1E3A8A;">{hero}{spot}{mid}{dealer_html}</div>'
 
 
 # ===================== DASHBOARD KPI KOORDINATOR & COUNTER (rumus & bobot = sheet Dashboard MASTER_KPI_KOOR / MASTER_KPI_COUNTER) =====================
@@ -3924,7 +4541,7 @@ def get_focus_entities():
     for d_s, ck in [(df_faktur, 'Koor'), (df_nota, 'Koor'), (df_database, 'Koor'), (df_spk, 'Koor_SPK'), (df_rating, 'Koor')]:
         if d_s is not None and ck in d_s.columns:
             ent_all.update(clean_str(k) for k in d_s[ck].dropna().unique() if clean_str(k) and clean_str(k) not in ['LAIN-LAIN', 'NAN', 'NONE'])
-    focus = [e for e in ent_all if kpi_entity_dealer(e)]
+    focus = [e for e in ent_all - get_resigned_koor() if kpi_entity_dealer(e)]
     key_fn = lambda e: (daftar_dealer.index(kpi_entity_dealer(e)), e)
     return sorted([e for e in focus if not e.upper().startswith('COUNTER')], key=key_fn), sorted([e for e in focus if e.upper().startswith('COUNTER')], key=key_fn)
 
@@ -3957,7 +4574,7 @@ def render_entity_kpi_dashboard(kind, entities, title_txt, sel_key, date_lbl, da
     html_e = build_dashboard_kpi_html(sel, date_lbl, date_short, rows_e, s_e, p_e, t_e, rank_tbl, sel, False, note_e, codes=KPI_ENT_CODES[kind], rank_kind=kind)
     st.markdown(html_e, unsafe_allow_html=True)
     html_e_cap = build_dashboard_kpi_html(sel, date_lbl, date_short, rows_e, s_e, p_e, t_e, rank_tbl, sel, False, note_e, codes=KPI_ENT_CODES[kind], rank_kind=kind, with_rank=False)   # copy/download HD: dashboard saja, tanpa tabel ranking
-    cap_e = f'<div style="width:1320px;background-color:#0E1117;padding:18px 20px;box-sizing:border-box;">{html_e_cap}</div>'
+    cap_e = f'<div style="width:1320px;background-color:#FFFFFF;padding:18px 20px;box-sizing:border-box;">{html_e_cap}</div>'
     render_table_image_buttons(f'cap_dashboard_kpi_{kind}', f'Dashboard_KPI_{lbl}_{sel}_Tgl_{tanggal_akhir}', standalone_html=cap_e)
 
 
@@ -4054,7 +4671,7 @@ def bsg_render_running_text():
     dur = max(18, int(len(txt) * 0.22))   # makin panjang pesan, makin lama durasi agar tetap terbaca
     st.markdown(
         '<style>@keyframes bsgmq{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}'
-        '.bsg-mq{background:linear-gradient(90deg,#4318FF 0%,#1E293B 100%);border:1px solid #2D3748;border-radius:10px;overflow:hidden;white-space:nowrap;margin:0 0 12px 0;padding:8px 0;}'
+        '.bsg-mq{background:linear-gradient(90deg,#4318FF 0%,#3B6BFF 100%);border:1px solid #4318FF;border-radius:10px;overflow:hidden;white-space:nowrap;margin:0 0 12px 0;padding:8px 0;}'
         f'.bsg-mq span{{display:inline-block;padding-left:100%;font-size:15px;font-weight:700;color:#FFFFFF;animation:bsgmq {dur}s linear infinite;}}'
         '.bsg-mq:hover span{animation-play-state:paused;}</style>'
         f'<div class="bsg-mq"><span>📢 {msg}</span></div>', unsafe_allow_html=True)
@@ -4073,6 +4690,26 @@ def bsg_admin_running_text_editor():
         save_json({'text': '', 'active': False}, RUNNING_TEXT_FILE); st.success('✅ Running text dihapus.'); st.rerun()
     st.divider()
 
+# ---------------------------------------------------------------- helper CEK DATA (dipakai menu 🔎 CEK DATA) ----
+def _jb_ok(n_x): return is_mds_dealer(n_x)   # hanya dealer berstatus MDS (Data Lookup kolom AM)
+@st.cache_data(show_spinner=False)
+def _jb_read_nota(path_x, mt_x, lk_mt_x=0.0):   # lk_mt_x = waktu ubah Data Lookup (cache ikut berubah saat lookup diganti)
+    df_t = pd.read_excel(path_x, header=5)
+    df_r = parse_date_cols(pd.read_excel(path_x, header=0) if not any(k in df_t.columns for k in ['Nama Dealer', 'Dealer', 'Tanggal']) else df_t)
+    cdn_x = 'Nama Dealer' if 'Nama Dealer' in df_r.columns else ('Dealer' if 'Dealer' in df_r.columns else None)
+    if not cdn_x: return pd.DataFrame()
+    df_r[cdn_x] = df_r[cdn_x].map(lookup_dealer_name)
+    df_r = df_r[df_r[cdn_x].apply(_jb_ok)].copy(); df_r['_jb'] = df_r[cdn_x].astype(str).str.strip().str.upper()
+    df_r = assign_koor_and_sales(assign_type_from_lookup(df_r, mapping_type_lookup, mapping_type_lookup_nospace, None), tracker=None)   # Koordinator & Type Motor dari Data Lookup
+    return df_r
+
+DD_V_DASH, DD_V_PPT, DD_V_AN = '📊 DASHBOARD', '📑 CREATE PPT', '🧠 ANALISA PROBLEM & PERBAIKAN'
+_dd_view = DD_V_DASH
+if menu_pilihan == DEALER_TAB:   # sub menu Dashboard Dealer: CREATE PPT (semua pengguna) & Analisa Problem dan Perbaikan (hanya kode akses SPV)
+    _dd_opts = [DD_V_DASH, DD_V_PPT] + ([DD_V_AN] if IS_SPV else [])
+    if st.session_state.get('dd_view_sel') not in _dd_opts: st.session_state.pop('dd_view_sel', None)
+    _dd_view = bsg_segmented('Sub menu Dashboard Dealer', _dd_opts, 'dd_view_sel')
+    if _dd_view == DD_V_AN and not IS_SPV: _dd_view = DD_V_DASH
 if menu_pilihan == '🎯 MASTER KPI':
     st.markdown(f'<div class="main-title">DASHBOARD KPI (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Monitoring Target (T.) vs Result (R.) — KPI Dealer, KPI Koordinator & KPI Counter</div>', unsafe_allow_html=True)
 
@@ -4099,7 +4736,7 @@ if menu_pilihan == '🎯 MASTER KPI':
         r_to_t = {r_c: t_c for t_c, r_c in pairs}
         html = [f'<div id="{dom_id}" class="compact-table-wrap"><div class="cap-title-banner">🐺 {title_txt}</div><table class="compact-tbl"><thead><tr>']
         for c in cols_all:
-            bg_th = 'background-color:#1E3A8A;color:#FFFFFF;' if c == name_col else ('background-color:#0F172A;color:#F8FAFC;' if c.startswith('T.') else 'background-color:#1E40AF;color:#FFFFFF;')
+            bg_th = 'background-color:#1E3A8A;color:#FFFFFF;' if c == name_col else ('background-color:#EAF0FF;color:#1E3A8A;' if c.startswith('T.') else 'background-color:#1E40AF;color:#FFFFFF;')
             html.append(f'<th style="{bg_th}">{c}</th>')
         html.append('</tr></thead><tbody>')
         for _, row in df_full.iterrows():
@@ -4113,19 +4750,19 @@ if menu_pilihan == '🎯 MASTER KPI':
                 cell_st = ''
                 if not is_tot:
                     if c == name_col:
-                        cell_st = 'color:#FFFFFF;font-weight:700;'
+                        cell_st = 'color:#1E3A8A;font-weight:700;'
                     elif c.startswith('T.'):
-                        cell_st = 'color:#CBD5E1;background-color:#111827;'
+                        cell_st = 'color:#1E3A8A;background-color:#FFFFFF;'
                     elif c in r_to_t:
                         t_col = r_to_t[c]
                         tv, rv = safe_float(row[t_col]), safe_float(row[c])
                         ideal_cmp = tv if c in ['R. MP', 'R. ACC%', 'R. MYDR'] else (tv * persen_desimal)
                         if tv > 0 and rv >= ideal_cmp:
-                            cell_st = 'background-color:rgba(0,255,102,0.16);color:#00FF66;font-weight:800;'
+                            cell_st = 'background-color:rgba(0,255,102,0.16);color:#12A150;font-weight:800;'
                         elif tv > 0:
-                            cell_st = 'background-color:rgba(255,0,127,0.22);color:#FF80AB;font-weight:800;'
+                            cell_st = 'background-color:rgba(255,0,127,0.22);color:#E0115F;font-weight:800;'
                         else:
-                            cell_st = 'color:#E2E8F0;'
+                            cell_st = 'color:#1E3A8A;'
                 html.append(f'<td style="{cell_st}">{disp_v}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
@@ -4144,21 +4781,23 @@ if menu_pilihan == '🎯 MASTER KPI':
             if str(row[name_col]) == 'TOTAL':
                 return ['background-color: #4318FF; color: #FFFFFF; font-weight: 800'] * len(row)
             styles = []
-            for c in cols_show:
-                if c == name_col:
-                    styles.append('font-weight: 700; color: #FFFFFF')
+            for c in row.index:
+                if c == '✖':
+                    styles.append('')
+                elif c == name_col:
+                    styles.append('font-weight: 700; color: #1E3A8A')
                 elif c.startswith('T.'):
-                    styles.append('color: #CBD5E1; background-color: #141A26')
+                    styles.append('color: #1E3A8A; background-color: #FFFFFF')
                 elif c in r_to_t:
                     t_c = r_to_t[c]
                     tv, rv = safe_float(row[t_c]), safe_float(row[c])
                     ideal_cmp = tv if c in ['R. MP', 'R. ACC%', 'R. MYDR'] else (tv * persen_desimal)
                     if tv > 0 and rv >= ideal_cmp:
-                        styles.append('background-color: rgba(0, 255, 102, 0.16); color: #00FF66; font-weight: 800')
+                        styles.append('background-color: rgba(0, 255, 102, 0.16); color: #12A150; font-weight: 800')
                     elif tv > 0:
-                        styles.append('background-color: rgba(255, 0, 127, 0.22); color: #FF4081; font-weight: 800')
+                        styles.append('background-color: rgba(255, 0, 127, 0.22); color: #E0115F; font-weight: 800')
                     else:
-                        styles.append('color: #E2E8F0')
+                        styles.append('color: #1E3A8A')
                 else:
                     styles.append('')
             return styles
@@ -4171,8 +4810,13 @@ if menu_pilihan == '🎯 MASTER KPI':
                 col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d")
 
         disabled_cols = [c for c in cols_show if c not in edit_cols_sec]
+        _can_del = section_key in ('koor', 'counter')   # kolom ✖ = hapus Koordinator / Counter yang resign
+        df_view = df_full[cols_show].copy()
+        if _can_del:
+            df_view.insert(1, '✖', False)
+            col_cfg['✖'] = st.column_config.CheckboxColumn('✖', width='small', help='Centang lalu klik tombol Hapus di bawah tabel (untuk koordinator / counter yang resign)')
         ed_df = st.data_editor(
-            df_full[cols_show].style.apply(sty_kpi, axis=1),
+            df_view.style.apply(sty_kpi, axis=1),
             hide_index=True,
             use_container_width=True,
             height=calc_table_height(df_full),
@@ -4186,22 +4830,44 @@ if menu_pilihan == '🎯 MASTER KPI':
                 cur_all = load_json(KPI_SAVED_FILE)
                 sec_dict = cur_all.get(section_key, {})
                 td_sync = load_json(TARGET_DEALER_FILE) if section_key == 'dealer' else load_json(TARGET_KOOR_FILE)
+                tj_sync = load_json(JEMBER_TARGET_FILE) if section_key == 'dealer' else {}
                 for _, r in ed_df.iterrows():
                     enm = str(r[name_col])
                     if enm == 'TOTAL': continue
                     sec_dict[enm] = {k_ed: (safe_float(r[k_ed]) if 'ACC%' in k_ed else safe_int(r[k_ed])) for k_ed in edit_cols_sec}
-                    td_sync[enm] = safe_int(r['T. STU'])
+                    if section_key == 'dealer' and enm not in daftar_dealer:
+                        for k_old in [k_ for k_ in tj_sync if _nrm_dlr(k_) == _nrm_dlr(enm)]: tj_sync.pop(k_old, None)
+                        tj_sync[enm] = safe_int(r['T. STU'])
+                    else:
+                        td_sync[enm] = safe_int(r['T. STU'])
                 cur_all[section_key] = sec_dict
                 save_json(cur_all, KPI_SAVED_FILE)
+                if section_key == 'dealer': save_json(tj_sync, JEMBER_TARGET_FILE)
                 save_json(td_sync, TARGET_DEALER_FILE if section_key == 'dealer' else TARGET_KOOR_FILE)
                 st.success(f'✅ Target & Data {title_txt} berhasil disimpan!')
                 st.rerun()
+        if _can_del:
+            _sel_del = [str(r_[name_col]) for _, r_ in ed_df.iterrows() if bool(r_.get('✖')) and str(r_[name_col]) != 'TOTAL']
+            _pk = f'kpi_del_pending_{section_key}'
+            if _sel_del and st.button(f'✖ Hapus {len(_sel_del)} terpilih (resign)', key=f'btn_del_kpi_{section_key}'):
+                st.session_state[_pk] = _sel_del; st.rerun()
+            _pend = st.session_state.get(_pk)
+            if _pend:
+                st.warning('Hapus data **' + ', '.join(_pend) + '**? Target & isian KPI-nya dihapus dan namanya disembunyikan dari tabel Master KPI & Dashboard KPI.')
+                _cy, _cn, _ = st.columns([1, 1, 3])
+                if _cy.button('✅ Ya, hapus', key=f'btn_del_yes_{section_key}', type='primary'):
+                    _all = load_json(KPI_SAVED_FILE); _sd = _all.get(section_key, {}); _tkf = load_json(TARGET_KOOR_FILE)
+                    for _n in _pend: _sd.pop(_n, None); _tkf.pop(_n, None)
+                    _all[section_key] = _sd; save_json(_all, KPI_SAVED_FILE); save_json(_tkf, TARGET_KOOR_FILE)
+                    set_resigned_koor(get_resigned_koor() | {clean_str(x_) for x_ in _pend})
+                    st.session_state.pop(_pk, None); st.success('✅ Data berhasil dihapus: ' + ', '.join(_pend)); st.rerun()
+                if _cn.button('Batal', key=f'btn_del_no_{section_key}'): st.session_state.pop(_pk, None); st.rerun()
         with c_b2:
             cap_id = f'cap_kpi_{section_key}'
             cap_html = build_kpi_capture_html(df_full, name_col, title_txt, cap_id, metric_cols_sec)
             render_table_image_buttons(cap_id, f'{title_txt}_Tgl_{tanggal_akhir}', standalone_html=cap_html)
 
-    df_kpi_dlr_items, df_kpi_dlr_full = build_kpi_section_df(daftar_dealer, 'NAMA DEALER', 'dealer', 'dealer')
+    df_kpi_dlr_items, df_kpi_dlr_full = build_kpi_section_df(get_mds_dealer_list(), 'NAMA DEALER', 'dealer', 'dealer')
     if not df_kpi_dlr_full.empty:
         tot_d = df_kpi_dlr_full.iloc[-1]
         tot_d = df_kpi_dlr_full.iloc[-1]
@@ -4217,6 +4883,7 @@ if menu_pilihan == '🎯 MASTER KPI':
         if d_s is not None and ck in d_s.columns:
             ent_all_kpi.update(clean_str(k) for k in d_s[ck].dropna().unique() if clean_str(k) and clean_str(k) not in ['LAIN-LAIN', 'NAN', 'NONE'])
 
+    ent_all_kpi -= get_resigned_koor()   # koordinator / counter yang sudah dihapus (resign)
     koor_entities = sorted([e for e in ent_all_kpi if not e.upper().startswith('COUNTER')])
     cnt_entities = sorted([e for e in ent_all_kpi if e.upper().startswith('COUNTER')])
 
@@ -4232,6 +4899,14 @@ if menu_pilihan == '🎯 MASTER KPI':
     st.markdown(f'<div class="section-title">{jdl_kpi_3}</div>', unsafe_allow_html=True)
     df_kpi_cnt_items, df_kpi_cnt_full = build_kpi_section_df(cnt_entities, 'NAMA COUNTER', 'counter', 'counter')
     render_kpi_section(df_kpi_cnt_items, df_kpi_cnt_full, 'NAMA COUNTER', 'counter', jdl_kpi_3, '💾 Simpan KPI Counter')
+
+    _rs_now = sorted(get_resigned_koor())
+    if _rs_now:
+        with st.expander(f'♻️ Koordinator / Counter yang dihapus ({len(_rs_now)})', expanded=False):
+            st.caption('Pulihkan bila salah hapus. Target & isian KPI yang sudah dihapus tidak kembali (diisi ulang dari default).')
+            _rs_pick = st.multiselect('Pilih nama untuk dipulihkan:', _rs_now, key='kpi_restore_pick')
+            if st.button('♻️ Pulihkan terpilih', key='btn_kpi_restore', disabled=not _rs_pick):
+                set_resigned_koor(set(_rs_now) - {clean_str(x_) for x_ in _rs_pick}); st.rerun()
 
 elif menu_pilihan == '📊 DASHBOARD KPI':
     st.markdown(f'<div class="main-title">DASHBOARD KPI (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Laporan Key Performance Indicator — poin, grade & capaian tiap KPI (Target & Result dari MASTER KPI)</div>', unsafe_allow_html=True)
@@ -4265,6 +4940,23 @@ elif menu_pilihan == '📊 DASHBOARD KPI':
                 st.success('✅ Input manual KPI berhasil disimpan!')
                 st.rerun()
 
+    with st.expander('🏙️ Input Target Dealer Jember — SIP lain & SENTRAL YAMAHA (di luar 7 dealer SIP inti)', expanded=False):
+        st.caption('Target 7 dealer SIP inti diisi pada tabel KPI Dealer di atas. Dealer lain (SIP lainnya & SENTRAL YAMAHA) diisi di sini; hasilnya dipakai pada menu 🏙️ DASHBOARD JEMBER. Isi target (unit STU) lalu klik Simpan.')
+        _tj_cur = {str(k_).strip().upper(): v_ for k_, v_ in load_json(JEMBER_TARGET_FILE).items()}
+        _tj_core = {str(x_).strip().upper() for x_ in daftar_dealer}
+        _tj_names = set(_tj_cur.keys())
+        if df_faktur_all is not None and not df_faktur_all.empty and 'Nama Dealer' in df_faktur_all.columns:
+            _tj_names |= {str(x_).strip().upper() for x_ in df_faktur_all['Nama Dealer'].dropna().unique() if jember_dealer_ok(x_)}
+        _tj_names = sorted(n_ for n_ in _tj_names if n_ not in _tj_core)
+        if not _tj_names:
+            st.info('ℹ️ Belum ada dealer SIP / SENTRAL YAMAHA lain pada file Faktur. Unggah file Faktur terlebih dahulu.')
+        else:
+            _tj_ed = st.data_editor(pd.DataFrame([{'DEALER': n_, 'TARGET': safe_int(_tj_cur.get(n_, 0))} for n_ in _tj_names]), hide_index=True, use_container_width=True, disabled=['DEALER'],
+                                    column_config={'DEALER': st.column_config.TextColumn('DEALER', width='medium'), 'TARGET': st.column_config.NumberColumn('TARGET (unit STU)', min_value=0, step=1, format='%d')}, key='editor_target_jember')
+            if st.button('💾 Simpan Target Jember', type='primary', key='btn_save_target_jember'):
+                save_json({str(r_['DEALER']): safe_int(r_['TARGET']) for _, r_ in _tj_ed.iterrows()}, JEMBER_TARGET_FILE)
+                st.success('✅ Target dealer Jember tersimpan!'); st.rerun()
+
     inputs_dash = get_dashboard_kpi_inputs()
     rows_sel, s_sel, p_sel, t_sel = kpi_score_entity(inputs_dash[sel_dash], scheme_dash)
     dealer_tbl = []
@@ -4278,7 +4970,7 @@ elif menu_pilihan == '📊 DASHBOARD KPI':
     dash_html = build_dashboard_kpi_html(sel_dash, date_lbl_dash, date_short_dash, rows_sel, s_sel, p_sel, t_sel, dealer_tbl, sel_dash, tanggal_akhir >= 27, note_dash)
     st.markdown(dash_html, unsafe_allow_html=True)
     dash_html_cap = build_dashboard_kpi_html(sel_dash, date_lbl_dash, date_short_dash, rows_sel, s_sel, p_sel, t_sel, dealer_tbl, sel_dash, tanggal_akhir >= 27, note_dash, with_rank=False)   # copy/download HD: dashboard saja, tanpa tabel ranking
-    cap_dash = f'<div style="width:1320px;background-color:#0E1117;padding:18px 20px;box-sizing:border-box;">{dash_html_cap}</div>'
+    cap_dash = f'<div style="width:1320px;background-color:#FFFFFF;padding:18px 20px;box-sizing:border-box;">{dash_html_cap}</div>'
     render_table_image_buttons('cap_dashboard_kpi', f'Dashboard_KPI_{sel_dash}_Tgl_{tanggal_akhir}', standalone_html=cap_dash)
 
     koor_focus, cnt_focus = get_focus_entities()
@@ -4287,7 +4979,764 @@ elif menu_pilihan == '📊 DASHBOARD KPI':
     st.divider()
     render_entity_kpi_dashboard('counter', cnt_focus, f'DASHBOARD KPI COUNTER (1 s.d {tanggal_akhir} {periode_bulan_tahun})', 'sel_dash_kpi_counter', date_lbl_dash, date_short_dash)
 
-elif menu_pilihan == '🏢 STU':
+elif menu_pilihan == CEK_TAB:
+    bsg_render_running_text()
+    st.markdown(f'<div class="main-title">🔎 CEK DATA (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
+    st.caption('Pusat notifikasi & pengecekan data: salesman tanpa Koordinator, pemecahan Point Code, dan hasil Lookup Koordinator / Type Motor / Nama Dealer.')
+    render_unmapped_salesman_alert('cek_data')   # notifikasi salesman yang belum punya Koordinator di Data Lookup
+    with st.expander('🔍 Cek pemecahan Database per Point Code (Sentral → Balung, Nangkaan → Bondowoso)', expanded=False):
+        _pcd = df_database_unfiltered
+        if _pcd is None or _pcd.empty or 'Dealer_File_Asal' not in _pcd.columns: st.caption('Belum ada data Database.')
+        else:
+            _pcd = _pcd[_pcd['Dealer_File_Asal'].isin(['SENTRAL YAMAHA JEMBER', 'SIP NANGKAAN', 'SIP BALUNG', 'SIP BONDOWOSO'])]
+            if _pcd.empty: st.caption('File Database Sentral / Nangkaan belum diunggah.')
+            else:
+                st.dataframe(pd.crosstab(_pcd['Dealer_File_Asal'].rename('FILE ASAL'), _pcd['Nama_Dealer_Clean'].rename('DEALER HASIL LOOKUP'), margins=True, margins_name='TOTAL'), use_container_width=True)
+                st.caption(f'Point Code terbaca di lookup: {len(mapping_point_code):,}. Baris yang Point Code-nya tidak ada di lookup tetap memakai dealer dari nama file.')
+    with st.expander('✅ Cek Lookup — Koordinator, Type Motor & Nama Dealer (Database, Faktur, Nota, SPK)', expanded=False):
+        try: _nt_aud = _jb_read_nota(path_nota, get_file_mtime(path_nota), get_file_mtime(path_lookup)) if path_nota else pd.DataFrame()
+        except Exception: _nt_aud = pd.DataFrame()
+        _aud, _tk_map = [], {}
+        for _fn_a, _d_a, _dc_a, _kc_a in [('DATABASE (type = kolom L)', df_database_alldlr, 'Nama_Dealer_Clean', 'Koor'), ('FAKTUR', df_faktur_all, 'Nama Dealer', 'Koor'), ('NOTA', _nt_aud, '_jb', 'Koor'), ('SPK', df_spk_alldlr, 'Nama_Dealer_SPK', 'Koor_SPK')]:
+            if _d_a is None or _d_a.empty: _aud.append({'FILE': _fn_a, 'BARIS': 0, 'TYPE TERLOOKUP': '-', 'KOORDINATOR TERLOOKUP': '-', 'DEALER TERLOOKUP': '-'}); continue
+            _n_a = len(_d_a)
+            if _kc_a in _d_a.columns and 'Salesman_Clean' in _d_a.columns and _dc_a in _d_a.columns:
+                for (_dl_k, _sm_k), _c_k in _d_a[_d_a[_kc_a].astype(str) == 'LAIN-LAIN'].groupby([_dc_a, 'Salesman_Clean']).size().items():
+                    _tk_map[(str(_dl_k), str(_sm_k))] = max(_tk_map.get((str(_dl_k), str(_sm_k)), 0), int(_c_k))
+            _t_a = int((_d_a['Type_Clean'] != 'LAIN-LAIN').sum()) if 'Type_Clean' in _d_a.columns else 0
+            _k_a = int((_d_a[_kc_a].astype(str) != 'LAIN-LAIN').sum()) if _kc_a in _d_a.columns else 0
+            _dl_a = int(_d_a[_dc_a].astype(str).str.strip().str.upper().apply(lambda x_: _jb_ok(x_) or x_ in daftar_dealer).sum()) if _dc_a in _d_a.columns else 0
+            _aud.append({'FILE': _fn_a, 'BARIS': _n_a, 'TYPE TERLOOKUP': f'{_t_a:,} ({_t_a / _n_a * 100:.1f}%)', 'KOORDINATOR TERLOOKUP': f'{_k_a:,} ({_k_a / _n_a * 100:.1f}%)', 'DEALER TERLOOKUP': f'{_dl_a:,} ({_dl_a / _n_a * 100:.1f}%)'})
+        st.dataframe(pd.DataFrame(_aud), use_container_width=True, hide_index=True)
+        if FILTER_SM_LOG:
+            st.caption('Aturan MDS: hanya salesman yang namanya ada di file Database yang dihitung (Counter tetap dihitung). Baris dengan salesman di luar Database dibuang dari analisa:')
+            st.dataframe(pd.DataFrame([{'FILE': k_, 'BARIS ASAL (MDS)': v_[0], 'DIHITUNG': v_[1], 'DIBUANG': v_[0] - v_[1], 'SALESMAN DIBUANG': ', '.join(sorted(v_[2])[:25]) + (' …' if len(v_[2]) > 25 else '')} for k_, v_ in FILTER_SM_LOG.items()]), use_container_width=True, hide_index=True)
+        elif not DB_SALESMAN: st.caption('File Database belum terbaca — filter salesman Database belum aktif.')
+        if _tk_map:
+            st.warning('Salesman di bawah ini belum punya Koordinator di Data Lookup, sehingga tampil sebagai LAIN-LAIN. Isi nama salesman (persis seperti di file) dan koordinatornya di Data Lookup, lalu unggah ulang.')
+            st.dataframe(pd.DataFrame([{'DEALER': d_, 'SALESMAN': m_, 'BARIS': n_} for (d_, m_), n_ in sorted(_tk_map.items())]), use_container_width=True, hide_index=True, height=300)
+        if unmapped_types_all: st.warning('Type motor belum ada di Data Lookup kolom A (tambahkan beserta kelompoknya di kolom B): ' + ', '.join(sorted(unmapped_types_all)[:40]) + (' …' if len(unmapped_types_all) > 40 else ''))
+        _sm_tk = sorted({m_ for (_d_k, m_) in _tk_map})
+        if _sm_tk: st.warning('Salesman belum punya Koordinator di Data Lookup: ' + ', '.join(_sm_tk[:40]) + (' …' if len(_sm_tk) > 40 else ''))
+        if not unmapped_types_all and not _sm_tk: st.success('Semua type motor & salesman sudah terlookup.')
+
+elif menu_pilihan in (JEMBER_TAB, DEALER_TAB) and _dd_view == DD_V_DASH:
+    _dd_mode = (menu_pilihan == DEALER_TAB); BSG_ONE_ROW = _dd_mode   # DASHBOARD DEALER = isi sama dgn DASHBOARD JEMBER, tapi bisa difilter Dealer / Koor-Counter / Salesman
+    _dd_dealer, _dd_koor, _dd_sales, _dd_lbl = 'SEMUA DEALER', None, None, 'SIP & SENTRAL YAMAHA'
+    _sub_kota, _bm_slot = None, None   # _sub_kota: filter Sub Area Dashboard Jember (None = ALL) | _bm_slot: tempat Benchmark KPI (di bawah drop box)
+    _dd_lvl = 'dealer'   # level baris tabel/grafik: 'dealer' (semua dealer) → 'koor' (dealer dipilih: Koordinator & Counter) → 'sales' (koor dipilih: Salesman)
+    _dd_totname, _dd_tot, _dd_scope, _NM_COL = 'Total Area', 'TOTAL JEMBER', 'DEALER JEMBER (SIP & SENTRAL YAMAHA)', 'NAMA DEALER'
+    bsg_render_running_text()
+    st.markdown(f'<div class="main-title">{"DASHBOARD DEALER" if _dd_mode else "DASHBOARD JEMBER"} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
+    if not _dd_mode:   # Dashboard Jember: drop box Sub Area (default ALL) + Benchmark KPI di bawahnya
+        _sub_opts = {'ALL': None, 'JBR+BDW': {'JEMBER', 'BONDOWOSO'}, 'STB+BWI': {'SITUBONDO', 'BANYUWANGI'}}
+        _sub_sel = st.selectbox('📍 Pilih Sub Area:', list(_sub_opts), index=0, key='jb_sub_area', help='ALL = seluruh MDS Jember · JBR+BDW = MDS kota Jember & Bondowoso · STB+BWI = MDS kota Situbondo & Banyuwangi')
+        _sub_kota = _sub_opts[_sub_sel]
+        if _sub_kota is not None:
+            _sub_nm = {'JBR+BDW': 'MDS KOTA JEMBER & BONDOWOSO', 'STB+BWI': 'MDS KOTA SITUBONDO & BANYUWANGI'}[_sub_sel]
+            _dd_totname, _dd_tot, _dd_scope = f'Total {_sub_sel}', f'TOTAL {_sub_sel}', _sub_nm
+        _bm_slot = st.container()
+    def _jb_sep(jdl_x):   # garis pemisah + judul tabel dalam SATU blok, jarak ke tabel di atas/bawahnya dirapatkan
+        st.markdown(f'<div style="margin:-12px 0 -6px 0;border-top:1px solid #8FA8F0;"><div class="section-title" style="margin:6px 0 0 0 !important;">{jdl_x}</div></div>', unsafe_allow_html=True)
+    if df_faktur_all is None or df_faktur_all.empty or 'Nama Dealer' not in df_faktur_all.columns or 'bulan' not in df_faktur_all.columns:
+        st.info('ℹ️ File Faktur belum diunggah / belum terbaca. Unggah di menu 📁 UPLOAD FILE.')
+    else:
+        _jf = df_faktur_all[df_faktur_all['Nama Dealer'].apply(_jb_ok)].copy()
+        _jf['_jb'] = _jf['Nama Dealer'].astype(str).str.strip().str.upper()
+        _jf_unf = _jf.copy()
+        if _dd_mode:
+            # ---- Dropdown DASHBOARD DEALER: Dealer → Koordinator / Counter → Salesman ----
+            _dd_ALL_K, _dd_ALL_S = 'ALL (SEMUA KOOR / COUNTER)', 'ALL (SEMUA SALESMAN)'
+            def _dd_rows(df_x, dcol, per_month=False):
+                if df_x is None or df_x.empty or dcol not in df_x.columns: return pd.DataFrame()
+                d_ = df_x[df_x[dcol].astype(str).str.strip().str.upper().apply(_jb_ok)]
+                if _dd_dealer != 'SEMUA DEALER': d_ = d_[d_[dcol].astype(str).str.strip().str.upper() == _dd_dealer]
+                if per_month and 'bulan' in d_.columns and 'tahun' in d_.columns: d_ = d_[(d_['bulan'] == current_month) & (d_['tahun'] == current_year)]
+                return d_
+            _dd_srcs = [(_jf_unf, '_jb', False), (df_database_alldlr, 'Nama_Dealer_Clean', True), (df_spk_alldlr, 'Nama_Dealer_SPK', True)]
+            _dd_c1, _dd_c2, _dd_c3 = st.columns(3)
+            with _dd_c1: _dd_dealer = st.selectbox('🏢 Pilih Dealer:', ['SEMUA DEALER'] + sorted(_jf_unf['_jb'].unique()), index=0, key='dd_sel_dealer')
+            _dd_ent = set()
+            for ds_, dc_, pm_ in _dd_srcs:
+                d_ = _dd_rows(ds_, dc_, pm_)
+                for kc_ in ('Koor', 'Koor_SPK'):
+                    if not d_.empty and kc_ in d_.columns: _dd_ent.update(clean_str(v_) for v_ in d_[kc_].dropna().unique() if clean_str(v_) and clean_str(v_) not in ('NAN', 'NONE', 'LAIN-LAIN'))
+            _dd_ent = sorted([e_ for e_ in _dd_ent if not e_.startswith('COUNTER')]) + sorted([e_ for e_ in _dd_ent if e_.startswith('COUNTER')])
+            with _dd_c2: _dd_sel_k = st.selectbox('👤 Pilih Koordinator / Counter:', [_dd_ALL_K] + _dd_ent, index=0, key=f'dd_sel_koor_{_dd_dealer}')
+            _dd_koor = None if _dd_sel_k == _dd_ALL_K else _dd_sel_k
+            _dd_sm = set(); _dd_sm_db = set()
+            for ds_, dc_, pm_ in _dd_srcs:
+                d_ = _dd_rows(ds_, dc_, pm_)
+                if d_.empty or 'Salesman_Clean' not in d_.columns: continue
+                if _dd_koor:
+                    kc_ = 'Koor' if 'Koor' in d_.columns else ('Koor_SPK' if 'Koor_SPK' in d_.columns else None)
+                    d_ = d_[d_[kc_] == _dd_koor] if kc_ else d_.iloc[0:0]
+                v_s = set(clean_str(v_) for v_ in d_['Salesman_Clean'].dropna().unique() if clean_str(v_) and clean_str(v_) not in ('NAN', 'NONE', 'TOTAL'))
+                _dd_sm |= v_s
+                if dc_ == 'Nama_Dealer_Clean': _dd_sm_db = v_s
+            if _dd_sm_db: _dd_sm = {m_ for m_ in _dd_sm if m_ in _dd_sm_db}   # salesman yang sudah tidak ada di Database (resign) tidak ditampilkan
+            with _dd_c3: _dd_sel_s = st.selectbox('🧑 Pilih Salesman:', [_dd_ALL_S] + sorted(_dd_sm), index=0, key=f'dd_sel_sales_{_dd_dealer}_{_dd_koor}', disabled=(_dd_koor is None))
+            _dd_sales = None if (_dd_koor is None or _dd_sel_s == _dd_ALL_S) else _dd_sel_s
+            _dd_lbl = _dd_dealer + (f' · {_dd_koor}' if _dd_koor else '') + (f' · {_dd_sales}' if _dd_sales else '')
+            _dd_lvl = 'sales' if (_dd_koor or _dd_sales) else 'koor'   # Dashboard Dealer selalu membahas Koordinator / Counter (semua dealer atau satu dealer)
+            if _dd_lvl != 'dealer':
+                _dd_totname, _dd_tot, _dd_scope = _dd_lbl.title().replace('Sip ', 'SIP '), f'TOTAL {_dd_lbl}', f'{_dd_lbl} — ' + ('PER KOORDINATOR / COUNTER' if _dd_lvl == 'koor' else 'PER SALESMAN')
+                _NM_COL = 'NAMA KOOR / COUNTER' if _dd_lvl == 'koor' else 'NAMA SALESMAN'
+            st.caption({'dealer': 'ℹ️ Menampilkan data per Koordinator / Counter.', 'koor': f'ℹ️ Menampilkan data per Koordinator / Counter dari **{_dd_dealer}**. Pilih Koordinator / Counter untuk melihat per Salesman.', 'sales': f'ℹ️ Menampilkan data per Salesman dari **{_dd_lbl}**.'}[_dd_lvl])
+            _bm_slot = st.container()   # Benchmark KPI tepat di bawah drop box
+        def _dd_apply(df_x, dcol):
+            """Terapkan pilihan Dealer / Koor-Counter / Salesman pada DataFrame (tidak berpengaruh bila mode Dashboard Jember atau semua pilihan = ALL)."""
+            if df_x is None or df_x.empty: return df_x
+            if _sub_kota is not None:   # Dashboard Jember › Sub Area: hanya dealer (MDS) di kota terpilih
+                if dcol not in df_x.columns: return df_x.iloc[0:0]
+                _ok_n = {n_ for n_ in df_x[dcol].astype(str).unique() if mapping_dealer_kota.get(_nrm_dlr(n_)) in _sub_kota}
+                df_x = df_x[df_x[dcol].astype(str).isin(_ok_n)]
+            if not _dd_mode or df_x.empty: return df_x
+            if _dd_dealer == 'SEMUA DEALER' and not _dd_koor and not _dd_sales: return df_x
+            m_ = pd.Series(True, index=df_x.index)
+            if _dd_dealer != 'SEMUA DEALER':
+                if dcol not in df_x.columns: return df_x.iloc[0:0]
+                m_ &= (df_x[dcol].astype(str).str.strip().str.upper() == _dd_dealer)
+            if _dd_koor:
+                kc_ = 'Koor' if 'Koor' in df_x.columns else ('Koor_SPK' if 'Koor_SPK' in df_x.columns else None)
+                if kc_ is None: return df_x.iloc[0:0]
+                m_ &= (df_x[kc_] == _dd_koor)
+            if _dd_sales:
+                if 'Salesman_Clean' not in df_x.columns: return df_x.iloc[0:0]
+                m_ &= (df_x['Salesman_Clean'] == _dd_sales)
+            return df_x[m_].copy()
+        def _dd_key(df_x, dcol):
+            """Kunci baris tabel/grafik: nama dealer (Dashboard Jember / semua dealer), nama Koordinator-Counter, atau nama Salesman (Dashboard Dealer)."""
+            if df_x is None or df_x.empty: return pd.Series(dtype='object')
+            if not _dd_mode or _dd_lvl == 'dealer': return df_x[dcol].astype(str).str.strip().str.upper()
+            ec_ = 'Salesman_Clean' if _dd_lvl == 'sales' else next((c_ for c_ in ('Koor', 'Koor_SPK') if c_ in df_x.columns), None)
+            if ec_ is None or ec_ not in df_x.columns: return pd.Series([''] * len(df_x), index=df_x.index, dtype='object')
+            return df_x[ec_].astype(str).str.strip().str.upper()
+        _jf = _dd_apply(_jf, '_jb')
+        if _dd_mode and _dd_lvl != 'dealer' and not _jf.empty: _jf['_jb'] = _dd_key(_jf, '_jb')
+        jb_f_c = _jf[(_jf['bulan'] == current_month) & (_jf['tahun'] == current_year) & (_jf['hari'] <= tanggal_akhir)]
+        jb_f_l = _jf[(_jf['bulan'] == last_month) & (_jf['tahun'] == last_month_year) & (_jf['hari'] <= tanggal_akhir)]
+        jb_n_c, jb_n_t = pd.DataFrame(), pd.DataFrame()
+        if path_nota:
+            try:
+                _jn = _jb_read_nota(path_nota, get_file_mtime(path_nota), get_file_mtime(path_lookup))
+                if not _jn.empty and 'bulan' in _jn.columns:
+                    jb_n_c = _jn[(_jn['bulan'] == current_month) & (_jn['tahun'] == current_year) & (_jn['hari'] <= tanggal_akhir)]
+                    jb_n_t = _jn[(_jn['bulan'] == current_month) & (_jn['tahun'] == current_year) & (_jn['hari'] == tanggal_akhir)]
+            except Exception as e_jn: st.caption(f'⚠️ File Nota tidak terbaca untuk Dashboard Jember ({type(e_jn).__name__}).')
+        jb_n_c, jb_n_t = _dd_apply(jb_n_c, '_jb'), _dd_apply(jb_n_t, '_jb')
+        if _dd_mode and _dd_lvl != 'dealer':
+            jb_n_c, jb_n_t = jb_n_c.copy(), jb_n_t.copy()
+            if not jb_n_c.empty: jb_n_c['_jb'] = _dd_key(jb_n_c, '_jb')
+            if not jb_n_t.empty: jb_n_t['_jb'] = _dd_key(jb_n_t, '_jb')
+        _td_master = {str(k_).strip().upper(): v_ for k_, v_ in load_json(TARGET_DEALER_FILE).items()}   # target 7 dealer SIP inti = dari MASTER KPI
+        _td_jember = {str(k_).strip().upper(): v_ for k_, v_ in load_json(JEMBER_TARGET_FILE).items()}   # target dealer lain = input di bawah ini
+        _dl_master = {str(x_).strip().upper() for x_ in daftar_dealer}
+        saved_td_jb = {d_: master_kpi_dealer_target(d_) for d_ in set(_jf['_jb'].unique())}   # TARGET = kolom T. STU di MASTER KPI (tetap, tidak berubah menurut tanggal)
+        if _dd_mode and _dd_lvl != 'dealer':   # target per Koordinator/Counter (Master KPI koor, bila kosong = total target salesman-nya) atau per Salesman (Master Employee)
+            _tk_dd = load_json(TARGET_KOOR_FILE)
+            def _dd_sm_of_koor(k_x):
+                ss_ = set()
+                for ds_, dc_, pm_ in [(_jf_unf, '_jb', False), (df_database_alldlr, 'Nama_Dealer_Clean', True)]:
+                    if ds_ is None or ds_.empty or dc_ not in ds_.columns or 'Salesman_Clean' not in ds_.columns or 'Koor' not in ds_.columns: continue
+                    dd_ = ds_[ds_['Koor'] == k_x]
+                    if _dd_dealer != 'SEMUA DEALER': dd_ = dd_[dd_[dc_].astype(str).str.strip().str.upper() == _dd_dealer]
+                    if pm_ and 'bulan' in dd_.columns and 'tahun' in dd_.columns: dd_ = dd_[(dd_['bulan'] == current_month) & (dd_['tahun'] == current_year)]
+                    ss_ |= set(clean_str(v_) for v_ in dd_['Salesman_Clean'].dropna().unique() if clean_str(v_))
+                return ss_
+            def _dd_tgt(e_x):
+                if _dd_lvl == 'sales': return safe_int(get_auto_sales_target(e_x))
+                if clean_str(e_x) not in ('', 'LAIN-LAIN', 'NAN', 'NONE'): return master_kpi_stu_target(e_x)   # = T. STU di tabel MASTER KPI Koordinator / Counter
+                t_ = safe_int(get_koor_or_counter_target(e_x, _tk_dd))
+                return t_ if t_ > 0 else int(sum(safe_int(get_auto_sales_target(s_)) for s_ in _dd_sm_of_koor(e_x)))   # LAIN-LAIN (tidak ada di Master KPI)
+            saved_td_jb = {e_: _dd_tgt(e_) for e_ in saved_td_jb}
+        st.caption('ℹ️ Target dealer di luar 7 SIP inti (SIP lainnya & SENTRAL YAMAHA) diinput di menu 🎯 MASTER KPI › 🏙️ Input Target Dealer Jember.')
+        def _jsub(df_x, d_x): return df_x[df_x['_jb'] == d_x] if (df_x is not None and not df_x.empty and '_jb' in df_x.columns) else pd.DataFrame()
+        kol_nm_jb = 'KOOR / COUNTER / DEALER'
+        kol_pj_jb = [kol_nm_jb, 'TARGET', 'IDEAL', 'STU', 'NOTA', 'TODAY', col_name_pct, 'GAP TG', 'STU LM', '% LM', 'GAP LM']
+        rows_jb = []
+        for d_jb in sorted(_jf['_jb'].unique()):
+            r_jb = calc_sales_row(d_jb, kol_nm_jb, safe_int(saved_td_jb.get(d_jb, 0)), _jsub(jb_f_c, d_jb), _jsub(jb_f_l, d_jb), _jsub(jb_n_c, d_jb), _jsub(jb_n_t, d_jb))
+            if r_jb['TARGET'] == 0 and r_jb['STU'] == 0 and r_jb['NOTA'] == 0 and r_jb['STU LM'] == 0: continue
+            rows_jb.append(r_jb)
+        if not rows_jb:
+            st.info('ℹ️ Tidak ada data dealer SIP / SENTRAL YAMAHA pada periode ini.')
+        else:
+            jt_pj, jt_pr, jt_ak, jt_sl, jt_mp = st.tabs(['💰 PENJUALAN', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '👥 MAN POWER'])   # sub-menu Dashboard Jember
+            for r_ in rows_jb: r_['_lm_val'] = (r_['STU'] / r_['STU LM'] * 100.0) if r_['STU LM'] > 0 else -1.0
+            df_jb = pd.DataFrame(rows_jb); df_jb['_nt0'] = (df_jb['TARGET'] <= 0)
+            df_jb = df_jb.sort_values(by=['_nt0', '_pct', 'STU'], ascending=[True, True, True]).reset_index(drop=True)   # tabel: STU/TARGET terjelek -> terbaik (tanpa target di bawah)
+            _tg_tot_jb = int(sum(r_['TARGET'] for r_ in rows_jb))
+            if _dd_mode and _dd_lvl == 'koor':   # Dashboard Dealer (level Koordinator/Counter, belum pilih koor): TARGET TOTAL = T. STU DEALER di MASTER KPI, bukan jumlah target koor/counter
+                _tg_dl = [_dd_dealer] if _dd_dealer != 'SEMUA DEALER' else sorted(_jf_unf['_jb'].unique())
+                _tg_tot_jb = int(sum(master_kpi_dealer_target(d_) for d_ in _tg_dl))
+            r_tot_jb = calc_sales_row(_dd_tot, kol_nm_jb, _tg_tot_jb, jb_f_c, jb_f_l, jb_n_c, jb_n_t)
+            if _bm_slot is not None:   # Benchmark KPI: Sub Area (Dashboard Jember) atau Dealer / Koor / Salesman terpilih (Dashboard Dealer)
+                _bm1_html = bsg_benchmark_kpi_html(_dd_scope.split(' — ')[0] if _dd_mode else _dd_scope, r_tot_jb, nota_metrics(jb_n_c), target_persen_harian)
+                def _bm_scope(df_a, dcol):
+                    if df_a is None or df_a.empty or dcol not in df_a.columns or 'hari' not in df_a.columns: return pd.DataFrame()
+                    d_ = df_a[(df_a['bulan'] == current_month) & (df_a['tahun'] == current_year) & (df_a['hari'] <= tanggal_akhir)]
+                    d_ = _dd_apply(d_, dcol)
+                    if d_.empty: return d_
+                    d_ = d_.copy(); d_['_jbk'] = _dd_key(d_, dcol)
+                    return d_[d_['_jbk'].isin({str(n_).strip().upper() for n_ in df_jb[kol_nm_jb]})]
+                _bm2_html = bsg_benchmark_kpi2_html(jb_f_c, _bm_scope(df_database_alldlr, 'Nama_Dealer_Clean'), _bm_scope(df_spk_alldlr, 'Nama_Dealer_SPK'), jb_n_t)
+                with _bm_slot: st.markdown(_bm1_html + _bm2_html, unsafe_allow_html=True)
+            df_jb_full = pd.concat([df_jb, pd.DataFrame([r_tot_jb])], ignore_index=True)
+            with jt_pj:
+                jdl_jb = f'1. TABEL PENJUALAN — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                st.markdown(f'<div class="section-title">{jdl_jb}</div>', unsafe_allow_html=True)
+                _nm_jb = nota_metrics(jb_n_c)
+                _cap_jb = f'<div style="font-size:30px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{'DASHBOARD DEALER — ' + _dd_lbl if _dd_mode else 'DASHBOARD JEMBER — SIP & SENTRAL YAMAHA'} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>' + ((_bm1_html + _bm2_html).replace('class="bmk-grid"', 'class="bmk-grid" style="grid-template-columns:repeat(11,minmax(0,1fr))"') if _bm_slot is not None else '')   # kartu Benchmark KPI (2 baris) ikut tertangkap tombol Copy / Download HD
+                def _jb_growth_chart(df_x):
+                    rws = []
+                    for _, r_ in df_x.iterrows():
+                        stu_, lm_, v_ = int(r_['STU']), int(r_['STU LM']), r_['_lm_val']
+                        if lm_ > 0:
+                            g_ = v_ - 100.0
+                            rws.append({'name': str(r_[kol_nm_jb]), 'val': v_, 'label': f'{g_:+.1f}%', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU {stu_:,} vs bulan lalu {lm_:,}<br>Selisih <b>{stu_ - lm_:+,}</b> unit<br>Kenaikan <b>{g_:+.1f}%</b>"})
+                        else:
+                            rws.append({'name': str(r_[kol_nm_jb]), 'val': 0.0, 'label': 'n/a', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU {stu_:,} · tidak ada pembanding bulan lalu"})
+                    tg_rws = []
+                    for _, r_ in df_x.iterrows():
+                        tg_ = int(r_['TARGET'])
+                        if tg_ <= 0: continue
+                        pc_ = float(r_['_pct'])
+                        tg_rws.append({'name': str(r_[kol_nm_jb]), 'val': pc_, 'label': f'{pc_:.1f}%', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU <b>{int(r_['STU']):,}</b> / Target {tg_:,}<br>Ideal {int(r_['IDEAL']):,} → <b>{int(r_['STU']) - int(r_['IDEAL']):+,}</b><br>Pencapaian <b>{pc_:.1f}%</b>"})
+                    def _mini(c_, n_, ideal_):
+                        return (c_[0], c_[1], 62 + 17 * n_ + (22 if ideal_ else 0)) if c_ else None
+                    _tot_stu = int(r_tot_jb['STU']); _tot_pct = float(r_tot_jb['_pct'])
+                    _tot_lm = (r_tot_jb['STU'] / r_tot_jb['STU LM'] * 100.0) if r_tot_jb['STU LM'] > 0 else 100.0
+                    _idl = float(target_persen_harian)
+                    stu_rws = [{'name': str(r_[kol_nm_jb]), 'val': float(r_['STU']), 'label': f"{int(r_['STU']):,}", 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU <b>{int(r_['STU']):,}</b> · Nota {int(r_['NOTA']):,}"} for _, r_ in df_x.iterrows()]
+                    c_stu = bsg_chart_rank('STU', '', stu_rws, unit='', fixed_color='#2563EB', parts=True, total=f'{_tot_stu:,}', total_color='#2563EB')
+                    nota_rws = [{'name': str(r_[kol_nm_jb]), 'val': float(r_['NOTA']), 'label': f"{int(r_['NOTA']):,}", 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>Nota <b>{int(r_['NOTA']):,}</b> · STU {int(r_['STU']):,}"} for _, r_ in df_x.iterrows()]
+                    c_nota = bsg_chart_rank('Nota', '', nota_rws, unit='', fixed_color='#0891B2', parts=True, total=f"{int(r_tot_jb['NOTA']):,}", total_color='#0891B2')
+                    c_tg = bsg_chart_rank('STU vs Target', '', tg_rws, ideal=_idl, parts=True, ascending=False, total=f'{_tot_pct:.1f}%', total_color=bsg_stat_color(_tot_pct, _idl, _idl * 0.85))
+                    c_lm = bsg_chart_rank('STU vs Bulan Lalu', '', rws, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, ascending=False, scale_max=max([r_['val'] for r_ in rws] + [115.0]), total=f'{_tot_lm - 100.0:+.1f}%', total_color=bsg_stat_color(_tot_lm, 100.0, 85.0))
+                    return [_mini(c_stu, len(stu_rws), None), _mini(c_nota, len(nota_rws), None), _mini(c_tg, len(tg_rws), True), _mini(c_lm, len(rws), True)]
+                def _jb_pies():
+                    _fk_ = df_faktur_kontribusi if df_faktur_kontribusi is not None else df_faktur_all   # SEMUA dealer: hanya untuk menghitung kontribusi MDS
+                    fa_ = _fk_[(_fk_['bulan'] == current_month) & (_fk_['tahun'] == current_year) & (_fk_['hari'] <= tanggal_akhir)]
+                    fl_ = _fk_[(_fk_['bulan'] == last_month) & (_fk_['tahun'] == last_month_year) & (_fk_['hari'] <= tanggal_akhir)]   # periode sama bulan lalu
+                    fa_, fl_ = _dd_apply(fa_, 'Nama Dealer'), _dd_apply(fl_, 'Nama Dealer')
+                    if COL_STATUS not in fa_.columns: return []
+                    def _pie(df_x, df_p, ttl, sub, ctr):
+                        n_m = int((df_x[COL_STATUS] == 'MDS').sum()); n_o = int(len(df_x)) - n_m
+                        p_m = int((df_p[COL_STATUS] == 'MDS').sum()) if (df_p is not None and COL_STATUS in df_p.columns) else 0
+                        p_o = (int(len(df_p)) - p_m) if (df_p is not None and COL_STATUS in df_p.columns) else 0
+                        return bsg_chart_donut(ttl, sub, [('MDS', n_m, '#2563EB'), ('DEALER', n_o, '#12A150')], ctr, parts=True, prev={'MDS': p_m, 'DEALER': p_o}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})')
+                    pies_ = [_pie(fa_, fl_, 'MDS vs Total Penjualan', 'Kontribusi STU MDS terhadap seluruh penjualan', 'Total STU')]
+                    for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
+                        pies_.append(_pie(fa_[fa_[COL_KOTA] == kt_], (fl_[fl_[COL_KOTA] == kt_] if COL_KOTA in fl_.columns else None), f'MDS — Kota {kt_.title()}', f'Kontribusi MDS terhadap total {kt_.title()}', 'STU'))
+                    return [{'group': [c_ for c_ in pies_ if c_], 'cols': 5}]
+                bsg_panel_table(df_jb, df_jb_full, kol_pj_jb, kol_nm_jb, '_pct', 'Jember_Penjualan_SIP_SENTRAL', jdl_jb, _jb_growth_chart, (df_jb,), layout='stackm', cap_header=_cap_jb, bottom_fn=(None if (_dd_mode and _dd_lvl != 'dealer') else _jb_pies), chart_cols='repeat(4,minmax(0,1fr))', no_table=True)   # urutan: STU | Nota | STU vs Target | STU vs LM (grafik dipersempit)
+
+            with jt_pr:
+                # ---- 2. TABEL PROSES KERJA DEALER (tepat di bawah panel pie kontribusi) ----
+                jdl_jb_pr = f'2. TABEL PROSES KERJA DEALER — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                _jb_sep(jdl_jb_pr)
+                kol_pr_jb = _NM_COL
+                _jb_db = df_database_alldlr.copy() if (df_database_alldlr is not None and not df_database_alldlr.empty and 'Nama_Dealer_Clean' in df_database_alldlr.columns and 'hari' in df_database_alldlr.columns) else pd.DataFrame()
+                if not _jb_db.empty: _jb_db = _jb_db[(_jb_db['bulan'] == current_month) & (_jb_db['tahun'] == current_year) & (_jb_db['hari'] <= tanggal_akhir)]
+                _jb_db = _dd_apply(_jb_db, 'Nama_Dealer_Clean')   # Dashboard Dealer: ikuti pilihan dropdown
+                _jb_sp = df_spk_alldlr.copy() if (df_spk_alldlr is not None and not df_spk_alldlr.empty and 'Nama_Dealer_SPK' in df_spk_alldlr.columns and 'hari' in df_spk_alldlr.columns) else pd.DataFrame()
+                if not _jb_sp.empty: _jb_sp = _jb_sp[(_jb_sp['bulan'] == current_month) & (_jb_sp['tahun'] == current_year) & (_jb_sp['hari'] <= tanggal_akhir)]
+                _jb_sp = _dd_apply(_jb_sp, 'Nama_Dealer_SPK')
+                if not _jb_db.empty: _jb_db['_jbk'] = _dd_key(_jb_db, 'Nama_Dealer_Clean')
+                if not _jb_sp.empty: _jb_sp['_jbk'] = _dd_key(_jb_sp, 'Nama_Dealer_SPK')
+                def _jb_pr_row(label, db_s, sp_s, stu_n):
+                    db_n = len(db_s); sp_n = len(sp_s)
+                    hot_n = int((db_s['Data_Type_Clean'] == 'DEAL PROSPECT').sum()) if (db_n and 'Data_Type_Clean' in db_s.columns) else 0
+                    acc_n = int((sp_s['Status_SPK_Clean'] == 'DISETUJUI').sum()) if (sp_n and 'Status_SPK_Clean' in sp_s.columns) else 0
+                    rej_n = int((sp_s['Status_SPK_Clean'] == 'DITOLAK').sum()) if (sp_n and 'Status_SPK_Clean' in sp_s.columns) else 0
+                    open_n = int((sp_s['Status_SPK_Clean'] == 'TERBUKA').sum()) if (sp_n and 'Status_SPK_Clean' in sp_s.columns) else 0
+                    mp_n = int(db_s['Salesman_Clean'].dropna().nunique()) if (db_n and 'Salesman_Clean' in db_s.columns) else 0   # MP = orang yang mengisi database
+                    spk3_n = open_n + acc_n + rej_n   # SPK = TERBUKA + DISETUJUI + DITOLAK
+                    _den = (mp_n * hari_aktif) if mp_n > 0 else 0
+                    avg_db_ = (db_n / _den) if _den else 0.0; avg_hot_ = (hot_n / _den) if _den else 0.0; avg_spk_ = (spk3_n / _den) if _den else 0.0
+                    dbq_ = (hot_n / db_n * 100.0) if db_n > 0 else 0.0; acc_p_ = (acc_n / (acc_n + rej_n) * 100.0) if (acc_n + rej_n) > 0 else 0.0; stu_p_ = (stu_n / db_n * 100.0) if db_n > 0 else 0.0
+                    return {kol_pr_jb: label, 'MP': mp_n, 'AVG DB': f'{avg_db_:.2f}', 'DATABASE': db_n, 'HOT PROSPEK': hot_n, 'AVG HOT': f'{avg_hot_:.2f}', 'SPK': sp_n, 'AVG SPK': f'{avg_spk_:.2f}', 'STU': int(stu_n), 'DB Q': f'{dbq_:.2f}%', 'ACC%': f'{acc_p_:.2f}%', 'STU%': f'{stu_p_:.2f}%', '_stu_pct': stu_p_, '_dbq': dbq_, '_acc': acc_p_, '_open': open_n}
+                _jb_names = [str(r_[kol_nm_jb]) for _, r_ in df_jb.iterrows()]
+                rows_pr_jb = [_jb_pr_row(r_[kol_nm_jb], (_jb_db[_jb_db['_jbk'] == str(r_[kol_nm_jb]).strip().upper()] if not _jb_db.empty else pd.DataFrame()), (_jb_sp[_jb_sp['_jbk'] == str(r_[kol_nm_jb]).strip().upper()] if not _jb_sp.empty else pd.DataFrame()), r_['STU']) for _, r_ in df_jb.iterrows()]
+                _jb_up = {n_.strip().upper() for n_ in _jb_names}
+                tot_pr_jb = _jb_pr_row(_dd_tot, (_jb_db[_jb_db['_jbk'].isin(_jb_up)] if not _jb_db.empty else pd.DataFrame()), (_jb_sp[_jb_sp['_jbk'].isin(_jb_up)] if not _jb_sp.empty else pd.DataFrame()), int(df_jb['STU'].sum()))
+                df_pr_jb_i = pd.DataFrame(rows_pr_jb)
+                df_pr_jb_f = pd.concat([df_pr_jb_i, pd.DataFrame([tot_pr_jb])], ignore_index=True)
+                def _jb_kota_bottom():
+                    """3 grafik batang MDS per 4 kota: DB Quality, Approval Ratio (ACC%), STU Ratio (STU%)."""
+                    if _dd_mode and _dd_lvl != 'dealer':   # Dashboard Dealer: DB Q, Approval Ratio, Open SPK & STU Ratio per Koordinator / Counter (atau Salesman) dari dealer terpilih
+                        _en = 'Salesman' if _dd_lvl == 'sales' else 'Koordinator / Counter'
+                        _tcx = lambda v_, i_: bsg_stat_color(v_, i_, i_ * 0.85)
+                        _nm_e = lambda r_: _esc(str(r_[kol_pr_jb]))
+                        def _rk_e(key, ok_fn, tip_fn): return [{'name': str(r_[kol_pr_jb]), 'val': float(r_[key]), 'label': f"{r_[key]:.1f}%", 'tip': tip_fn(r_)} for r_ in rows_pr_jb if ok_fn(r_)]
+                        _tp = tot_pr_jb
+                        return [bsg_chart_rank(f'Database Quality — per {_en}', 'HOT ÷ DB · garis merah = ideal 30%', _rk_e('_dbq', lambda r_: r_['DATABASE'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>DB Q <b>{r_['_dbq']:.2f}%</b><br>HOT {r_['HOT PROSPEK']:,} / DB {r_['DATABASE']:,}"), ideal=30.0, parts=True, total=f"{_tp['_dbq']:.1f}%", total_color=_tcx(_tp['_dbq'], 30.0)),
+                                bsg_chart_rank(f'Approval Ratio (ACC%) — per {_en}', 'Disetujui ÷ (disetujui + ditolak) · garis merah = ideal 50%', _rk_e('_acc', lambda r_: r_['SPK'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>ACC% <b>{r_['_acc']:.2f}%</b><br>SPK {r_['SPK']:,} · Terbuka {int(r_['_open']):,}"), ideal=50.0, parts=True, total=f"{_tp['_acc']:.1f}%", total_color=_tcx(_tp['_acc'], 50.0)),
+                                bsg_chart_rank(f'Open SPK — per {_en}', 'Jumlah SPK berstatus terbuka (belum disetujui / ditolak)', [{'name': str(r_[kol_pr_jb]), 'val': float(r_['_open']), 'label': f"{int(r_['_open']):,}", 'tip': f"<b>{_nm_e(r_)}</b><br>SPK terbuka <b>{int(r_['_open']):,}</b><br>dari total SPK {r_['SPK']:,}"} for r_ in rows_pr_jb], unit='', fixed_color='#F97316', parts=True, total=f"{int(sum(r_['_open'] for r_ in rows_pr_jb)):,}", total_color='#F97316'),
+                                bsg_chart_rank(f'STU Ratio (STU%) — per {_en}', 'STU ÷ DB · garis merah = ideal 10%', _rk_e('_stu_pct', lambda r_: r_['DATABASE'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>STU% <b>{r_['_stu_pct']:.2f}%</b><br>STU {r_['STU']:,} / DB {r_['DATABASE']:,}"), ideal=10.0, parts=True, total=f"{_tp['_stu_pct']:.1f}%", total_color=_tcx(_tp['_stu_pct'], 10.0))]
+                    kota_rows = []
+                    for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
+                        nms_ = [n_ for n_ in _jb_names if mapping_dealer_kota.get(_nrm_dlr(n_)) == kt_ and (mapping_dealer_status.get(_nrm_dlr(n_)) or 'MDS') == 'MDS']
+                        if not nms_: continue
+                        up_ = {n_.strip().upper() for n_ in nms_}
+                        r_k = _jb_pr_row(f'MDS {kt_.title()}', (_jb_db[_jb_db['_jbk'].isin(up_)] if not _jb_db.empty else pd.DataFrame()), (_jb_sp[_jb_sp['_jbk'].isin(up_)] if not _jb_sp.empty else pd.DataFrame()), int(df_jb[df_jb[kol_nm_jb].isin(nms_)]['STU'].sum()))
+                        r_k['_n'] = len(nms_); kota_rows.append(r_k)
+                    if not kota_rows: return []
+                    _all_n = [n_ for n_ in _jb_names if mapping_dealer_kota.get(_nrm_dlr(n_)) in ('JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI') and (mapping_dealer_status.get(_nrm_dlr(n_)) or 'MDS') == 'MDS']
+                    _all_up = {n_.strip().upper() for n_ in _all_n}
+                    r_all = _jb_pr_row('MDS', (_jb_db[_jb_db['_jbk'].isin(_all_up)] if not _jb_db.empty else pd.DataFrame()), (_jb_sp[_jb_sp['_jbk'].isin(_all_up)] if not _jb_sp.empty else pd.DataFrame()), int(df_jb[df_jb[kol_nm_jb].isin(_all_n)]['STU'].sum()))
+                    _tc = lambda v_, i_: bsg_stat_color(v_, i_, i_ * 0.85)
+                    def _rk(key, lab_fn):
+                        return [{'name': r_[_NM_COL], 'val': r_[key], 'label': f"{r_[key]:.1f}%", 'tip': lab_fn(r_)} for r_ in kota_rows]
+                    return [bsg_chart_rank('Database Quality (DB Q) — MDS 4 Kota', 'HOT ÷ DB · garis merah = ideal 30%', _rk('_dbq', lambda r_: f"<b>{_esc(r_[_NM_COL])}</b> ({r_['_n']} dealer)<br>DB Q <b>{r_['_dbq']:.2f}%</b><br>HOT {r_['HOT PROSPEK']:,} / DB {r_['DATABASE']:,}"), ideal=30.0, parts=True, total=f"{r_all['_dbq']:.1f}%", total_color=_tc(r_all['_dbq'], 30.0)),
+                            bsg_chart_rank('Approval Ratio (ACC%) — MDS 4 Kota', 'Disetujui ÷ (disetujui + ditolak) · garis merah = ideal 50%', _rk('_acc', lambda r_: f"<b>{_esc(r_[_NM_COL])}</b> ({r_['_n']} dealer)<br>ACC% <b>{r_['_acc']:.2f}%</b><br>SPK {r_['SPK']:,}"), ideal=50.0, parts=True, total=f"{r_all['_acc']:.1f}%", total_color=_tc(r_all['_acc'], 50.0)),
+                            bsg_chart_rank('Open SPK — MDS 4 Kota', 'Jumlah SPK berstatus terbuka (belum disetujui / ditolak)', [{'name': r_[_NM_COL], 'val': float(r_['_open']), 'label': f"{int(r_['_open']):,}", 'tip': f"<b>{_esc(r_[_NM_COL])}</b> ({r_['_n']} dealer)<br>SPK terbuka <b>{int(r_['_open']):,}</b><br>dari total SPK {r_['SPK']:,}"} for r_ in kota_rows], unit='', fixed_color='#F97316', parts=True, total=f"{int(sum(r_['_open'] for r_ in kota_rows)):,}", total_color='#F97316'),
+                            bsg_chart_rank('STU Ratio (STU%) — MDS 4 Kota', 'STU ÷ DB · garis merah = ideal 10%', _rk('_stu_pct', lambda r_: f"<b>{_esc(r_[_NM_COL])}</b> ({r_['_n']} dealer)<br>STU% <b>{r_['_stu_pct']:.2f}%</b><br>STU {r_['STU']:,} / DB {r_['DATABASE']:,}"), ideal=10.0, parts=True, total=f"{r_all['_stu_pct']:.1f}%", total_color=_tc(r_all['_stu_pct'], 10.0))]
+                def _jb_proc_charts():
+                    """Pengganti tabel: 5 grafik per dealer (AVG DB, AVG HOT, AVG SPK, ACC%, STU%) + angka total Jember di judul."""
+                    num = lambda v_: float(str(v_).replace('%', '') or 0)
+                    def _mk(title, sub, key, fmt, tip_fn, ideal=None, color=None, warn=None):
+                        rws = [{'name': str(r_[kol_pr_jb]), 'val': num(r_[key]), 'label': fmt.format(num(r_[key])), 'tip': tip_fn(r_, num(r_[key]))} for _, r_ in df_pr_jb_i.iterrows()]
+                        tv_ = num(tot_pr_jb[key])
+                        tc_ = color if color else bsg_stat_color(tv_, ideal, ideal * 0.85)
+                        c_ = bsg_chart_rank(title, sub, rws, ideal=ideal, unit='%' if ideal else '', fixed_color=color, parts=True, total=fmt.format(tv_), total_color=tc_)
+                        return (c_[0], c_[1], 62 + 17 * len(rws) + (22 if ideal else 0)) if c_ else None
+                    _t = lambda lab, extra: (lambda r_, v_: f"<b>{_esc(str(r_[kol_pr_jb]))}</b><br>{lab} <b>{v_:.2f}</b>{extra(r_)}")
+                    return [_mk('AVG DB', 'DB ÷ MP ÷ hari aktif', 'AVG DB', '{:.2f}', _t('AVG DB', lambda r_: f"<br>DB {int(r_['DATABASE']):,} · {int(r_['MP'])} MP"), color='#2563EB'),
+                            _mk('AVG HOT', 'HOT ÷ MP ÷ hari aktif', 'AVG HOT', '{:.2f}', _t('AVG HOT', lambda r_: f"<br>HOT {int(r_['HOT PROSPEK']):,} · {int(r_['MP'])} MP"), color='#F97316'),
+                            _mk('AVG SPK', 'SPK ÷ MP ÷ hari aktif', 'AVG SPK', '{:.2f}', _t('AVG SPK', lambda r_: f"<br>SPK {int(r_['SPK']):,} · {int(r_['MP'])} MP"), color='#12A150'),
+                            _mk('ACC%', 'Disetujui ÷ (disetujui + ditolak)', '_acc', '{:.1f}%', lambda r_, v_: f"<b>{_esc(str(r_[kol_pr_jb]))}</b><br>ACC% <b>{v_:.2f}%</b><br>SPK {int(r_['SPK']):,} · Terbuka {int(r_['_open']):,}", ideal=50.0),
+                            _mk('STU%', 'STU ÷ DB', '_stu_pct', '{:.1f}%', lambda r_, v_: f"<b>{_esc(str(r_[kol_pr_jb]))}</b><br>STU% <b>{v_:.2f}%</b><br>STU {int(r_['STU']):,} / DB {int(r_['DATABASE']):,}", ideal=10.0)]
+                bsg_panel_table(df_pr_jb_i, df_pr_jb_f, [kol_pr_jb, 'MP', 'AVG DB', 'DATABASE', 'HOT PROSPEK', 'AVG HOT', 'SPK', 'AVG SPK', 'STU', 'DB Q', 'ACC%', 'STU%'], kol_pr_jb, '_stu_pct', 'Jember_Proses_Kerja_Dealer', jdl_jb_pr, _jb_proc_charts, (), layout='stackm', bottom_fn=_jb_kota_bottom, chart_cols='repeat(5,minmax(0,1fr))', no_table=True)
+
+            with jt_ak:
+                # ---- 3. TABEL ACTIVITY (Prospect Type) + grafik DB Q, kontribusi HOT, STU% : total & per kota ----
+                jdl_jb_act = f'3. TABEL ACTIVITY — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                _jb_sep(jdl_jb_act)
+                _jb_dbx = _jb_db[_jb_db['_jbk'].isin(_jb_up)].copy() if (not _jb_db.empty and '_jbk' in _jb_db.columns) else pd.DataFrame()
+                _pt_cols_jb = detect_prospect_type_cols(_jb_dbx) if not _jb_dbx.empty else []
+                def _jb_act_panel(d_src, grp, first_col, jdl, label, total_label):
+                    """Satu panel: tabel (kolom pertama = grp) + 3 baris grafik (DB Q, kontribusi HOT, STU%) untuk Total & 4 kota."""
+                    d_x0 = d_src.copy(); d_x0['_pt'] = list(grp)
+                    d_x0['_kt'] = d_x0['_jbk'] if (_dd_mode and _dd_lvl != 'dealer') else d_x0['_jbk'].map({n_.strip().upper(): mapping_dealer_kota.get(_nrm_dlr(n_)) for n_ in _jb_names})
+                    def _av(d_x):
+                        n_db = len(d_x)
+                        n_hot = int((d_x['Data_Type_Clean'] == 'DEAL PROSPECT').sum()) if (n_db and 'Data_Type_Clean' in d_x.columns) else 0
+                        n_stu = int((d_x['STU'] == 'STU').sum()) if (n_db and 'STU' in d_x.columns) else 0
+                        return {'db': n_db, 'hot': n_hot, 'dbq': (n_hot / n_db * 100.0 if n_db else 0.0), 'stu': n_stu, 'stup': (n_stu / n_db * 100.0 if n_db else 0.0)}
+                    order_ = list(d_x0['_pt'].value_counts().index)   # urut DB terbanyak
+                    col_ = {p_: BSG_PAL[k_ % len(BSG_PAL)] for k_, p_ in enumerate(order_)}
+                    rows_ = []
+                    for p_ in order_:
+                        v_ = _av(d_x0[d_x0['_pt'] == p_])
+                        rows_.append({first_col: p_, 'DB': v_['db'], 'HOT': v_['hot'], 'DB Q': f"{v_['dbq']:.2f}%", 'STU': v_['stu'], 'STU%': f"{v_['stup']:.2f}%", '_stu_pct': v_['stup']})
+                    vt_ = _av(d_x0)
+                    df_i_ = pd.DataFrame(rows_)
+                    df_f_ = pd.concat([df_i_, pd.DataFrame([{first_col: total_label, 'DB': vt_['db'], 'HOT': vt_['hot'], 'DB Q': f"{vt_['dbq']:.2f}%", 'STU': vt_['stu'], 'STU%': f"{vt_['stup']:.2f}%", '_stu_pct': vt_['stup']}])], ignore_index=True)
+                    areas_ = [('Total', d_x0)]   # Total + 4 kota (yang punya data)
+                    for kt_ in (list(dict.fromkeys(d_x0['_kt'].dropna())) if (_dd_mode and _dd_lvl != 'dealer') else ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']):
+                        d_k = d_x0[d_x0['_kt'] == kt_]
+                        if not d_k.empty: areas_.append((kt_.title(), d_k))
+                    tcol_ = lambda v_, i_: bsg_stat_color(v_, i_, i_ * 0.85)
+                    def _rank(metric, ttl_, ideal_):
+                        out_ = []
+                        for nm_, d_a in areas_:
+                            rws_ = []
+                            for p_ in order_:
+                                d_p = d_a[d_a['_pt'] == p_]
+                                if d_p.empty: continue
+                                v_ = _av(d_p)
+                                rws_.append({'name': p_, 'val': v_[metric], 'label': f'{v_[metric]:.1f}%', 'tip': f"<b>{_esc(p_)}</b> · {_esc(nm_)}<br>{ttl_} <b>{v_[metric]:.2f}%</b><br>DB {v_['db']:,} · HOT {v_['hot']:,} · STU {v_['stu']:,}"})
+                            tv_ = _av(d_a)[metric]
+                            c_ = bsg_chart_rank(f'{ttl_} {nm_}', '', rws_, ideal=ideal_, unit='%', parts=True, total=f'{tv_:.1f}%', total_color=tcol_(tv_, ideal_))
+                            if c_: out_.append((c_[0], c_[1], 62 + 17 * len(rws_) + 22))
+                        return out_
+                    pies_ = []
+                    if 'Data_Type_Clean' in d_x0.columns:
+                        for nm_, d_a in areas_:
+                            its_ = [(p_, float(((d_a['_pt'] == p_) & (d_a['Data_Type_Clean'] == 'DEAL PROSPECT')).sum()), col_[p_]) for p_ in order_]
+                            its_ = [t_ for t_ in its_ if t_[1] > 0]
+                            if its_: pies_.append(bsg_chart_donut(f'Kontribusi HOT {nm_}', '', its_, 'HOT', parts=True))
+                    bt_ = [{'group': g_, 'cols': 5} for g_ in (_rank('dbq', 'DB Q', 30.0), [c_ for c_ in pies_ if c_], _rank('stup', 'STU%', 10.0)) if g_]
+                    tbl_ = build_compact_html_string(df_i_, df_f_, [first_col, 'DB', 'HOT', 'DB Q', 'STU', 'STU%'], first_col, '_stu_pct', 'PN_' + label, ultra_compact=True, title_text=None, highlight_names=None, wrap_first=False)
+                    doc_, h_ = bsg_panel(tbl_, [], 'stackm', jdl, label, n_rows=len(df_f_), bottom=bt_, bottom_cols='minmax(0,1fr)')   # 1 panel = tabel + 3 baris grafik, 1 tombol Copy/Download
+                    _PANEL_REG[label] = doc_
+                    components.html(doc_, height=h_, scrolling=False)
+                if _jb_dbx.empty or not _pt_cols_jb:
+                    st.info('ℹ️ Belum ada data Database / Prospect Type pada periode ini.')
+                else:
+                    _jb_act_panel(_jb_dbx, _jb_dbx[_pt_cols_jb[0]].apply(lambda v_: clean_str(v_) or '(KOSONG)'), 'PROSPECT TYPE', jdl_jb_act, 'Jember_Activity', _dd_tot)
+
+                # ---- 4. TABEL ACTIVITY — SUB PROSPECT TYPE khusus EVENT (dikelompokkan jadi kategori umum) ----
+                jdl_jb_sub = f'4. TABEL ACTIVITY SUB PROSPECT — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                _jb_sep(jdl_jb_sub)
+                # aturan pengelompokan: urutan penting (cocok pertama dipakai). Ubah/tambah kata kunci di sini bila perlu.
+                _EV_CLUSTER = [
+                    ('DEALER ATTACK', [r'ATTACK', r'ATTAK', r'\bDA\b']),   # paling atas: 'Dealer Attack Pos Tenda' dll tetap masuk Dealer Attack
+                    ('POS TENDA', [r'POS\s*TENDA', r'TENDA', r'\bPOS\b']),
+                    ('CARFUN', [r'CAR\s*FUN']),
+                    ('CAR FREE DAY', [r'CAR\s*FREE', r'\bCFD\b']),
+                    ('EXPO MALL', [r'EXPO', r'\bMALL?\b', r'PAMERAN', r'PLAZA', r'BAZ+AR']),
+                    ('ROADSHOW', [r'ROAD\s*SHOW']),
+                    ('TEST RIDE', [r'TEST\s*(RIDE|DRIVE)']),
+                    ('KOMUNITAS', [r'KOMUNITAS', r'COMMUNITY', r'\bCLUB\b', r'TOURING', r'GATHERING']),
+                    ('SEKOLAH / KAMPUS', [r'SEKOLAH', r'\bSM[AKP]\b', r'KAMPUS', r'UNIV', r'MAHASISWA']),
+                    ('PASAR', [r'PASAR']),
+                    ('INSTANSI / KANTOR', [r'INSTANSI', r'KANTOR', r'PERUSAHAAN', r'PABRIK']),
+                    ('SPBU', [r'SPBU', r'POM\s*BENSIN']),
+                ]
+                def _ev_cluster(v_):
+                    t_ = re.sub(r'\s+', ' ', strip_sub_code(v_) or '').strip().upper()   # tanpa kode di depan
+                    if not t_: return '(KOSONG)'
+                    for nm_, pats_ in _EV_CLUSTER:
+                        if any(re.search(p_, t_) for p_ in pats_): return nm_
+                    return t_   # tidak bisa digeneralisir -> apa adanya
+                _sub_cols_jb = [c_ for c_ in _jb_dbx.columns if alnum_str(c_).startswith('SUBPROSPECT')] or ([_jb_dbx.columns[7]] if _jb_dbx.shape[1] > 7 else [])
+                if _jb_dbx.empty or not _pt_cols_jb or not _sub_cols_jb:
+                    st.info('ℹ️ Belum ada data Sub Prospect Type pada periode ini.')
+                else:
+                    _pt_all = _jb_dbx[_pt_cols_jb[0]].apply(lambda v_: clean_str(v_) or '(KOSONG)')
+                    _pt_opts = ['SEMUA'] + sorted(set(_pt_all.unique()))
+                    _sf1, _sf2 = st.columns([1, 3])
+                    with _sf1: jb_sub_sel = st.selectbox('Filter Prospect Type', _pt_opts, index=0, key='jb_sub_pt_filter', help='SEMUA = seluruh Prospect Type. Pilih salah satu untuk melihat Sub Prospect Type dari Prospect Type tersebut saja.')
+                    _jb_ev = _jb_dbx if jb_sub_sel == 'SEMUA' else _jb_dbx[_pt_all == jb_sub_sel]
+                    if _jb_ev.empty:
+                        st.info(f'ℹ️ Belum ada data Prospect Type {jb_sub_sel} pada periode ini.')
+                    else:
+                        _ev_raw = _jb_ev[_sub_cols_jb[0]].apply(lambda v_: re.sub(r'\s+', ' ', strip_sub_code(v_) or '(KOSONG)').strip().upper())
+                        _ev_grp = _jb_ev[_sub_cols_jb[0]].apply(_ev_cluster)
+                        _jb_act_panel(_jb_ev, _ev_grp, 'SUB PROSPECT TYPE', jdl_jb_sub, 'Jember_Activity_Sub_Event', 'TOTAL SUB PROSPECT' if jb_sub_sel == 'SEMUA' else f'TOTAL {jb_sub_sel}')
+                        with st.expander('🔎 Cek pengelompokan Sub Prospect (asli → kelompok)'):
+                            _map_df = pd.DataFrame({'SUB PROSPECT (ASLI)': _ev_raw.values, 'KELOMPOK': _ev_grp.values}).groupby(['KELOMPOK', 'SUB PROSPECT (ASLI)']).size().reset_index(name='JUMLAH DB').sort_values(['KELOMPOK', 'JUMLAH DB'], ascending=[True, False])
+                            st.dataframe(_map_df, hide_index=True, use_container_width=True)
+                            st.caption('Nama yang tidak cocok aturan ditampilkan apa adanya (tanpa kode di depan). Aturan ada di variabel _EV_CLUSTER pada app.py.')
+
+            with jt_sl:
+                # ---- 5. TABEL ANALISA SPK DAN LEASING (paling bawah Dashboard Jember) ----
+                jdl_jb_sl = f'5. TABEL ANALISA SPK DAN LEASING — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                _jb_sep(jdl_jb_sl)
+                _jb_sl_l = df_spk_alldlr.copy() if (df_spk_alldlr is not None and not df_spk_alldlr.empty and 'Nama_Dealer_SPK' in df_spk_alldlr.columns and 'hari' in df_spk_alldlr.columns) else pd.DataFrame()
+                if not _jb_sl_l.empty:
+                    _jb_sl_l = _jb_sl_l[(_jb_sl_l['bulan'] == last_month) & (_jb_sl_l['tahun'] == last_month_year) & (_jb_sl_l['hari'] <= tanggal_akhir)]   # periode sama bulan lalu
+                    _jb_sl_l = _dd_apply(_jb_sl_l, 'Nama_Dealer_SPK')
+                    _jb_sl_l['_jbk'] = _dd_key(_jb_sl_l, 'Nama_Dealer_SPK')
+                def _jb_sl_row(label, s_c, s_l, f_c):
+                    _ok = lambda d_, c_: (d_ is not None and not d_.empty and c_ in d_.columns)
+                    _cnt = lambda st_: int((s_c['Status_SPK_Clean'] == st_).sum()) if _ok(s_c, 'Status_SPK_Clean') else 0
+                    acc_n, rej_n, opn_n = _cnt('DISETUJUI'), _cnt('DITOLAK'), _cnt('TERBUKA')
+                    spk_n, spk_lm = (len(s_c) if s_c is not None else 0), (len(s_l) if s_l is not None else 0)
+                    grw_ = (spk_n / spk_lm * 100.0) if spk_lm > 0 else 0.0   # sama dgn kolom GROWTH di tabel SPK & Leasing (SPK ÷ SPK LM)
+                    acc_p_ = (acc_n / (acc_n + rej_n) * 100.0) if (acc_n + rej_n) > 0 else 0.0
+                    _spk_l = lambda l_: int((s_c['Leasing_SPK_Clean'] == l_).sum()) if _ok(s_c, 'Leasing_SPK_Clean') else 0
+                    _stu_l = lambda l_: int((f_c['Leasing_Faktur_Clean'] == l_).sum()) if _ok(f_c, 'Leasing_Faktur_Clean') else 0
+                    kredit_n = int(sum(v_ for k_, v_ in f_c['Leasing_Faktur_Clean'].value_counts().items() if k_ not in ('CASH', '', None))) if _ok(f_c, 'Leasing_Faktur_Clean') else 0   # STU KREDIT = faktur non-cash
+                    return {_NM_COL: label, 'SPK': spk_n, 'SPK LM': spk_lm, 'GRW': f'{grw_:.2f}%', 'OPEN SPK': opn_n, 'ACC %': f'{acc_p_:.2f}%', 'ACC': acc_n, 'STU KREDIT': kredit_n,
+                            'SPK BAF': _spk_l('BAF'), 'STU BAF': _stu_l('BAF'), 'SPK ADIRA': _spk_l('ADIRA'), 'STU ADIRA': _stu_l('ADIRA'), 'SPK SOF': _spk_l('SOF'), 'FAKTUR SOF': _stu_l('SOF'), '_acc_val': acc_p_}
+                def _jb_sl_sub(d_x, nm_x, col_x): return d_x[d_x[col_x] == nm_x] if (d_x is not None and not d_x.empty and col_x in d_x.columns) else pd.DataFrame()
+                rows_sl_jb = [_jb_sl_row(n_, _jb_sl_sub(_jb_sp, n_.strip().upper(), '_jbk'), _jb_sl_sub(_jb_sl_l, n_.strip().upper(), '_jbk'), _jb_sl_sub(jb_f_c, n_.strip().upper(), '_jb')) for n_ in _jb_names]
+                tot_sl_jb = _jb_sl_row(_dd_tot, (_jb_sp[_jb_sp['_jbk'].isin(_jb_up)] if not _jb_sp.empty else pd.DataFrame()), (_jb_sl_l[_jb_sl_l['_jbk'].isin(_jb_up)] if not _jb_sl_l.empty else pd.DataFrame()), (jb_f_c[jb_f_c['_jb'].isin(_jb_up)] if (jb_f_c is not None and not jb_f_c.empty and '_jb' in jb_f_c.columns) else pd.DataFrame()))
+                df_sl_jb_i = pd.DataFrame(rows_sl_jb)
+                df_sl_jb_f = pd.concat([df_sl_jb_i, pd.DataFrame([tot_sl_jb])], ignore_index=True)
+                kol_sl_jb = [_NM_COL, 'SPK', 'SPK LM', 'GRW', 'OPEN SPK', 'ACC %', 'ACC', 'STU KREDIT', 'SPK BAF', 'STU BAF', 'SPK ADIRA', 'STU ADIRA', 'SPK SOF', 'FAKTUR SOF']
+                _jb_sl_grp = [('TOTAL AREA', _jb_up)]   # Total area + MDS per kota (aturan sama dengan grafik MDS 4 kota di Tabel Proses Kerja)
+                for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
+                    _jb_sl_grp.append((f'MDS {kt_.title()}', {n_.strip().upper() for n_ in _jb_names if mapping_dealer_kota.get(_nrm_dlr(n_)) == kt_ and (mapping_dealer_status.get(_nrm_dlr(n_)) or 'MDS') == 'MDS'}))
+                if _dd_mode and _dd_lvl != 'dealer': _jb_sl_grp = [('TOTAL AREA', _jb_up)] + [(n_.strip().title() if len(n_) > 0 else n_, {n_.strip().upper()}) for n_ in _jb_names]   # Total + masing-masing Koor/Counter atau Salesman
+                _JB_LSG = [('BAF', '#2563EB'), ('ADIRA', '#12A150'), ('SOF', '#F97316'), ('IMFI', '#DC2626')]
+                def _jb_sl_g(up_):
+                    s_c_ = _jb_sp[_jb_sp['_jbk'].isin(up_)] if (not _jb_sp.empty and up_) else pd.DataFrame()
+                    s_l_ = _jb_sl_l[_jb_sl_l['_jbk'].isin(up_)] if (not _jb_sl_l.empty and up_) else pd.DataFrame()
+                    return s_c_, s_l_
+                def _jb_sl_cnt(d_, l_, st_=None):
+                    if d_ is None or d_.empty or 'Leasing_SPK_Clean' not in d_.columns: return 0
+                    m_ = (d_['Leasing_SPK_Clean'] == l_)
+                    if st_ is not None: m_ = m_ & ((d_['Status_SPK_Clean'] == st_) if 'Status_SPK_Clean' in d_.columns else False)
+                    return int(m_.sum())
+                def _jb_sl_pies():
+                    """Donut kontribusi leasing terhadap total SPK: Total Area + MDS 4 kota (format sama dengan donut MDS di atas)."""
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        s_c_, s_l_ = _jb_sl_g(up_)
+                        its_ = [(l_, _jb_sl_cnt(s_c_, l_), c_) for l_, c_ in _JB_LSG]
+                        pv_ = {l_: _jb_sl_cnt(s_l_, l_) for l_, _ in _JB_LSG}
+                        ln_, ln_l = max(0, len(s_c_) - sum(v_ for _, v_, _ in its_)), max(0, len(s_l_) - sum(pv_.values()))
+                        if ln_ > 0 or ln_l > 0: its_.append(('LAINNYA', ln_, '#94A3B8')); pv_['LAINNYA'] = ln_l
+                        out_.append(bsg_chart_donut('Kontribusi Leasing — Total SPK' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing — {lb_}', 'Porsi SPK per leasing', its_, 'SPK', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                def _jb_sl_acc():
+                    """Grafik ACC% per leasing (BAF, ADIRA, SOF, IMFI): Total Area + MDS 4 kota."""
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        s_c_, _x = _jb_sl_g(up_)
+                        rows_ = []
+                        for l_, _c in _JB_LSG:
+                            a_, r_, o_ = _jb_sl_cnt(s_c_, l_, 'DISETUJUI'), _jb_sl_cnt(s_c_, l_, 'DITOLAK'), _jb_sl_cnt(s_c_, l_, 'TERBUKA')
+                            p_ = (a_ / (a_ + r_) * 100.0) if (a_ + r_) > 0 else 0.0
+                            rows_.append({'name': l_, 'val': p_, 'label': f'{p_:.1f}%', 'tip': f"<b>{l_}</b> — {_esc(lb_)}<br>ACC% <b>{p_:.2f}%</b><br>Disetujui {a_:,} · Ditolak {r_:,} · Terbuka {o_:,}<br>SPK {_jb_sl_cnt(s_c_, l_):,}"})
+                        ta_ = int((s_c_['Status_SPK_Clean'] == 'DISETUJUI').sum()) if (not s_c_.empty and 'Status_SPK_Clean' in s_c_.columns) else 0
+                        tr_ = int((s_c_['Status_SPK_Clean'] == 'DITOLAK').sum()) if (not s_c_.empty and 'Status_SPK_Clean' in s_c_.columns) else 0
+                        tp_ = (ta_ / (ta_ + tr_) * 100.0) if (ta_ + tr_) > 0 else 0.0
+                        out_.append(bsg_chart_rank(f'ACC% per Leasing — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'ACC% per Leasing — {lb_}', 'Disetujui ÷ (disetujui + ditolak)', rows_, ideal=50.0, parts=True, total=f'{tp_:.1f}%', total_color=bsg_stat_color(tp_, 50.0, 42.5)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                def _jb_sl_gf(up_):
+                    f_c_ = jb_f_c[jb_f_c['_jb'].isin(up_)] if (jb_f_c is not None and not jb_f_c.empty and up_) else pd.DataFrame()
+                    f_l_ = jb_f_l[jb_f_l['_jb'].isin(up_)] if (jb_f_l is not None and not jb_f_l.empty and up_) else pd.DataFrame()
+                    return f_c_, f_l_
+                def _jb_sl_kredit(d_):   # faktur kredit = leasing bukan CASH / kosong
+                    if d_ is None or d_.empty or 'Leasing_Faktur_Clean' not in d_.columns: return pd.DataFrame()
+                    return d_[~d_['Leasing_Faktur_Clean'].isin(['CASH', '', 'NAN', 'NONE', '-'])]
+                def _jb_sl_stu_pies():
+                    """Donut kontribusi leasing dalam STU KREDIT: Total Area + MDS 4 kota."""
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        f_c_, f_l_ = [_jb_sl_kredit(x_) for x_ in _jb_sl_gf(up_)]
+                        vc_c = f_c_['Leasing_Faktur_Clean'].value_counts() if not f_c_.empty else pd.Series(dtype='int64')
+                        vc_l = f_l_['Leasing_Faktur_Clean'].value_counts() if not f_l_.empty else pd.Series(dtype='int64')
+                        its_ = [(l_, int(vc_c.get(l_, 0)), c_) for l_, c_ in _JB_LSG]
+                        pv_ = {l_: int(vc_l.get(l_, 0)) for l_, _ in _JB_LSG}
+                        ln_, ln_l = int(vc_c.sum()) - sum(v_ for _, v_, _ in its_), int(vc_l.sum()) - sum(pv_.values())
+                        if ln_ > 0 or ln_l > 0: its_.append(('LAINNYA', ln_, '#94A3B8')); pv_['LAINNYA'] = ln_l
+                        out_.append(bsg_chart_donut('Kontribusi Leasing STU Kredit — Total' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing STU Kredit — {lb_}', 'Porsi STU kredit per leasing', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                bsg_panel_table(df_sl_jb_i, df_sl_jb_f, kol_sl_jb, _NM_COL, '_acc_val', 'Jember_Analisa_SPK_Leasing', jdl_jb_sl, None, (), layout='stack', bottom_fn=lambda: [_jb_sl_pies(), _jb_sl_acc(), _jb_sl_stu_pies()], bottom_cols='minmax(0,1fr)')   # tabel → donut kontribusi leasing → grafik ACC% per leasing (1 panel, jarak rapat)
+                st.caption('ℹ️ GRW = SPK ÷ SPK bulan lalu (periode sama). ACC % = Disetujui ÷ (Disetujui + Ditolak). STU KREDIT = faktur non-cash. SPK per leasing dari file SPK; STU/Faktur per leasing dari file Faktur.')
+
+                # ---- 6. FILTER LEASING → DONUT ACC BY DP & STU KREDIT BY TYPE ----
+                _JB_LSG_OPT = ['ALL LEASING', 'BAF', 'ADIRA', 'SOF', 'IMFI']
+                _jb_sep('6. ACC BY DP, STU KREDIT BY TYPE & REJECT REASON — PER LEASING')
+                _jb_f1, _jb_f2 = st.columns([1, 3])
+                with _jb_f1: jb_lsg_sel = st.selectbox('Filter Leasing', _JB_LSG_OPT, index=0, key='jb_lsg_filter', help='Berlaku untuk donut ACC by DP dan STU Kredit by Type di bawahnya.')
+                def _jb_lsg_apply(d_, col_l, col_k=None):
+                    if d_ is None or d_.empty or jb_lsg_sel == 'ALL LEASING': return d_
+                    return d_[d_[col_l] == jb_lsg_sel] if col_l in d_.columns else d_.iloc[0:0]
+                def _jb_num(v_):
+                    if v_ is None or (isinstance(v_, float) and pd.isna(v_)): return None
+                    if isinstance(v_, (int, float)): return float(v_)
+                    t_ = re.sub(r'[^\d.,-]', '', str(v_))
+                    if not t_ or t_ in ('-', '.', ','): return None
+                    if ',' in t_ and '.' in t_:
+                        dec_ = ',' if t_.rfind(',') > t_.rfind('.') else '.'
+                        t_ = t_.replace('.' if dec_ == ',' else ',', '').replace(dec_, '.')
+                    else:
+                        for sp_ in (',', '.'):
+                            if sp_ in t_:
+                                t_ = t_.replace(sp_, '') if (t_.count(sp_) > 1 or len(t_.split(sp_)[-1]) == 3) else t_.replace(sp_, '.')
+                    try: return float(t_)
+                    except Exception: return None
+                def _jb_dp_lbl(v_):
+                    if v_ >= 1e6: return (f'{v_ / 1e6:.2f}'.rstrip('0').rstrip('.')).replace('.', ',') + ' jt'
+                    return f'{v_ / 1e3:,.0f}'.replace(',', '.') + ' rb' if v_ > 0 else 'Rp 0'
+                _PAL_JB = ['#2563EB', '#12A150', '#F97316', '#DC2626', '#7C3AED', '#0891B2', '#CA8A04']
+                _JB_DP_IDX = 15   # DP Pricelist = file SPK kolom P (A=0 … P=15)
+                _spk_acc = _jb_sp[_jb_sp['Status_SPK_Clean'] == 'DISETUJUI'] if (not _jb_sp.empty and 'Status_SPK_Clean' in _jb_sp.columns) else pd.DataFrame()
+                if not _jb_sp.empty and _jb_sp.shape[1] > _JB_DP_IDX: st.caption(f'DP Pricelist = file SPK kolom P (header: **{_jb_sp.columns[_JB_DP_IDX]}**), SPK bulan ini berstatus DISETUJUI.')
+                def _jb_dp_series(d_):
+                    if d_ is None or d_.empty or d_.shape[1] <= _JB_DP_IDX: return pd.Series(dtype='object')
+                    col_ = d_.iloc[:, _JB_DP_IDX]
+                    return col_.apply(_jb_num), col_
+                _JB_DP_CL = [('DP < 5 JT', '#2563EB'), ('DP 5 – 10 JT', '#12A150'), ('DP ≥ 10 JT', '#F97316')]
+                def _jb_dp_cl(v_):   # cluster DP pricelist: < 5 jt | 5 jt s.d < 10 jt | ≥ 10 jt
+                    if v_ is None or pd.isna(v_): return 'TANPA DP'
+                    return _JB_DP_CL[0][0] if v_ < 5e6 else (_JB_DP_CL[1][0] if v_ < 10e6 else _JB_DP_CL[2][0])
+                def _jb_dp_counts(d_):
+                    """→ dict cluster → jumlah SPK disetujui (kolom P file SPK)."""
+                    r_ = _jb_dp_series(d_)
+                    if isinstance(r_, pd.Series) or d_ is None or d_.empty: return {}
+                    nums_, _raw = r_
+                    return nums_.apply(_jb_dp_cl).value_counts().to_dict()
+                def _jb_acc_spk(up_):   # SPK bulan ini berstatus DISETUJUI milik grup dealer, sesuai filter leasing
+                    s_c_ = _jb_sl_g(up_)[0]
+                    if s_c_.empty or 'Status_SPK_Clean' not in s_c_.columns: return pd.DataFrame()
+                    return _jb_lsg_apply(s_c_[s_c_['Status_SPK_Clean'] == 'DISETUJUI'], 'Leasing_SPK_Clean', '_jbk')
+                def _jb_dp_pies():
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        cc_ = _jb_dp_counts(_jb_acc_spk(up_))
+                        its_ = [(l_, int(cc_.get(l_, 0)), c_) for l_, c_ in _JB_DP_CL]
+                        if int(cc_.get('TANPA DP', 0)) > 0: its_.append(('TANPA DP', int(cc_['TANPA DP']), '#CBD5E1'))
+                        out_.append(bsg_chart_donut(f'ACC by DP — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'ACC by DP — {lb_}', 'Porsi SPK disetujui per cluster DP pricelist', its_, 'ACC', parts=True, keep_zero=True))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                _TYPE_PAL = {'AT PREMIUM': '#2563EB', 'AT CLASSY': '#12A150', 'AT LPM': '#F97316', 'MOPED': '#DC2626', 'OTHERS': '#94A3B8'}
+                def _jb_type_grp(d_):
+                    if d_ is None or d_.empty: return pd.Series(dtype='object')
+                    if 'Type_Clean' not in d_.columns: return pd.Series(['OTHERS'] * len(d_), index=d_.index)
+                    return d_['Type_Clean'].where(d_['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'MOPED']), 'OTHERS')
+                def _jb_type_pies():
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        f_c_, f_l_ = [_jb_lsg_apply(_jb_sl_kredit(x_), 'Leasing_Faktur_Clean', '_jb') for x_ in _jb_sl_gf(up_)]
+                        vc_c, vc_l = _jb_type_grp(f_c_).value_counts(), _jb_type_grp(f_l_).value_counts()
+                        its_ = [(t_, int(vc_c.get(t_, 0)), c_) for t_, c_ in _TYPE_PAL.items()]
+                        pv_ = {t_: int(vc_l.get(t_, 0)) for t_ in _TYPE_PAL}
+                        out_.append(bsg_chart_donut(f'STU Kredit by Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'STU Kredit by Type — {lb_}', 'Porsi STU kredit per type', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                def _jb_rej_df(d_):   # SPK berstatus DITOLAK (+ filter leasing); alasan = file SPK kolom S (Alasan_Reject_Clean)
+                    if d_ is None or d_.empty or 'Status_SPK_Clean' not in d_.columns or 'Alasan_Reject_Clean' not in d_.columns: return pd.DataFrame()
+                    return _jb_lsg_apply(d_[d_['Status_SPK_Clean'] == 'DITOLAK'], 'Leasing_SPK_Clean')
+                def _jb_rej_pies():
+                    """Donut Reject Reason: Total Area + MDS 4 kota. Urutan & warna alasan sama di kelima pie."""
+                    dat_ = [(lb_, _jb_rej_df(_jb_sl_g(up_)[0]), _jb_rej_df(_jb_sl_g(up_)[1])) for lb_, up_ in _jb_sl_grp]
+                    tot_ = {}
+                    for _lb, d_c, _dl in dat_:
+                        if not d_c.empty:
+                            for k_, v_ in d_c['Alasan_Reject_Clean'].value_counts().items(): tot_[str(k_)] = tot_.get(str(k_), 0) + int(v_)
+                    pal_ = {k_: BSG_PAL[i_ % len(BSG_PAL)] for i_, (k_, _v) in enumerate(sorted(tot_.items(), key=lambda t_: -t_[1]))}
+                    out_ = []
+                    for lb_, d_c, d_l in dat_:
+                        ttl_ = f'Reject Reason — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'Reject Reason — {lb_}'
+                        if d_c.empty: out_.append(bsg_chart_donut(ttl_, '', [('Tidak ada reject', 0, '#64748B')], 'Reject', parts=True, keep_zero=True)); continue
+                        vc_ = d_c['Alasan_Reject_Clean'].value_counts()
+                        pv_ = {str(k_): int(v_) for k_, v_ in d_l['Alasan_Reject_Clean'].value_counts().items()} if not d_l.empty else {}
+                        out_.append(bsg_chart_donut(ttl_, '', [(str(k_), int(v_), pal_.get(str(k_), '#64748B')) for k_, v_ in vc_.items()], 'Reject', parts=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                bsg_panel_table(pd.DataFrame({'x': [1]}), pd.DataFrame({'x': [1]}), ['x'], 'x', 'x', 'Jember_ACC_DP_STU_Type', f'ACC BY DP, STU KREDIT BY TYPE & REJECT REASON — {jb_lsg_sel} (1 s.d {tanggal_akhir} {periode_bulan_tahun})', None, (), layout='stack', no_table=True, bottom_fn=lambda: [_jb_dp_pies(), _jb_type_pies(), _jb_rej_pies()], bottom_cols='minmax(0,1fr)')
+                st.caption('ℹ️ ACC by DP = SPK bulan ini berstatus DISETUJUI per cluster DP pricelist (< 5 jt, 5 jt s.d < 10 jt, ≥ 10 jt). STU Kredit by Type = faktur non-cash per kelompok type. Reject Reason = alasan pada file SPK kolom S untuk SPK berstatus DITOLAK. SPK tunai dan batal tidak dihitung.')
+
+            with jt_pj:
+                # ---- 7. TABEL PENJUALAN BY TYPE (STU per dealer per kelompok type) ----
+                jdl_jb_ty = f'7. PENJUALAN BY TYPE — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                _jb_sep(jdl_jb_ty)
+                _JB_TY = ['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'OTHERS']   # MOPED dan type lain masuk OTHERS agar jumlah baris = total STU dealer
+                def _jb_ty_row(label, f_x):
+                    if f_x is not None and not f_x.empty and 'Type_Clean' in f_x.columns: tg_ = f_x['Type_Clean'].where(f_x['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM']), 'OTHERS')
+                    else: tg_ = pd.Series(['OTHERS'] * (0 if (f_x is None or f_x.empty) else len(f_x)), dtype='object')
+                    r_ = {_NM_COL: label}
+                    for t_ in _JB_TY: r_[f'STU {t_}'] = int((tg_ == t_).sum())
+                    r_['_tot'] = sum(r_[f'STU {t_}'] for t_ in _JB_TY)
+                    return r_
+                _jb_fk = lambda n_x: jb_f_c[jb_f_c['_jb'] == n_x.strip().upper()] if (jb_f_c is not None and not jb_f_c.empty and '_jb' in jb_f_c.columns) else pd.DataFrame()
+                df_ty_jb_i = pd.DataFrame([_jb_ty_row(n_, _jb_fk(n_)) for n_ in _jb_names])
+                _jb_fk_t = jb_f_c[jb_f_c['_jb'].isin(_jb_up)] if (jb_f_c is not None and not jb_f_c.empty and '_jb' in jb_f_c.columns) else pd.DataFrame()
+                df_ty_jb_f = pd.concat([df_ty_jb_i, pd.DataFrame([_jb_ty_row(_dd_tot, _jb_fk_t)])], ignore_index=True)
+                kol_ty_jb = [_NM_COL, 'STU AT PREMIUM', 'STU AT CLASSY', 'STU AT LPM', 'STU OTHERS']
+                _jb_fl_ty = lambda n_x: jb_f_l[jb_f_l['_jb'] == n_x.strip().upper()] if (jb_f_l is not None and not jb_f_l.empty and '_jb' in jb_f_l.columns) else pd.DataFrame()
+                df_ty_lm_jb = pd.DataFrame([_jb_ty_row(n_, _jb_fl_ty(n_)) for n_ in _jb_names])   # STU bulan lalu (periode sama) per dealer per type
+                _ty_tot_lm = _jb_ty_row(_dd_tot, jb_f_l[jb_f_l['_jb'].isin(_jb_up)] if (jb_f_l is not None and not jb_f_l.empty and '_jb' in jb_f_l.columns) else pd.DataFrame())
+                def _jb_ty_charts():
+                    """6 grafik di kanan tabel (kiri→kanan): STU AT PREM | vs LM | STU CLASSY | vs LM | STU AT LPM | vs LM. Tiap grafik diurut terbaik → terburuk."""
+                    out_ = []
+                    _mini_ty = lambda c_, n_, ideal_: (c_[0], c_[1], 62 + 17 * n_ + (22 if ideal_ else 0)) if c_ else None
+                    for t_, nm_t, c_t in [('AT PREMIUM', 'AT PREM', '#2563EB'), ('AT CLASSY', 'CLASSY', '#12A150'), ('AT LPM', 'AT LPM', '#F97316')]:
+                        k_ = f'STU {t_}'
+                        r_stu, r_lm = [], []
+                        for i_ in range(len(df_ty_jb_i)):
+                            nm_ = str(df_ty_jb_i.loc[i_, _NM_COL]); s_ = int(df_ty_jb_i.loc[i_, k_]); l_ = int(df_ty_lm_jb.loc[i_, k_])
+                            r_stu.append({'name': nm_, 'val': float(s_), 'label': f'{s_:,}', 'tip': f"<b>{_esc(nm_)}</b><br>STU {t_} <b>{s_:,}</b><br>Bulan lalu {l_:,}"})
+                            if l_ > 0: r_lm.append({'name': nm_, 'val': s_ / l_ * 100.0, 'label': f'{s_ / l_ * 100.0 - 100.0:+.1f}%', 'tip': f"<b>{_esc(nm_)}</b><br>{t_}: {s_:,} vs bulan lalu {l_:,}<br>Selisih <b>{s_ - l_:+,}</b> unit<br>Kenaikan <b>{s_ / l_ * 100.0 - 100.0:+.1f}%</b>"})
+                            else: r_lm.append({'name': nm_, 'val': -1.0, 'label': 'n/a', 'tip': f"<b>{_esc(nm_)}</b><br>{t_}: {s_:,} · tidak ada pembanding bulan lalu"})
+                        tot_s = int(df_ty_jb_f.iloc[-1][k_]); tot_l = int(_ty_tot_lm[k_]); lm_p = (tot_s / tot_l * 100.0) if tot_l > 0 else 100.0
+                        out_.append(_mini_ty(bsg_chart_rank(f'STU {nm_t}', '', r_stu, unit='', fixed_color=c_t, parts=True, total=f'{tot_s:,}', total_color=c_t), len(r_stu), None))
+                        out_.append(_mini_ty(bsg_chart_rank(f'STU {nm_t} vs LM', '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{lm_p - 100.0:+.1f}%', total_color=bsg_stat_color(lm_p, 100.0, 85.0)), len(r_lm), True))
+                    return out_
+                def _jb_ty_dbq_df(up_):   # database bulan ini milik grup dealer
+                    return _jb_db[_jb_db['_jbk'].isin(up_)] if (not _jb_db.empty and up_) else pd.DataFrame()
+                def _jb_ty_db_pies():
+                    """Pie Database per Type motor: Total Area + MDS 4 kota."""
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        vc_ = _jb_type_grp(_jb_ty_dbq_df(up_)).value_counts()
+                        out_.append(bsg_chart_donut(f'Database per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'Database per Type — {lb_}', 'Total dealer terpilih' if lb_ == 'TOTAL AREA' else 'Kontribusi Koordinator / Counter', [(t_, int(vc_.get(t_, 0)), c_) for t_, c_ in _TYPE_PAL.items()], 'Database', parts=True, keep_zero=True))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': (5 if not (_dd_mode and _dd_lvl != 'dealer') else max(1, min(len(out_), 6)))}
+                def _jb_ty_dbq_pies():
+                    """Grafik DB Quality per type motor = DATABASE HOT PROSPECT (Data Type DEAL PROSPECT) per type ÷ TOTAL DATABASE type tsb × 100 (2 desimal): Total Area + MDS 4 kota."""
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        d_ = _jb_ty_dbq_df(up_)
+                        if d_.empty: continue
+                        grp_ = _jb_type_grp(d_)
+                        is_hot_ = (d_['Data_Type_Clean'] == 'DEAL PROSPECT') if 'Data_Type_Clean' in d_.columns else pd.Series(False, index=d_.index)
+                        rows_ = []
+                        for t_ in _TYPE_PAL:
+                            m_ = (grp_ == t_); n_t = int(m_.sum())
+                            if n_t == 0: continue
+                            h_t = int((m_ & is_hot_).sum()); p_ = h_t / n_t * 100.0
+                            rows_.append({'name': t_, 'val': p_, 'label': f'{p_:.2f}%', 'tip': f"<b>{t_}</b> — {_esc(lb_)}<br>DB Quality <b>{p_:.2f}%</b><br>HOT PROSPECT {h_t:,} ÷ Database {n_t:,}"})
+                        n_all = len(d_); h_all = int(is_hot_.sum()); dq_ = (h_all / n_all * 100.0) if n_all else 0.0
+                        out_.append(bsg_chart_rank(f'DB Quality per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'DB Quality per Type — {lb_}', '', rows_, ideal=30.0, parts=True, total=f'{dq_:.2f}%', total_color=bsg_stat_color(dq_, 30.0, 20.0)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                def _jb_ty_acc_charts():
+                    """Grafik ACC% per type motor (SPK disetujui ÷ (disetujui + ditolak)): Total Area + MDS 4 kota."""
+                    out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        s_c_ = _jb_sl_g(up_)[0]
+                        if s_c_.empty or 'Status_SPK_Clean' not in s_c_.columns: continue
+                        grp_ = _jb_type_grp(s_c_); rows_ = []
+                        for t_ in _TYPE_PAL:
+                            m_ = (grp_ == t_)
+                            a_, r_, o_ = int((m_ & (s_c_['Status_SPK_Clean'] == 'DISETUJUI')).sum()), int((m_ & (s_c_['Status_SPK_Clean'] == 'DITOLAK')).sum()), int((m_ & (s_c_['Status_SPK_Clean'] == 'TERBUKA')).sum())
+                            if a_ + r_ + o_ == 0: continue
+                            p_ = (a_ / (a_ + r_) * 100.0) if (a_ + r_) > 0 else None
+                            rows_.append({'name': t_, 'val': (p_ if p_ is not None else -1.0), 'label': (f'{p_:.1f}%' if p_ is not None else 'n/a'), 'tip': f"<b>{t_}</b> — {_esc(lb_)}<br>ACC% <b>{(p_ if p_ is not None else 0.0):.2f}%</b><br>Disetujui {a_:,} · Ditolak {r_:,} · Terbuka {o_:,}"})
+                        ta_ = int((s_c_['Status_SPK_Clean'] == 'DISETUJUI').sum()); tr_ = int((s_c_['Status_SPK_Clean'] == 'DITOLAK').sum()); tp_ = (ta_ / (ta_ + tr_) * 100.0) if (ta_ + tr_) > 0 else 0.0
+                        out_.append(bsg_chart_rank(f'ACC% per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'ACC% per Type — {lb_}', '', rows_, ideal=50.0, parts=True, total=f'{tp_:.1f}%', total_color=bsg_stat_color(tp_, 50.0, 42.5)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                bsg_panel_table(df_ty_jb_i, df_ty_jb_f, kol_ty_jb, _NM_COL, '_tot', 'Jember_Penjualan_By_Type', jdl_jb_ty, _jb_ty_charts, (), layout='stackm', chart_cols='repeat(6,minmax(0,1fr))', bottom_fn=lambda: [_jb_ty_db_pies(), _jb_ty_dbq_pies(), _jb_ty_acc_charts()], bottom_cols='minmax(0,1fr)', no_table=True)   # tabel dihapus; 6 grafik melebar penuh; di bawahnya: DB per type, DB Quality (grafik), ACC% per type
+                st.caption('ℹ️ STU = jumlah faktur (kredit + cash) periode berjalan. STU OTHERS = semua type di luar AT PREMIUM, AT CLASSY, AT LPM (termasuk MOPED). Grafik diurut terbaik → terburuk; vs LM = STU ÷ STU bulan lalu periode sama. DB Quality per type = Database HOT PROSPECT (Data Type DEAL PROSPECT) ÷ total Database type tsb (ideal 30%). ACC% per type dari file SPK. Area = Total Area + MDS 4 kota.')
+
+            with jt_mp:
+                # ---- 8. TABEL MAN POWER MDS JEMBER + grafik MP Health / Prod Health + pie grading ----
+                _dd_mp_ttl = 'MDS JEMBER' if _dd_lvl == 'dealer' else _dd_scope
+                jdl_jb_mp = f'MAN POWER {_dd_mp_ttl} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                _jb_sep(jdl_jb_mp)
+                kol_mp_jb = [_NM_COL, 'TARGET DEALER', 'RESULT STU', 'JUMLAH MP', 'PRODUCTIVITY', 'TARGET STU MP', 'MP HEALTH', 'PROD HEALTH']
+                def _jb_mp_row(label, tg_dlr, stu_n, mp_set):
+                    n_mp = len(mp_set)
+                    tg_mp = int(sum(safe_int(get_auto_sales_target(sm_)) for sm_ in mp_set))   # Target STU MP = total target semua salesman (MP) dealer tsb
+                    prod_ = (stu_n / n_mp) if n_mp > 0 else 0.0                                   # Productivity = Result STU / Jumlah MP
+                    tg_per_mp = (tg_mp / n_mp) if n_mp > 0 else 0.0                               # target rata-rata per MP
+                    mph_ = (tg_mp / tg_dlr * 100.0) if tg_dlr > 0 else 0.0                        # MP Health = Target STU MP / Target Dealer
+                    prh_ = (prod_ / tg_per_mp * 100.0) if tg_per_mp > 0 else 0.0                  # Productivity Health = Productivity / (Target STU MP / Jumlah MP)
+                    return {_NM_COL: label, 'TARGET DEALER': int(tg_dlr), 'RESULT STU': int(stu_n), 'JUMLAH MP': n_mp, 'PRODUCTIVITY': f'{prod_:.2f}', 'TARGET STU MP': tg_mp, 'MP HEALTH': f'{mph_:.2f}%', 'PROD HEALTH': f'{prh_:.2f}%', '_mph': mph_, '_prh': prh_, '_prod': prod_}
+                def _jb_mp_set(up_):   # MP = salesman unik yang mengisi database (sama dgn kolom MP di Tabel Proses Kerja)
+                    d_ = _jb_db[_jb_db['_jbk'].isin(up_)] if (not _jb_db.empty and up_ and 'Salesman_Clean' in _jb_db.columns) else pd.DataFrame()
+                    return set(str(v_) for v_ in d_['Salesman_Clean'].dropna().unique() if str(v_).strip() and str(v_).strip().upper() not in ('NAN', 'NONE', 'TOTAL')) if not d_.empty else set()
+                _tg_by_dlr = {str(r_[kol_nm_jb]).strip().upper(): safe_int(r_['TARGET']) for _, r_ in df_jb.iterrows()}
+                _stu_by_dlr = {str(r_[kol_nm_jb]).strip().upper(): safe_int(r_['STU']) for _, r_ in df_jb.iterrows()}
+                df_mp_jb_i = pd.DataFrame([_jb_mp_row(n_, _tg_by_dlr.get(n_.strip().upper(), 0), _stu_by_dlr.get(n_.strip().upper(), 0), _jb_mp_set({n_.strip().upper()})) for n_ in _jb_names])
+                df_mp_jb_f = pd.concat([df_mp_jb_i, pd.DataFrame([_jb_mp_row(_dd_tot, int(df_mp_jb_i['TARGET DEALER'].sum()), int(df_mp_jb_i['RESULT STU'].sum()), _jb_mp_set(_jb_up))])], ignore_index=True)
+                def _jb_mp_charts():
+                    """Grafik di kanan tabel: MP Health (ideal 120%) | Productivity Health (ideal 80%). Diurut terbaik → terburuk."""
+                    out_ = []
+                    _mini_mp = lambda c_, n_: (c_[0], c_[1], 62 + 17 * n_ + 22) if c_ else None
+                    tot_ = df_mp_jb_f.iloc[-1]
+                    for ttl_, key_, ideal_, tip_ in [('MP Health', '_mph', 120.0, lambda r_: f"Target STU MP {int(r_['TARGET STU MP']):,} ÷ Target Dealer {int(r_['TARGET DEALER']):,}"),
+                                                     ('Productivity Health', '_prh', 80.0, lambda r_: f"Productivity {r_['PRODUCTIVITY']} ÷ Target/MP ({int(r_['TARGET STU MP']):,} ÷ {int(r_['JUMLAH MP'])} MP)")]:
+                        rws_ = [{'name': str(r_[_NM_COL]), 'val': float(r_[key_]), 'label': f'{float(r_[key_]):.1f}%', 'tip': f"<b>{_esc(str(r_[_NM_COL]))}</b><br>{ttl_} <b>{float(r_[key_]):.2f}%</b><br>{tip_(r_)}"} for _, r_ in df_mp_jb_i.iterrows()]
+                        tv_ = float(tot_[key_])
+                        out_.append(_mini_mp(bsg_chart_rank(ttl_, '', rws_, ideal=ideal_, parts=True, total=f'{tv_:.1f}%', total_color=bsg_stat_color(tv_, ideal_, ideal_ * 0.85)), len(rws_)))
+                    return out_
+                _EMP_GRD = [('PLATINUM', '#2563EB'), ('GOLD', '#F59E0B'), ('TRAINING', '#94A3B8')]
+                def _jb_emp_grade_map():
+                    """Grading salesman dari file Master Employee (kolom C = Nama, kolom F = Posisi: PLATINUM / GOLD / TRAINING)."""
+                    m_ = {}
+                    try:
+                        if path_employee and os.path.exists(path_employee):
+                            df_e_ = pd.read_csv(path_employee, header=None) if path_employee.lower().endswith('.csv') else pd.read_excel(path_employee, header=None)
+                            if df_e_.shape[1] >= 6:
+                                for i_ in range(len(df_e_)):
+                                    nm_, pos_ = clean_str(df_e_.iloc[i_, 2]), clean_str(df_e_.iloc[i_, 5])
+                                    g_ = next((g__ for g__, _c in _EMP_GRD if g__ in pos_), None)
+                                    if nm_ and g_: m_[alnum_str(nm_)] = g_
+                    except Exception: pass
+                    return m_
+                def _jb_mp_grade_pies():
+                    """Pie kontribusi grading MP (counter tidak dihitung): Total Area + MDS 4 kota."""
+                    gm_ = _jb_emp_grade_map(); out_ = []
+                    for lb_, up_ in _jb_sl_grp:
+                        cnt_ = {g_: 0 for g_, _c in _EMP_GRD}
+                        for sm_ in _jb_mp_set(up_):
+                            if is_counter_personnel(sm_): continue
+                            g_ = gm_.get(alnum_str(clean_str(sm_)))
+                            if g_: cnt_[g_] += 1
+                        out_.append(bsg_chart_donut(f'Grading MP — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'Grading MP — {lb_}', '', [(g_, cnt_[g_], c_) for g_, c_ in _EMP_GRD], 'MP', parts=True, keep_zero=True))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                bsg_panel_table(df_mp_jb_i, df_mp_jb_f, kol_mp_jb, _NM_COL, '_mph', 'Jember_Man_Power_MDS', jdl_jb_mp, _jb_mp_charts, (), layout='sidecmx', chart_cols='repeat(2,minmax(0,1fr))', grid_cols='max-content minmax(0,1fr)', bottom_fn=lambda: [_jb_mp_grade_pies()], bottom_cols='minmax(0,1fr)')
+                st.caption('ℹ️ Result STU = STU dealer periode berjalan. Productivity = Result STU ÷ Jumlah MP. MP Health = Target STU MP ÷ Target Dealer (ideal 120%). Productivity Health = Productivity ÷ (Target STU MP ÷ Jumlah MP) (ideal 80%). Grading MP dari file Master Employee kolom Posisi (PLATINUM / GOLD / TRAINING); counter tidak dihitung dan MP yang posisinya bukan ketiga grade itu tidak masuk pie.')
+
+
+
+elif menu_pilihan == DEALER_TAB and _dd_view in (DD_V_PPT, DD_V_AN):   # fasilitas CREATE PPT & Analisa (dulu di menu STU) kini di Dashboard Dealer
     bsg_render_running_text()
     col_sel_d, col_sel_k, col_sel_s = st.columns(3)
     with col_sel_d: dlr_pil = st.selectbox('🏢 Pilih Dealer untuk Review:', ['TOTAL BUSHIDO'] + daftar_dealer, index=0)
@@ -4331,18 +5780,20 @@ elif menu_pilihan == '🏢 STU':
     sub_hdr_text = f'Rekapitulasi Terpadu Penjualan, Proses Kerja, SPK Leasing, Penjualan Per Type & Detail Salesman {scope_txt} (Acuan Ideal: DB Quality 30% | STU% 10% | ACC% 50%)'
     _hd_l, _hd_r = st.columns([4, 1.25])
     with _hd_l: st.markdown(f'<div class="main-title">{main_hdr_text}</div><div class="sub-title">{sub_hdr_text}</div>', unsafe_allow_html=True)
-    with _hd_r:
-        st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
-        _ppt_click = st.button('📑 CREATE PPT', key='btn_create_ppt', type='primary', use_container_width=True, help=f'Buat PowerPoint dari {_TPL_NAME} untuk: {_ppt_dealer} (sesuai dropdown dealer). Isi mengikuti hasil analisa dashboard.')
-        _ppt_slot = st.container()
-        _ppt_tpl_up = st.file_uploader(f'Template PPT tidak ditemukan di folder app — unggah {_TPL_NAME}', type=['pptx'], key='ppt_tpl_up') if _tp_find_template() is None else None
-    with st.expander('🖼️ Gambar dashboard untuk PPT (opsional) — agar tampilan PPT sama persis dengan dashboard'):
-        st.caption('1) Klik **Download SEMUA gambar** → terunduh 1 file ZIP berisi gambar panel dealer yang sedang tampil + Dashboard KPI. '
-                   '2) Untuk slide 9–18 (koordinator & counter terlemah): Dashboard KPI keduanya sudah ikut di ZIP pertama. Agar panel penjualan/salesman/aktifitas keduanya juga ada, pilih koordinator terlemah lalu counter terlemah di dropdown **Koordinator / Counter**, klik tombol yang sama lagi (nama keduanya disebut di bawah). '
-                   '3) Unggah semua file ZIP di kotak bawah, lalu klik CREATE PPT. Slide yang gambarnya lengkap memakai gambar dashboard; sisanya memakai tabel otomatis.')
-        _ppt_dl_ph = st.empty()
-        _ppt_dl_ph.caption('⏳ Tombol Download SEMUA gambar disiapkan setelah seluruh tabel selesai dimuat. Jika tombol tidak muncul setelah halaman selesai, ada error di bagian bawah halaman — scroll ke bawah dan kirim pesan errornya.')
-        _ppt_imgs_up = st.file_uploader('Unggah file ZIP (atau JPG/PNG)', type=['zip', 'jpg', 'jpeg', 'png'], accept_multiple_files=True, key='ppt_imgs_up')
+    _ppt_click, _ppt_dl_ph, _ppt_slot, _ppt_tpl_up, _ppt_imgs_up = False, None, st.container(), None, None
+    if _dd_view == DD_V_PPT:
+        with _hd_r:
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+            _ppt_click = st.button('📑 CREATE PPT', key='btn_create_ppt', type='primary', use_container_width=True, help=f'Buat PowerPoint dari {_TPL_NAME} untuk: {_ppt_dealer} (sesuai dropdown dealer). Isi mengikuti hasil analisa dashboard.')
+            _ppt_slot = st.container()
+            _ppt_tpl_up = st.file_uploader(f'Template PPT tidak ditemukan di folder app — unggah {_TPL_NAME}', type=['pptx'], key='ppt_tpl_up') if _tp_find_template() is None else None
+        with st.expander('🖼️ Gambar dashboard untuk PPT (opsional) — agar tampilan PPT sama persis dengan dashboard'):
+            st.caption('1) Klik **Download SEMUA gambar** → terunduh 1 file ZIP berisi gambar panel dealer yang sedang tampil + Dashboard KPI. '
+                       '2) Untuk slide 9–18 (koordinator & counter terlemah): Dashboard KPI keduanya sudah ikut di ZIP pertama. Agar panel penjualan/salesman/aktifitas keduanya juga ada, pilih koordinator terlemah lalu counter terlemah di dropdown **Koordinator / Counter**, klik tombol yang sama lagi (nama keduanya disebut di bawah). '
+                       '3) Unggah semua file ZIP di kotak bawah, lalu klik CREATE PPT. Slide yang gambarnya lengkap memakai gambar dashboard; sisanya memakai tabel otomatis.')
+            _ppt_dl_ph = st.empty()
+            _ppt_dl_ph.caption('⏳ Tombol Download SEMUA gambar disiapkan setelah seluruh tabel selesai dimuat. Jika tombol tidak muncul setelah halaman selesai, ada error di bagian bawah halaman — scroll ke bawah dan kirim pesan errornya.')
+            _ppt_imgs_up = st.file_uploader('Unggah file ZIP (atau JPG/PNG)', type=['zip', 'jpg', 'jpeg', 'png'], accept_multiple_files=True, key='ppt_imgs_up')
     if _ppt_click:
         with _ppt_slot:
             with st.spinner(f'Menyusun PowerPoint {_ppt_dealer}…'):
@@ -4359,7 +5810,7 @@ elif menu_pilihan == '🏢 STU':
                     st.session_state['ppt_file'] = None
                     st.error(f'Gagal membuat PPT: {_e_ppt}')
     _ppt_saved = st.session_state.get('ppt_file')
-    if _ppt_saved and len(_ppt_saved) > 2 and _ppt_saved[2] == _ppt_dealer:   # tampil hanya bila PPT dibuat untuk dealer yang sedang dipilih
+    if _dd_view == DD_V_PPT and _ppt_saved and len(_ppt_saved) > 2 and _ppt_saved[2] == _ppt_dealer:   # tampil hanya bila PPT dibuat untuk dealer yang sedang dipilih
         with _ppt_slot:
             st.download_button('⬇️ Unduh PPT', data=_ppt_saved[1], file_name=_ppt_saved[0], mime='application/vnd.openxmlformats-officedocument.presentationml.presentation', use_container_width=True, key='dl_ppt', on_click=lambda: st.session_state.update({'ppt_file': None}))
             st.caption(_ppt_saved[0])
@@ -4476,13 +5927,13 @@ elif menu_pilihan == '🏢 STU':
     sisa_hari_bln = SISA_HARI_KERJA
     forc_nota_v, forc7_v, forc3_v = _nm_tot['f_nota'], _nm_tot['f7'], _nm_tot['f3']
 
-    C_GRN, C_YEL, C_RED, C_CYN = '#00FF66', '#FFEA00', '#FF4D8D', '#00E5FF'
+    C_GRN, C_YEL, C_RED, C_CYN = '#12A150', '#D68A00', '#E0115F', '#0891B2'
     def _stat_col(v, good, warn): return C_GRN if v >= good else (C_YEL if v >= warn else C_RED)
     def _kpi_card(icon, label, value, sub, color):
         _pg = _KPI_PROG.get(label, (None, None))
         return bsg_card(icon, label, value, sub, color, _pg[0], _pg[1])
     def _kpi_grid(cards): return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px;">' + ''.join(cards) + '</div>'
-    def _unit(txt): return f'<span style="font-size:13px;font-weight:600;color:#94A3B8;"> {txt}</span>'
+    def _unit(txt): return f'<span style="font-size:13px;font-weight:600;color:#3B5BC8;"> {txt}</span>'
     def _trend(v, ref, ref_lbl='AVG NOTA'):
         if v > ref: return f'<span style="color:{C_GRN};font-weight:800;">▲ naik</span> vs {ref_lbl}'
         if v < ref: return f'<span style="color:{C_RED};font-weight:800;">▼ turun</span> vs {ref_lbl}'
@@ -4490,7 +5941,7 @@ elif menu_pilihan == '🏢 STU':
     def _avg_fc(avg_v, forc_v):   # tampilan ringkas: angka AVG ➜ angka forecast closing (warna forecast mengikuti % dari target)
         tg = safe_int(r_tot_p['TARGET'])
         col_f = _stat_col(forc_v / tg * 100.0, 100.0, 85.0) if tg > 0 else C_CYN
-        return f'{avg_v:.2f} <span style="font-size:20px;font-weight:700;color:#94A3B8;">➜</span> <span style="color:{col_f};">{forc_v:,}</span>'
+        return f'{avg_v:.2f} <span style="font-size:20px;font-weight:700;color:#3B5BC8;">➜</span> <span style="color:{col_f};">{forc_v:,}</span>'
 
     _dbq_n, _stup_n, _acc_n = safe_float(r_tot_pr['DB Q']), safe_float(r_tot_pr['STU%']), safe_float(r_tot_s['ACC%'])
     _grw_n = safe_float(r_tot_s['GROWTH'])
@@ -4503,16 +5954,16 @@ elif menu_pilihan == '🏢 STU':
     _nota_tod_n = safe_int(r_tot_p['TODAY'])
     _db_tot_n, _hot_tot_n = safe_int(r_tot_pr['DB']), safe_int(r_tot_pr['HOT'])
     kpi_cards_row1 = [
-        _kpi_card('🎯', 'Target vs Result', f"{r_tot_p['TARGET']:,} / {r_tot_p['STU']:,} <span style='color:#FFEA00;'>!</span> <span style='color:#FFEA00;'>{r_tot_p['IDEAL']:,}</span>", f"Result <b>{r_tot_p['_pct']:.1f}%</b> · Ideal <b>{target_persen_harian:.0f}%</b>", C_GRN if r_tot_p['STU'] >= r_tot_p['IDEAL'] else (C_YEL if r_tot_p['STU'] >= 0.85 * r_tot_p['IDEAL'] else C_RED)),
-        _kpi_card('✨', 'DB Quality', f"{r_tot_pr['DB Q']} <span style='color:#FFEA00;'>!</span> <span style='color:#FFEA00;'>30%</span>", f"{r_tot_pr['DB']:,} DB ➜ {r_tot_pr['HOT']:,} HOT", _stat_col(_dbq_n, 30.0, 20.0)),
-        _kpi_card('📈', 'STU Ratio', f"{r_tot_pr['STU%']} <span style='color:#FFEA00;'>!</span> <span style='color:#FFEA00;'>10%</span>", f"{r_tot_pr['DB']:,} DB ➜ {r_tot_pr['STU']:,} STU", _stat_col(_stup_n, 10.0, 7.0)),
+        _kpi_card('🎯', 'Target vs Result', f"{r_tot_p['TARGET']:,} / {r_tot_p['STU']:,} <span style='color:#D68A00;'>!</span> <span style='color:#D68A00;'>{r_tot_p['IDEAL']:,}</span>", f"Result <b>{r_tot_p['_pct']:.1f}%</b> · Ideal <b>{target_persen_harian:.0f}%</b>", C_GRN if r_tot_p['STU'] >= r_tot_p['IDEAL'] else (C_YEL if r_tot_p['STU'] >= 0.85 * r_tot_p['IDEAL'] else C_RED)),
+        _kpi_card('✨', 'DB Quality', f"{r_tot_pr['DB Q']} <span style='color:#D68A00;'>!</span> <span style='color:#D68A00;'>30%</span>", f"{r_tot_pr['DB']:,} DB ➜ {r_tot_pr['HOT']:,} HOT", _stat_col(_dbq_n, 30.0, 20.0)),
+        _kpi_card('📈', 'STU Ratio', f"{r_tot_pr['STU%']} <span style='color:#D68A00;'>!</span> <span style='color:#D68A00;'>10%</span>", f"{r_tot_pr['DB']:,} DB ➜ {r_tot_pr['STU']:,} STU", _stat_col(_stup_n, 10.0, 7.0)),
         _kpi_card('📊', 'AVG NOTA', _avg_fc(avg_nota_v, forc_nota_v), f'{nota_tot_now:,} nota ÷ {hari_aktif} hari kerja', C_CYN),
         _kpi_card('⚡', 'AVG 7', _avg_fc(avg7_v, forc7_v), f'{n7_cnt:,} nota ÷ {div_7} hari kerja · {_trend(avg7_v, avg_nota_v)}', C_GRN if avg7_v >= avg_nota_v else C_RED),
         _kpi_card('🔥', 'AVG 3', _avg_fc(avg3_v, forc3_v), f'{n3_cnt:,} nota ÷ {div_3} hari kerja · {_trend(avg3_v, avg7_v, "AVG 7")}', C_GRN if avg3_v >= avg7_v else C_RED),
     ]
     kpi_cards_row2 = [
         _kpi_card('🚀', 'SPK Growth', r_tot_s['GROWTH'], f"SPK {r_tot_s['SPK']:,} vs LM {r_tot_s['SPK LM']:,}", _stat_col(_grw_n, 100.0, 80.0)),
-        _kpi_card('✅', 'Approval', f"{r_tot_s['ACC%']} <span style='color:#FFEA00;'>!</span> <span style='color:#FFEA00;'>50%</span>", f"SPK terbuka <b>{safe_int(r_tot_s['TERBUKA']):,}</b> · SPK {safe_int(r_tot_s['SPK']):,} vs LM {safe_int(r_tot_s['SPK LM']):,}", _stat_col(_acc_n, 50.0, 40.0)),
+        _kpi_card('✅', 'Approval', f"{r_tot_s['ACC%']} <span style='color:#D68A00;'>!</span> <span style='color:#D68A00;'>50%</span>", f"SPK terbuka <b>{safe_int(r_tot_s['TERBUKA']):,}</b> · SPK {safe_int(r_tot_s['SPK']):,} vs LM {safe_int(r_tot_s['SPK LM']):,}", _stat_col(_acc_n, 50.0, 40.0)),
         _kpi_card('🏁', 'Forecast Closing', f"{r_tot_p['FORC']:,}" + _unit('unit'), f"<b>{forc_pct_dlr:.1f}%</b> dari target", _stat_col(forc_pct_dlr, 100.0, 85.0)),
         _kpi_card('🗂️', 'DB Hari Ini', f'{_db_tod_n:,}' + _unit('DB'), f"tgl {tanggal_akhir} · {(_db_tod_n / _db_tot_n * 100.0 if _db_tot_n > 0 else 0.0):.1f}% dari total DB<br>Total DB s.d hari ini {_db_tot_n:,}", C_CYN),
         _kpi_card('🔥', 'HOT Hari Ini', f'{_hot_tod_n:,}' + _unit('HOT'), f"tgl {tanggal_akhir} · DB Q hari ini <b>{_dbq_tod:.1f}%</b><br>Total HOT s.d hari ini {_hot_tot_n:,} · Ideal 30%", _stat_col(_dbq_tod, 30.0, 20.0) if _db_tod_n > 0 else C_CYN),
@@ -4536,7 +5987,7 @@ elif menu_pilihan == '🏢 STU':
             ev_list.append({'nama': knm, 'target': safe_int(rk['TARGET']), 'ideal': safe_int(rk['IDEAL']), 'stu': safe_int(rk['STU']), 'pct': safe_float(rk['_pct']), 'db': safe_int(k_pr.get('DB', 0)), 'dbq_str': k_pr.get('DB Q', '0.00%'), 'stup_str': k_pr.get('STU%', '0.00%'), 'spk_grw_str': k_sp.get('GROWTH', '0.00%'), 'acc_str': k_sp.get('ACC%', '0.00%'), 'dbq_val': safe_float(k_pr.get('DB Q', 0.0)), 'stup_val': safe_float(k_pr.get('STU%', 0.0)), 'acc_val': safe_float(k_sp.get('_acc_val', 0.0))})
         ev_list.sort(key=lambda x: (0 if x['target'] > 0 else 1, x['pct'], x['stu'], x['stup_val'], x['dbq_val'], x['acc_val']))
         fk = ev_list[0]
-        return f"<span style='color:#FFEA00;font-weight:800;'>{fk['nama']}</span> — Target vs Result: <b>{fk['target']}/{fk['stu']} ({fk['pct']:.2f}% | Ideal: {fk['ideal']})</b> | DB Quality: <b>{fk['dbq_str']}</b> | STU Ratio: <b>{fk['stup_str']}</b> | SPK Growth: <b>{fk['spk_grw_str']}</b> | Approval: <b>{fk['acc_str']}</b>"
+        return f"<span style='color:#D68A00;font-weight:800;'>{fk['nama']}</span> — Target vs Result: <b>{fk['target']}/{fk['stu']} ({fk['pct']:.2f}% | Ideal: {fk['ideal']})</b> | DB Quality: <b>{fk['dbq_str']}</b> | STU Ratio: <b>{fk['stup_str']}</b> | SPK Growth: <b>{fk['spk_grw_str']}</b> | Approval: <b>{fk['acc_str']}</b>"
     focus_koor_html = _focus_ent_html(df_koor_only, "Tidak ada data Koordinator")
     focus_cnt_html = _focus_ent_html(df_cnt_only, "Tidak ada data Counter")
 
@@ -4553,17 +6004,17 @@ elif menu_pilihan == '🏢 STU':
         if _pc_ >= _mp_ideal: _mp_grn.append(str(_r_['NAMA SALESMAN']))
         elif _pc_ < 0.85 * _mp_ideal: _mp_red.append(str(_r_['NAMA SALESMAN']))
     _mp_calc_txt = f"(Target {_mp_tgt_dlr:,} × 125% − Target total MP {_mp_tgt_sm:,}) ÷ 2 = {max(_mp_raw, 0):.2f}"
-    if _mp_need > 0: focus_need_html = f"<span style='color:#FFEA00;font-weight:800;'>{_mp_need} orang</span> salesman baru — {_mp_calc_txt} → dibulatkan ke atas"
-    else: focus_need_html = f"<span style='color:#00FF66;font-weight:800;'>Tidak diperlukan</span> penambahan salesman baru — {_mp_calc_txt}"
+    if _mp_need > 0: focus_need_html = f"<span style='color:#D68A00;font-weight:800;'>{_mp_need} orang</span> salesman baru — {_mp_calc_txt} → dibulatkan ke atas"
+    else: focus_need_html = f"<span style='color:#12A150;font-weight:800;'>Tidak diperlukan</span> penambahan salesman baru — {_mp_calc_txt}"
     _mp_nm_grn = ', '.join(f"<span style='color:{BSG_GRN};font-weight:800;'>{_esc(n_)}</span>" for n_ in _mp_grn)
     _mp_nm_red = ', '.join(f"<span style='color:{BSG_RED};font-weight:800;'>{_esc(n_)}</span>" for n_ in _mp_red)
     _mp_n1 = (f"Dengan kondisi man power saat ini, dibutuhkan <b style='color:{BSG_YEL};'>{_mp_need} orang</b> salesman baru untuk bisa mencapai target <b>{_esc(dlr_pil)}</b> di bulan ini." if _mp_need > 0
               else f"Dengan kondisi man power saat ini, <b style='color:{BSG_GRN};'>tidak diperlukan</b> penambahan salesman baru untuk mencapai target <b>{_esc(dlr_pil)}</b> di bulan ini.")
     _mp_n2 = f"Maksimalkan {_mp_nm_grn} sambil menunggu penambahan salesman baru." if _mp_grn else "Belum ada salesman dengan grade hijau — maksimalkan seluruh salesman yang ada sambil menunggu penambahan salesman baru."
     _mp_n3 = f"Segera lakukan pendampingan dan coaching harian terhadap {_mp_nm_red}." if _mp_red else "Tidak ada salesman dengan grade merah saat ini."
-    sm_notif_html = (f'<div style="margin-top:12px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,rgba(14,17,23,0.95) 100%);border-left:4px solid #FF007F;border:1px solid #2D3748;border-left:4px solid #FF007F;border-radius:6px;font-size:13.5px;line-height:1.65;color:#E2E8F0;font-family:\'Source Sans Pro\',\'Segoe UI\',Arial,sans-serif;">'
+    sm_notif_html = (f'<div style="margin-top:12px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,#1E3A8A 100%);border-left:4px solid #E0115F;border:1px solid #8FA8F0;border-left:4px solid #E0115F;border-radius:6px;font-size:13.5px;line-height:1.65;color:#1E3A8A;font-family:\'Source Sans Pro\',\'Segoe UI\',Arial,sans-serif;">'
                      f'<div>📢 <b>1.</b> {_mp_n1}</div><div style="margin-top:4px;">📢 <b>2.</b> {_mp_n2}</div><div style="margin-top:4px;">📢 <b>3.</b> {_mp_n3}</div>'
-                     f'<div style="margin-top:6px;font-size:11px;color:#94A3B8;">Perhitungan: {_mp_calc_txt} → {_mp_need} orang · Grade: hijau ≥ ideal {_mp_ideal:.0f}% · merah &lt; 85% dari ideal.</div></div>')
+                     f'<div style="margin-top:6px;font-size:11px;color:#3B5BC8;">Perhitungan: {_mp_calc_txt} → {_mp_need} orang · Grade: hijau ≥ ideal {_mp_ideal:.0f}% · merah &lt; 85% dari ideal.</div></div>')
 
     focus_sm_html = "Tidak ada Salesman aktif (Non-Counter dengan DB >= 2)"
     if r_sm:
@@ -4574,14 +6025,14 @@ elif menu_pilihan == '🏢 STU':
             df_sm_valid = df_sm_valid.sort_values(by=['has_t', '_pct_val', '_stu_val', '_stup_val', '_dbq_val', '_acc_val', '_db_val'], ascending=[True]*7).reset_index(drop=True)
             fs = df_sm_valid.iloc[0]
             fs_idl = round(safe_int(fs['TARGET']) * persen_desimal)
-            focus_sm_html = f"<span style='color:#FFEA00;font-weight:800;'>{fs['NAMA SALESMAN']}</span> — Target vs Result: <b>{fs['TARGET']}/{fs['STU']} ({fs[col_name_pct]} | Ideal: {fs_idl})</b> | DB: <b>{fs['DB']}</b> (DB Quality: <b>{fs['DB Q']}</b>) | STU Ratio: <b>{fs['STU%']}</b> | SPK: <b>{fs['SPK']}</b> (Approval: <b>{fs['ACC%']}</b>)"
+            focus_sm_html = f"<span style='color:#D68A00;font-weight:800;'>{fs['NAMA SALESMAN']}</span> — Target vs Result: <b>{fs['TARGET']}/{fs['STU']} ({fs[col_name_pct]} | Ideal: {fs_idl})</b> | DB: <b>{fs['DB']}</b> (DB Quality: <b>{fs['DB Q']}</b>) | STU Ratio: <b>{fs['STU%']}</b> | SPK: <b>{fs['SPK']}</b> (Approval: <b>{fs['ACC%']}</b>)"
 
     focus_walk_html = 'Tidak ada data Walk In pada periode ini'
     if db_c is not None and not db_c.empty and db_c.shape[1] > 6:
         _wi_all = db_c[db_c.iloc[:, 6].apply(alnum_str) == 'WALKIN']
         if not _wi_all.empty:   # seluruh Walk In (tidak per koordinator / counter)
             _t_n, _t_s = len(_wi_all), (int((_wi_all['STU'] == 'STU').sum()) if 'STU' in _wi_all.columns else 0)
-            focus_walk_html = f"DB Walk In: <b>{_t_n}</b> | STU Walk In: <b>{_t_s}</b> | Need FU: <span style='color:#FFEA00;font-weight:800;'>{_t_n - _t_s}</span> <span style='color:#94A3B8;'>(DB Walk In − STU Walk In)</span>"
+            focus_walk_html = f"DB Walk In: <b>{_t_n}</b> | STU Walk In: <b>{_t_s}</b> | Need FU: <span style='color:#D68A00;font-weight:800;'>{_t_n - _t_s}</span> <span style='color:#3B5BC8;'>(DB Walk In − STU Walk In)</span>"
 
     st.markdown(f"""<div class="focus-alert-box"><div style="margin-top:4px;">🚶 <b>Focus Walk In :</b> {focus_walk_html}</div><div style="margin-top:4px;">🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div><div>🏪 <b>Focus Counter :</b> {focus_cnt_html}</div><div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div><div style="margin-top:4px;">🧑‍💼 <b>MP Health : Kebutuhan Salesman Baru</b> → {focus_need_html}</div></div>""", unsafe_allow_html=True)
 
@@ -4590,10 +6041,12 @@ elif menu_pilihan == '🏢 STU':
         _tbl_counter[0] += 1
         return _tbl_counter[0]
 
-    _tab_names = ['💼 Penjualan & Proses', '👤 Salesman & Konsumen', '🏦 SPK & Leasing', '🏍️ Penjualan Per Type', '📌 Ringkasan Visual'] + (['🧠 Analisa & Action Plan'] if IS_SPV else [])
-    _tabs_all = st.tabs(_tab_names)
-    tab_pp, tab_sm, tab_sl, tab_ty, tab_rk = _tabs_all[:5]
-    tab_an = _tabs_all[5] if IS_SPV else None
+    _tab_names = ['💼 Penjualan & Proses', '👤 Salesman & Konsumen', '🏦 SPK & Leasing', '🏍️ Penjualan Per Type', '📌 Ringkasan Visual']
+    if _dd_view == DD_V_AN and IS_SPV:   # Analisa Problem & Perbaikan: tampilan utama = analisa; panel data pendukung dirender di expander tertutup
+        tab_an = st.container()
+        with st.expander('📂 Data pendukung analisa (tabel & grafik dealer)', expanded=False): tab_pp, tab_sm, tab_sl, tab_ty, tab_rk = st.tabs(_tab_names)
+    else:
+        tab_pp, tab_sm, tab_sl, tab_ty, tab_rk = st.tabs(_tab_names); tab_an = None
     with tab_rk:
         bsg_safe(bsg_render_ringkasan, dict(kol_nm=kol_nm, ideal_pct=target_persen_harian, tanggal_akhir=tanggal_akhir, max_day=max_day_in_month, df_p_disp=df_p_disp, df_pr_disp=df_pr_disp,
                  df_s_disp=df_s_disp, r_tot_p=r_tot_p, r_tot_pr=r_tot_pr, r_tot_s=r_tot_s, f_c=f_c, s_c=s_c, is_total=is_total, scope_key=dlr_pil,
@@ -4605,25 +6058,25 @@ elif menu_pilihan == '🏢 STU':
         df_p_full = pd.concat([df_p_disp, pd.DataFrame([r_tot_p])], ignore_index=True)
 
         tbl1_only_html = build_compact_html_string(df_p_disp, df_p_full, kol_pj, kol_nm, '_pct', f'cap_tbl1_inner_{dlr_pil}', title_text=None)
-        custom_cap_tbl1 = f"""<div style="width:1320px;background-color:#0E1117;padding:20px 24px;font-family:'Source Sans Pro',sans-serif;color:#FFFFFF;box-sizing:border-box;">
+        custom_cap_tbl1 = f"""<div style="width:1320px;background-color:#FFFFFF;padding:20px 24px;font-family:'Source Sans Pro',sans-serif;color:#1E3A8A;box-sizing:border-box;">
         <div style="font-size:38px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{main_hdr_text}</div>
-        <div style="font-size:14px;font-weight:600;color:#64748B;margin-bottom:18px;">{sub_hdr_text}</div>
+        <div style="font-size:14px;font-weight:600;color:#3B5BC8;margin-bottom:18px;">{sub_hdr_text}</div>
         {kpi_cards_html}
-        <div style="margin-top:12px;margin-bottom:18px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,rgba(14,17,23,0.95) 100%);border-left:4px solid #FF007F;border-top:1px solid #2D3748;border-right:1px solid #2D3748;border-bottom:1px solid #2D3748;border-radius:6px;font-size:13.5px;line-height:1.65;color:#E2E8F0;">
+        <div style="margin-top:12px;margin-bottom:18px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,#1E3A8A 100%);border-left:4px solid #E0115F;border-top:1px solid #8FA8F0;border-right:1px solid #8FA8F0;border-bottom:1px solid #8FA8F0;border-radius:6px;font-size:13.5px;line-height:1.65;color:#1E3A8A;">
             <div style="margin-top:4px;">🚶 <b>Focus Walk In :</b> {focus_walk_html}</div>
             <div style="margin-top:4px;">🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div>
             <div>🏪 <b>Focus Counter :</b> {focus_cnt_html}</div>
             <div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div>
             <div style="margin-top:4px;">🧑‍💼 <b>MP Health : Kebutuhan Salesman Baru</b> → {focus_need_html}</div>
         </div>
-        <hr style="border:none;border-top:1px solid #2D3748;margin:16px 0;">
+        <hr style="border:none;border-top:1px solid #8FA8F0;margin:16px 0;">
         <div style="font-size:21px;font-weight:700;color:#4318FF;margin-bottom:10px;">{jdl_rev_1}</div>
         {tbl1_only_html}
     </div>"""
-        _cap_hdr_tbl1 = (f'<div style="font-size:30px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{main_hdr_text}</div><div style="font-size:13px;font-weight:600;color:#64748B;margin-bottom:14px;">{sub_hdr_text}</div>{kpi_cards_html}'
-                         f'<div style="margin-top:12px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,rgba(14,17,23,0.95) 100%);border-left:4px solid #FF007F;border-top:1px solid #2D3748;border-right:1px solid #2D3748;border-bottom:1px solid #2D3748;border-radius:6px;font-size:13.5px;line-height:1.65;color:#E2E8F0;">'
+        _cap_hdr_tbl1 = (f'<div style="font-size:30px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{main_hdr_text}</div><div style="font-size:13px;font-weight:600;color:#3B5BC8;margin-bottom:14px;">{sub_hdr_text}</div>{kpi_cards_html}'
+                         f'<div style="margin-top:12px;padding:11px 16px;background:linear-gradient(90deg,rgba(255,0,127,0.14) 0%,#1E3A8A 100%);border-left:4px solid #E0115F;border-top:1px solid #8FA8F0;border-right:1px solid #8FA8F0;border-bottom:1px solid #8FA8F0;border-radius:6px;font-size:13.5px;line-height:1.65;color:#1E3A8A;">'
                          f'<div style="margin-top:4px;">🚶 <b>Focus Walk In :</b> {focus_walk_html}</div><div style="margin-top:4px;">🎯 <b>Focus Koordinator :</b> {focus_koor_html}</div><div>🏪 <b>Focus Counter :</b> {focus_cnt_html}</div><div style="margin-top:4px;">👤 <b>Focus Salesman :</b> {focus_sm_html}</div><div style="margin-top:4px;">🧑‍💼 <b>MP Health : Kebutuhan Salesman Baru</b> → {focus_need_html}</div></div>')
-        bsg_panel_table(df_p_disp, df_p_full, kol_pj, kol_nm, '_pct', f'Review_1_Penjualan_{dlr_pil}', jdl_rev_1, bsg_pn_curve_charts, (f_c, r_tot_p['TARGET'], tanggal_akhir, max_day_in_month, r_tot_p['FORC'], dlr_pil, (forc_nota_v, forc7_v, forc3_v)), layout='side2', cap_header=_cap_hdr_tbl1)
+        bsg_panel_table(df_p_disp, df_p_full, kol_pj, kol_nm, '_pct', f'Review_1_Penjualan_{dlr_pil}', jdl_rev_1, bsg_pn_curve_charts, (f_c, r_tot_p['TARGET'], tanggal_akhir, max_day_in_month, r_tot_p['FORC'], dlr_pil, (forc_nota_v, forc7_v, forc3_v)), layout='stack1', cap_header=_cap_hdr_tbl1)
 
         if is_total:
             st.divider()
@@ -4657,7 +6110,7 @@ elif menu_pilihan == '🏢 STU':
         jdl_rev_2 = f'{nxt_no()}. TABEL PROSES KERJA — {dlr_pil} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
         st.markdown(f'<div class="section-title">{jdl_rev_2}</div>', unsafe_allow_html=True)
         kol_pr = [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'SPK', 'ACC%', 'SPK LM', 'GROWTH', 'STU', 'STU%', 'AVG NOTA', 'AVG 7', 'AVG 3'] if is_total else [kol_nm, 'JML MP', 'AVG DB', 'DB', 'HOT', 'DB Q', 'STU', 'STU%', 'AVG NOTA', 'AVG 7', 'AVG 3']
-        bsg_panel_table(df_pr_disp, pd.concat([df_pr_disp, pd.DataFrame([r_tot_pr_disp])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', f'Review_2_Proses_{dlr_pil}', jdl_rev_2, bsg_pn_process_charts, (df_pr_disp, kol_nm), layout='stack_eq', bottom_fn=bsg_pn_process_bottom, bottom_args=(df_pr_disp, df_s_disp, kol_nm, hari_aktif))
+        bsg_panel_table(df_pr_disp, pd.concat([df_pr_disp, pd.DataFrame([r_tot_pr_disp])], ignore_index=True), kol_pr, kol_nm, '_stu_pct', f'Review_2_Proses_{dlr_pil}', jdl_rev_2, None, (), layout='stack', bottom_fn=bsg_pn_process_bottom, bottom_args=(df_pr_disp, df_s_disp, kol_nm, hari_aktif))
 
         with st.expander('🔍 Rekonsiliasi Jumlah Database (cek selisih KPI vs Tabel Proses vs file asli)', expanded=False):
             _rc_rows = []
@@ -4670,7 +6123,7 @@ elif menu_pilihan == '🏢 STU':
                 g_d = _da[_da['Nama_Dealer_Clean'] == d_n] if not _da.empty else pd.DataFrame()
                 in_m = g_d[(g_d['bulan'] == current_month) & (g_d['tahun'] == current_year)] if (not g_d.empty and 'bulan' in g_d.columns) else g_d
                 in_p = in_m[in_m['hari'] <= tanggal_akhir] if (not in_m.empty and 'hari' in in_m.columns) else in_m
-                _rc_rows.append({'DEALER': d_n + ('' if d_n in daftar_dealer else '  (di luar daftar dealer → tidak dihitung)'), 'BARIS FILE (MENTAH)': _raw_by_dlr.get(d_n, 0), 'TERBACA': len(g_d),
+                _rc_rows.append({'DEALER': d_n + ('' if d_n in daftar_dealer else '  (dealer MDS di luar 7 SIP inti — tetap dihitung)'), 'BARIS FILE (MENTAH)': _raw_by_dlr.get(d_n, 0), 'TERBACA': len(g_d),
                                  'TANGGAL TAK TERBACA': int(g_d['Tanggal_Parsed'].isna().sum()) if (not g_d.empty and 'Tanggal_Parsed' in g_d.columns) else 0,
                                  'BULAN INI (SEMUA TGL)': len(in_m), f'S.D TGL {tanggal_akhir}': len(in_p),
                                  'KOOR TAK TERPETAKAN (LAIN-LAIN)': int((in_p['Koor'] == 'LAIN-LAIN').sum()) if (not in_p.empty and 'Koor' in in_p.columns) else 0})
@@ -4753,7 +6206,7 @@ elif menu_pilihan == '🏢 STU':
             tpct_sm = (ts / tt * 100.0) if tt > 0 else 0.0
             tot_sm = {'NAMA SALESMAN': lbl_tot, 'TARGET': tt, 'STU': ts, col_name_pct: f'{tpct_sm:.2f}%', 'AVG DB': f'{(tdb/n_sm/hari_aktif if n_sm>0 else 0):.2f}', 'DB': tdb, 'HOT': thot, 'DB Q': f'{(thot/tdb*100 if tdb>0 else 0):.2f}%', 'SPK': tspk, 'ACC%': f'{(t_sa/(t_sa+t_sr)*100 if (t_sa+t_sr)>0 else 0):.2f}%', 'STU%': f'{(ts/tdb*100 if tdb>0 else 0):.2f}%', '_stu_val': ts, '_pct_val': tpct_sm}
             tot_sm['LM'] = int(df_smi['LM'].sum())
-            bsg_panel_table(df_smi, pd.concat([df_smi, pd.DataFrame([tot_sm])], ignore_index=True), kol_sm, 'NAMA SALESMAN', '_pct_val', f'Review_5_Salesman_{dlr_pil}', jdl_rev_5, bsg_pn_salesman_charts, (df_smi, target_persen_harian), layout='stack_eq', footer_html=sm_notif_html)   # tabel + 2 grafik, 1 tombol Copy/Download HD
+            bsg_panel_table(df_smi, pd.concat([df_smi, pd.DataFrame([tot_sm])], ignore_index=True), kol_sm, 'NAMA SALESMAN', '_pct_val', f'Review_5_Salesman_{dlr_pil}', jdl_rev_5, None, (), layout='stack', footer_html=sm_notif_html)   # tabel saja (grafik Top/Perlu Dorongan dihapus), 1 tombol Copy/Download HD
         else: st.info(f'ℹ️ Belum ada data Salesman untuk dealer {dlr_pil}.')
 
         st.divider()
@@ -4765,10 +6218,10 @@ elif menu_pilihan == '🏢 STU':
             df_belum_reg = f_c[f_c['Status_Registrasi_Rating'] == 'BELUM REGISTRASI'].copy()
             jml_sudah, jml_belum = len(df_sudah_reg), len(df_belum_reg)
             pct_reg_dlr = (jml_sudah / tot_stu_dlr * 100.0) if tot_stu_dlr > 0 else 0.0
-            st.markdown(f'''<div class="unmapped-sales-box" style="border-left-color:#00E5FF; background:linear-gradient(90deg, rgba(0,229,255,0.10) 0%, rgba(14,17,23,0.96) 100%); margin-bottom:10px;">
+            st.markdown(f'''<div class="unmapped-sales-box" style="border-left-color:#0891B2; background:linear-gradient(90deg, rgba(0,229,255,0.10) 0%, #1E3A8A 100%); margin-bottom:10px;">
             📊 <b>Rekapitulasi Status Registrasi Rating (MYDR) — {dlr_pil}:</b> Total Faktur (STU): <b>{tot_stu_dlr} Konsumen</b> &nbsp;|&nbsp;
-            <span style="color:#00FF66;font-weight:800;">✅ Sudah Registrasi: {jml_sudah} Konsumen ({pct_reg_dlr:.1f}%)</span> &nbsp;|&nbsp;
-            <span style="color:#FF007F;font-weight:800;">⚠️ Belum Registrasi: {jml_belum} Konsumen ({100.0 - pct_reg_dlr:.1f}%)</span>
+            <span style="color:#12A150;font-weight:800;">✅ Sudah Registrasi: {jml_sudah} Konsumen ({pct_reg_dlr:.1f}%)</span> &nbsp;|&nbsp;
+            <span style="color:#E0115F;font-weight:800;">⚠️ Belum Registrasi: {jml_belum} Konsumen ({100.0 - pct_reg_dlr:.1f}%)</span>
         </div>''', unsafe_allow_html=True)
             bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, f_c, dlr_pil, label="Grafik registrasi")
 
@@ -4884,19 +6337,20 @@ elif menu_pilihan == '🏢 STU':
         elif not df_td_f.empty: bsg_panel_table(df_td_i, df_td_f, kol_t_d, 'TYPE', '_growth_val', f'Review_4_Type_{dlr_pil}', jdl_rev_4, bsg_pn_type_charts, (df_td_i, target_persen_harian), layout='side', grid_cols='minmax(0,2.2fr) minmax(0,1fr)', bottom_fn=bsg_pn_type_bottom, bottom_args=(df_td_i, f_cg), bottom_left=True)
 
     # ---- tombol Download SEMUA gambar untuk PPT (diisi setelah semua panel tab Penjualan/Salesman/Leasing dirender, sebelum tab Analisa) ----
-    with _ppt_dl_ph.container():
-        _wk_k = _wk_c = None
-        try:
-            if not koor_pil and not df_p_it.empty:
-                _c_k = df_p_it[~df_p_it[kol_nm].str.upper().str.startswith('COUNTER')]; _c_k = _c_k[_c_k['TARGET'] > 0] if (_c_k['TARGET'] > 0).any() else _c_k
-                _c_c = df_p_it[df_p_it[kol_nm].str.upper().str.startswith('COUNTER')]; _c_c = _c_c[_c_c['TARGET'] > 0] if (_c_c['TARGET'] > 0).any() else _c_c
-                _wk_k, _wk_c = (str(_c_k.iloc[0][kol_nm]) if not _c_k.empty else None), (str(_c_c.iloc[0][kol_nm]) if not _c_c.empty else None)
-                st.caption('Terlemah untuk slide 9–18 → Koordinator: **' + (_wk_k or '-') + '** · Counter: **' + (_wk_c or '-') + '** (Dashboard KPI keduanya ikut masuk ke ZIP)')
-        except Exception: pass
-        try: bsg_render_ppt_batch(dlr_pil, kpi_dealer=(None if koor_pil else _ppt_dealer), kpi_entities=([koor_pil] if koor_pil else [x_ for x_ in (_wk_k, _wk_c) if x_]))
-        except Exception as _e_bt: st.error(f'Tombol Download SEMUA gagal dibuat: {type(_e_bt).__name__}: {_e_bt}')
+    if _ppt_dl_ph is not None:
+        with _ppt_dl_ph.container():
+            _wk_k = _wk_c = None
+            try:
+                if not koor_pil and not df_p_it.empty:
+                    _c_k = df_p_it[~df_p_it[kol_nm].str.upper().str.startswith('COUNTER')]; _c_k = _c_k[_c_k['TARGET'] > 0] if (_c_k['TARGET'] > 0).any() else _c_k
+                    _c_c = df_p_it[df_p_it[kol_nm].str.upper().str.startswith('COUNTER')]; _c_c = _c_c[_c_c['TARGET'] > 0] if (_c_c['TARGET'] > 0).any() else _c_c
+                    _wk_k, _wk_c = (str(_c_k.iloc[0][kol_nm]) if not _c_k.empty else None), (str(_c_c.iloc[0][kol_nm]) if not _c_c.empty else None)
+                    st.caption('Terlemah untuk slide 9–18 → Koordinator: **' + (_wk_k or '-') + '** · Counter: **' + (_wk_c or '-') + '** (Dashboard KPI keduanya ikut masuk ke ZIP)')
+            except Exception: pass
+            try: bsg_render_ppt_batch(dlr_pil, kpi_dealer=(None if koor_pil else _ppt_dealer), kpi_entities=([koor_pil] if koor_pil else [x_ for x_ in (_wk_k, _wk_c) if x_]))
+            except Exception as _e_bt: st.error(f'Tombol Download SEMUA gagal dibuat: {type(_e_bt).__name__}: {_e_bt}')
 
-    if not IS_SPV: st.stop()   # tanpa kode akses SPV: tab Analisa & Action Plan tidak dirender sama sekali
+    if tab_an is None: st.stop()   # hanya sub menu Analisa Problem & Perbaikan (kode akses SPV) yang merender analisa
     with tab_an:
         bsg_admin_running_text_editor()
         tgl_sasaran = 30 if tanggal_akhir > 21 else min(30, tanggal_akhir + 7)
@@ -5061,10 +6515,72 @@ elif menu_pilihan == '🏢 STU':
             p_cn = f"Fokus {wc_nm} kejar +{wc_add} STU (total {wc_goal_rasional} unit), cetak +{wc_spk_need} SPK, serta input {wc_db_hari} DB/hr TANPA MENURUNKAN KUALITAS DATABASE." if not df_cnt_only.empty else default_plan_counter
             c_mp = f"Terdeteksi {cnt_kritis} salesman zona kritis ({names_kritis}) dengan target besar namun minim konversi SPK dan rendah DB Quality." if cnt_kritis > 0 else default_cond_mp
             p_mp = f"Supervisi harian {cnt_kritis} MP kritis untuk mengunci +1 s.d +2 STU, +3 SPK, dan 4-5 DB/hr/orang TANPA MENURUNKAN KUALITAS DATABASE." if cnt_kritis > 0 else default_plan_mp
-            return {k: limit_words(v, MAX_NARRATIVE_WORDS) for k, v in {'cond_dealer': c_dlr, 'plan_dealer': p_dlr, 'cond_type': c_tp, 'plan_type': p_tp, 'cond_leasing': c_lsg, 'plan_leasing': p_lsg, 'cond_koor': c_kr, 'plan_koor': p_kr, 'cond_counter': c_cn, 'plan_counter': p_cn, 'cond_mp': c_mp, 'plan_mp': p_mp, 'cond_md': default_cond_md, 'plan_md': default_plan_md, 'cond_sosmed': default_cond_sosmed, 'plan_sosmed': default_plan_sosmed}.items()}
+            _res_smart = {'cond_dealer': c_dlr, 'plan_dealer': p_dlr, 'cond_type': c_tp, 'plan_type': p_tp, 'cond_leasing': c_lsg, 'plan_leasing': p_lsg, 'cond_koor': c_kr, 'plan_koor': p_kr, 'cond_counter': c_cn, 'plan_counter': p_cn, 'cond_mp': c_mp, 'plan_mp': p_mp, 'cond_md': default_cond_md, 'plan_md': default_plan_md, 'cond_sosmed': default_cond_sosmed, 'plan_sosmed': default_plan_sosmed}
+            _res_smart.update(default_plan_merged)   # Action Plan + How To menyatu
+            return {k: limit_words(v, MAX_PLAN_WORDS if k.startswith('plan_') else MAX_NARRATIVE_WORDS) for k, v in _res_smart.items()}
+
+        # ---- default HOW TO berbasis angka data (dipakai bila AI belum di-generate / gagal) ----
+        def _sf(fn, fb):
+            try: return fn()
+            except Exception: return fb
+        _dtail = ' (verifikasi lapangan)'
+        default_plan_merged = {
+            'plan_dealer': _sf(lambda: f"Capai +{tambahan_stu_wajib} STU (total {stu_sasaran_rasional} unit) dengan membagi {tot_db_plan_dlr} DB ke {cur_mp} MP ({target_db_per_mp_hari:.1f} DB/MP/hari) dari walk-in dan konsumen lama, lalu follow-up HOT dan ajukan SPK di hari yang sama TANPA MENURUNKAN KUALITAS DATABASE.", default_plan_dealer),
+            'plan_type': _sf(lambda: (f"Genjot {wt_name} +{wt_stu_add} STU dan +{wt_spk_add} SPK: siapkan unit demo dan cicilan ringan, tawarkan ke konsumen lama serta HOT segmen ini (+{wt_db_add} DB), ajukan SPK maksimal 1x24 jam setelah test ride." if not df_td_i.empty else default_plan_type), default_plan_type),
+            'plan_leasing': _sf(lambda: f"Cairkan {cur_open_spk} SPK Terbuka dalam 1x24 jam (+{potensi_stu_open} STU): hubungi konsumen hari ini, lengkapi dokumen, pre-screening {top_1_reason}, dan arahkan aplikasi ke {best_fak_lsg} lebih dulu.", default_plan_leasing),
+            'plan_koor': _sf(lambda: (f"Tim {wk_nm} kejar +{wk_add} STU dengan {wk_db_per_sm} DB/MP/hari: koordinator cek input DB siang dan sore, dampingi MP terendah ke lapangan, dan jadwalkan kunjungan besok untuk setiap HOT yang belum SPK." if wk_nm != '-' else default_plan_koor), default_plan_koor),
+            'plan_counter': _sf(lambda: (f"{wc_nm} kejar +{wc_add} STU lewat {wc_db_hari} DB/hari: catat semua walk-in dan leads digital hari itu juga, hubungi balik maksimal 1 jam untuk jadwal test ride, lalu serahkan HOT ke sales lapangan." if wc_nm != '-' else default_plan_counter), default_plan_counter),
+            'plan_mp': _sf(lambda: (f"{cnt_kritis} salesman zona kritis kejar +1 s.d +2 STU dan 4-5 DB/hari: koordinator mendampingi kunjungan 1-2 prospek/hari ke lingkungan sekitar dan konsumen lama, review HOT dan SPK tiap sore." if cnt_kritis > 0 else default_plan_mp), default_plan_mp),
+            'plan_md': "Pilih lokasi event paling ramai, catat setiap pengunjung sebagai DB, dan follow-up semua HOT maksimal H+1 dengan tawaran test ride untuk mengejar STU% 10% TANPA MENURUNKAN KUALITAS DATABASE.",
+            'plan_sosmed': "Balas leads media sosial maksimal 1 jam, pindahkan ke WhatsApp untuk kualifikasi budget, lalu jadwalkan test ride dan update status HOT harian demi mengejar STU% 10%.",
+        }
+        _lok_now = _lokasi_dealer(dlr_pil); _intel_now = lokal_intel_get(dlr_pil)
+        if _intel_now.get('text'):
+            default_cond_lokal = f"Intel lokal ring 1 ({_lok_now[0] if _lok_now else '-'}) tersimpan {_intel_now.get('ts', '')}. Klik Generate AI untuk merangkum menjadi peluang dan langkah aksi."
+        elif _lok_now:
+            default_cond_lokal = f"Belum ada intel lokal ring 1 {_lok_now[0]}. Buka panel Intel Lokal Ring 1, jalankan prompt di Deep Research Gemini, lalu tempel hasilnya."
+        else:
+            default_cond_lokal = "Intel lokal hanya tersedia per dealer (bukan TOTAL)."
+        default_plan_lokal = "Belum ada rencana aksi lokal."
 
         active_api_key = resolve_gemini_api_key()
-        cache_key = f"ai_tbl6_v10_35w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
+        cache_key = f"ai_tbl6_v11_40w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
+
+        with st.expander('🌐 Intel Lokal Ring 1 — Deep Research Gemini (SEMUA dealer, cukup 1x seminggu)', expanded=False):
+            _ver = st.session_state.get('lokal_ver', 0)
+            _all_now = lokal_intel_all_get()
+            st.caption('📍 Satu prompt untuk semua dealer terdaftar: ' + ', '.join(f'{n_} ({k_[0]})' for n_, k_ in DEALER_LOKASI.items()) + ' (ubah di DEALER_LOKASI).')
+            st.markdown('**Langkah 1** — Salin prompt di bawah, buka Gemini, pilih **Deep Research**, tempel lalu jalankan. Cukup **seminggu sekali**.')
+            st.code(build_deep_research_prompt_all(tanggal_akhir, periode_bulan_tahun), language=None)
+            st.markdown('<a href="https://gemini.google.com/app" target="_blank" style="display:inline-block;padding:6px 12px;background:#EAF0FF;color:#0891B2;border:1px solid #8FA8F0;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔎 Buka Gemini (Deep Research)</a>', unsafe_allow_html=True)
+            st.markdown('**Langkah 2** — Tempel seluruh laporan (semua dealer sekaligus) ke kotak ini lalu simpan. Sistem otomatis memisahkan bagian tiap dealer, lalu klik **Generate Narasi** di dealer mana pun.')
+            _ta_key = f'lokal_ta_all_{_ver}'
+            st.text_area('Hasil Deep Research (semua dealer)', value=_all_now.get('text', ''), height=260, key=_ta_key, label_visibility='collapsed', placeholder='Tempel hasil Deep Research semua dealer di sini...')
+            _c_a, _c_b = st.columns(2)
+            with _c_a:
+                if st.button('💾 Simpan Intel Lokal (Semua Dealer)', use_container_width=True, key='lokal_save_all'):
+                    lokal_intel_all_set(st.session_state.get(_ta_key, ''))
+                    st.success('✅ Intel lokal disimpan. Klik Generate Narasi pada dealer yang diinginkan.')
+                    _all_now = lokal_intel_all_get()
+            with _c_b:
+                if st.button('🗑️ Hapus Intel Lokal', use_container_width=True, key='lokal_del_all'):
+                    lokal_intel_all_set(''); st.session_state['lokal_ver'] = _ver + 1; st.rerun()
+            if _all_now.get('ts'):
+                _age = (_wib_now().replace(tzinfo=None) - datetime.datetime.strptime(_all_now['ts'], '%Y-%m-%d %H:%M')).days
+                st.caption(f"Tersimpan: {_all_now['ts']} WIB" + (f" — sudah {_age} hari, jalankan Deep Research lagi." if _age >= 7 else ' — masih berlaku (maks 7 hari).'))
+                _secs = lokal_intel_split(_all_now.get('text', ''))
+                _cek = []
+                for _n in DEALER_LOKASI:
+                    _ok = any(v_ and (k_ == _n or k_ in _n or _n in k_) for k_, v_ in _secs.items())
+                    _cek.append(('✅ ' if _ok else '⚠️ ') + _n)
+                st.caption('Bagian per dealer terbaca: ' + ' | '.join(_cek) + ('' if all(c_.startswith('✅') for c_ in _cek) else '  — ⚠️ = header "DEALER: NAMA" tidak ditemukan.'))
+            else:
+                st.caption('Belum ada intel lokal tersimpan.')
+            if _lok_now:
+                if _intel_now.get('text'): st.markdown(f'**Bagian untuk {dlr_pil}:**'); st.code(_intel_now['text'][:1500], language=None)
+                else: st.caption(f'Belum ada bagian untuk {dlr_pil} pada laporan tersimpan.')
+            else:
+                st.caption('Pilih satu dealer (bukan TOTAL) di tabel analisa untuk memakai intel ini pada narasinya.')
 
         col_btn1, col_btn2 = st.columns([1, 2])
         with col_btn1: gen_ai_clicked = st.button('✨ Generate Narasi Dinamis dengan AI (Gemini)', type='primary', use_container_width=True)
@@ -5081,7 +6597,7 @@ elif menu_pilihan == '🏢 STU':
                         active_api_key = clean_inp
                         st.success('✅ API Key disimpan & aktif!')
                 with c_k2:
-                    st.markdown('<a href="https://aistudio.google.com/app/apikey" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#1E293B;color:#00E5FF;border:1px solid #334155;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Ambil Key AIzaSy Gratis (Google AI Studio)</a>', unsafe_allow_html=True)
+                    st.markdown('<a href="https://aistudio.google.com/app/apikey" target="_blank" style="display:inline-block;text-align:center;width:100%;padding:6px 10px;background:#EAF0FF;color:#0891B2;border:1px solid #8FA8F0;border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:700;">🔑 Ambil Key AIzaSy Gratis (Google AI Studio)</a>', unsafe_allow_html=True)
                 st.code('GEMINI_API_KEY = "AIzaSy...isi-key-Anda..."', language='toml'); st.caption('🔒 Simpan key di .streamlit/secrets.toml (atau env GEMINI_API_KEY), jangan ditulis di kode.')
 
         if gen_ai_clicked:
@@ -5099,6 +6615,7 @@ elif menu_pilihan == '🏢 STU':
                     f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
                 )
                 raw_context_for_ai += f"\n--- AKTIFITAS MD: SUB PROSPECT TYPE EVENT ---\n{default_cond_md}\n--- PROSPECT MEDIA SOSIAL ---\n{default_cond_sosmed}"
+                raw_context_for_ai += (f"\n--- INTEL LOKAL RING 1 (lokasi: Kecamatan {_lok_now[0]}, Kab. {_lok_now[1]}; hasil Deep Research tersimpan {_intel_now.get('ts', '-')}) ---\n{str(_intel_now.get('text', ''))[:6000]}" if (_lok_now and _intel_now.get('text')) else "\n--- INTEL LOKAL RING 1 ---\n(KOSONG — belum ada intel lokal untuk dealer ini)")
                 try:
                     st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
                     st.success('✅ Narasi Dinamis AI Gemini dengan Target Rasional (Maks 35 kata per kotak) berhasil dibuat!')
@@ -5108,51 +6625,54 @@ elif menu_pilihan == '🏢 STU':
 
         ai_res = st.session_state.get(cache_key, {})
         analisa_rows_data = [
-            ('🏢 STU Dealer', limit_words(ai_res.get('cond_dealer', default_cond_dealer)), limit_words(ai_res.get('plan_dealer', default_plan_dealer))),
-            ('🏍️ STU Per Type', limit_words(ai_res.get('cond_type', default_cond_type)), limit_words(ai_res.get('plan_type', default_plan_type))),
-            ('💼 Leasing', limit_words(ai_res.get('cond_leasing', default_cond_leasing)), limit_words(ai_res.get('plan_leasing', default_plan_leasing))),
-            ('👔 STU Koordinator', limit_words(ai_res.get('cond_koor', default_cond_koor)), limit_words(ai_res.get('plan_koor', default_plan_koor))),
-            ('🏪 STU Counter', limit_words(ai_res.get('cond_counter', default_cond_counter)), limit_words(ai_res.get('plan_counter', default_plan_counter))),
-            ('👥 STU Man Power', limit_words(ai_res.get('cond_mp', default_cond_mp)), limit_words(ai_res.get('plan_mp', default_plan_mp))),
-            ('📣 Aktifitas MD (Event)', limit_words(ai_res.get('cond_md', default_cond_md)), limit_words(ai_res.get('plan_md', default_plan_md))),
-            ('📱 Media Sosial', limit_words(ai_res.get('cond_sosmed', default_cond_sosmed)), limit_words(ai_res.get('plan_sosmed', default_plan_sosmed))),
+            ('🏢 STU Dealer', limit_words(ai_res.get('cond_dealer', default_cond_dealer)), limit_words(ai_res.get('plan_dealer') or default_plan_merged['plan_dealer'], MAX_PLAN_WORDS)),
+            ('🏍️ STU Per Type', limit_words(ai_res.get('cond_type', default_cond_type)), limit_words(ai_res.get('plan_type') or default_plan_merged['plan_type'], MAX_PLAN_WORDS)),
+            ('💼 Leasing', limit_words(ai_res.get('cond_leasing', default_cond_leasing)), limit_words(ai_res.get('plan_leasing') or default_plan_merged['plan_leasing'], MAX_PLAN_WORDS)),
+            ('👔 STU Koordinator', limit_words(ai_res.get('cond_koor', default_cond_koor)), limit_words(ai_res.get('plan_koor') or default_plan_merged['plan_koor'], MAX_PLAN_WORDS)),
+            ('🏪 STU Counter', limit_words(ai_res.get('cond_counter', default_cond_counter)), limit_words(ai_res.get('plan_counter') or default_plan_merged['plan_counter'], MAX_PLAN_WORDS)),
+            ('👥 STU Man Power', limit_words(ai_res.get('cond_mp', default_cond_mp)), limit_words(ai_res.get('plan_mp') or default_plan_merged['plan_mp'], MAX_PLAN_WORDS)),
+            ('📣 Aktifitas MD (Event)', limit_words(ai_res.get('cond_md', default_cond_md)), limit_words(ai_res.get('plan_md') or default_plan_merged['plan_md'], MAX_PLAN_WORDS)),
+            ('📱 Media Sosial', limit_words(ai_res.get('cond_sosmed', default_cond_sosmed)), limit_words(ai_res.get('plan_sosmed') or default_plan_merged['plan_sosmed'], MAX_PLAN_WORDS)),
         ]
+
+        analisa_rows_data.append(('🌾 Peluang Ring 1', limit_words(ai_res.get('cond_lokal') or default_cond_lokal), limit_words(ai_res.get('plan_lokal') or default_plan_lokal, MAX_PLAN_WORDS)))
 
         rows_html_list, copy_texts_dict = [], {}
         for idx_r, (item_lbl, c_txt, p_txt) in enumerate(analisa_rows_data):
             cid, pid = f"cond_txt_{idx_r}", f"plan_txt_{idx_r}"
             copy_texts_dict[cid], copy_texts_dict[pid] = c_txt, p_txt
-            rows_html_list.append(f'<tr><td class="item-col">{item_lbl}</td><td class="cond-col">{format_paragraphs_html(c_txt)}<div class="cell-btn-wrap no-capture"><button class="cell-copy-btn" onclick="copyCellText(\'{cid}\', this)">📋 Copy Condition</button></div></td><td class="plan-col">{format_paragraphs_html(p_txt)}<div class="cell-btn-wrap no-capture"><button class="cell-copy-btn" onclick="copyCellText(\'{pid}\', this)">📋 Copy Action Plan</button></div></td></tr>')
+            _btn = lambda i_, lb_: f'<div class="cell-btn-wrap no-capture"><button class="cell-copy-btn" onclick="copyCellText(\'{i_}\', this)">{lb_}</button></div>'
+            rows_html_list.append(f'<tr><td class="item-col">{item_lbl}</td><td class="cond-col">{format_paragraphs_html(c_txt)}{_btn(cid, "📋 Copy Condition")}</td><td class="plan-col">{format_paragraphs_html(p_txt, MAX_PLAN_WORDS)}{_btn(pid, "📋 Copy Action Plan & How To")}</td></tr>')
 
         tabel_analisa_dom_id = f"Capture_Analisa_{re.sub(r'[^a-zA-Z0-9]', '_', dlr_pil)}"
         copy_payload_json, safe_dlr_fname = json.dumps(copy_texts_dict), re.sub(r'[^a-zA-Z0-9_-]', '_', f"Analisa_ActionPlan_{dlr_pil}_Tgl_{tanggal_akhir}")
 
         components.html(f"""<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><style>
-        body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #E2E8F0; }}
-        .compact-table-wrap {{ width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid #2D3748; background-color: #0E1117; }}
-        .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #1E293B 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
-        table.narrative-tbl {{ width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #0E1117; }}
-        table.narrative-tbl th {{ background-color: #4318FF; color: #FFFFFF; font-weight: 700; padding: 10px 14px; border: 1px solid #2D3748; text-align: left; font-size: 13.5px; }}
-        table.narrative-tbl td {{ padding: 10px 14px; border: 1px solid #2D3748; text-align: left; vertical-align: top; color: #E2E8F0; line-height: 1.55; font-weight: 400; }}
-        table.narrative-tbl td.item-col {{ width: 15%; color: #E2E8F0; text-align: left; background-color: #161B26; white-space: nowrap; font-weight: 600; }}
-        table.narrative-tbl td.cond-col {{ width: 42.5%; background-color: #0E1117; }}
-        table.narrative-tbl td.plan-col {{ width: 42.5%; background-color: #111622; }}
-        p.nar-p {{ margin: 0 0 6px 0; padding: 0; color: #E2E8F0; font-weight: 400; line-height: 1.55; text-align: left; }}
+        body {{ margin: 0; padding: 0; background: transparent; font-family: 'Source Sans Pro', sans-serif; color: #1E3A8A; }}
+        .compact-table-wrap {{ width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; }}
+        .cap-title-banner {{ background: linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }}
+        table.narrative-tbl {{ width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13.5px; background-color: #FFFFFF; }}
+        table.narrative-tbl th {{ background-color: #4318FF; color: #FFFFFF; font-weight: 700; padding: 10px 14px; border: 1px solid #8FA8F0; text-align: left; font-size: 13.5px; }}
+        table.narrative-tbl td {{ padding: 10px 14px; border: 1px solid #8FA8F0; text-align: left; vertical-align: top; color: #1E3A8A; line-height: 1.55; font-weight: 400; }}
+        table.narrative-tbl td.item-col {{ width: 12%; color: #1E3A8A; text-align: left; background-color: #EAF0FF; white-space: nowrap; font-weight: 600; }}
+        table.narrative-tbl td.cond-col {{ width: 34%; background-color: #FFFFFF; }}
+        table.narrative-tbl td.plan-col {{ width: 54%; background-color: #FFFFFF; border-left: 3px solid #0891B2; }}
+        p.nar-p {{ margin: 0 0 6px 0; padding: 0; color: #1E3A8A; font-weight: 400; line-height: 1.55; text-align: left; }}
         p.nar-p:last-of-type {{ margin-bottom: 4px; }}
         .cell-btn-wrap {{ display: flex; justify-content: flex-end; margin-top: 4px; }}
-        .cell-copy-btn {{ background-color: #1E293B; color: #CBD5E1; border: 1px solid #334155; border-radius: 5px; padding: 3px 9px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; }}
+        .cell-copy-btn {{ background-color: #EAF0FF; color: #1E3A8A; border: 1px solid #8FA8F0; border-radius: 5px; padding: 3px 9px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; }}
         .cell-copy-btn:hover {{ background-color: #4318FF; color: #FFFFFF; border-color: #4318FF; }}
         .bottom-toolbar {{ display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-bottom: 6px; flex-wrap: wrap; }}
-        .act-btn {{ background-color: #1E293B; color: #E2E8F0; border: 1px solid #334155; border-radius: 6px; padding: 6px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }}
+        .act-btn {{ background-color: #EAF0FF; color: #1E3A8A; border: 1px solid #8FA8F0; border-radius: 6px; padding: 6px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }}
         .act-btn:hover {{ background-color: #4318FF; color: #FFFFFF; border-color: #4318FF; }}
         .print-btn {{ background-color: #4318FF; color: #FFFFFF; border: 1px solid #4318FF; }}
         .print-btn:hover {{ background-color: #3311CC; }}
-        #status_analisa {{ font-size: 12.5px; color: #00FF66; font-weight: 600; }}
+        #status_analisa {{ font-size: 12.5px; color: #12A150; font-weight: 600; }}
     </style></head><body>
     <div id="{tabel_analisa_dom_id}" class="compact-table-wrap">
         <div class="cap-title-banner capture-only-banner" style="display:none;">🐺 {jdl_rev_6}</div>
         <table class="narrative-tbl">
-            <thead><tr><th style="width:15%;">ITEM</th><th style="width:42.5%;">CONDITION (ANALISA SINGKAT MAKS 35 KATA — IDEAL: DB Q 30% | STU% 10% | ACC% 50%)</th><th style="width:42.5%;">ACTION PLAN (TARGET RASIONAL MAKS 35 KATA — {horizon_lbl.upper()})</th></tr></thead>
+            <thead><tr><th style="width:12%;">ITEM</th><th style="width:34%;">CONDITION (ANALISA SINGKAT MAKS 35 KATA — IDEAL: DB Q 30% | STU% 10% | ACC% 50%)</th><th style="width:54%;">ACTION PLAN &amp; HOW TO (TARGET + CARA MENCAPAINYA, MAKS 40 KATA — {horizon_lbl.upper()})</th></tr></thead>
             <tbody>{''.join(rows_html_list)}</tbody>
         </table>
     </div>
@@ -5171,40 +6691,40 @@ elif menu_pilihan == '🏢 STU':
     async function copyCellText(keyId, btnEl) {{
         const txt = cellTexts[keyId] || ''; const origLabel = btnEl.innerText;
         try {{ await navigator.clipboard.writeText(txt); }} catch (e) {{ fallbackCopyText(txt); }}
-        btnEl.innerText = '✅ Tersalin!'; btnEl.style.backgroundColor = '#00C853'; btnEl.style.color = '#FFFFFF';
+        btnEl.innerText = '✅ Tersalin!'; btnEl.style.backgroundColor = '#12A150'; btnEl.style.color = '#FFFFFF';
         setTimeout(() => {{ btnEl.innerText = origLabel; btnEl.style.backgroundColor = ''; btnEl.style.color = ''; }}, 2000);
     }}
     async function captureAnalisaTbl(mode) {{
-        const msg = document.getElementById('status_analisa'); msg.style.color = '#FFEA00'; msg.innerText = 'Memproses gambar tabel analisa...';
+        const msg = document.getElementById('status_analisa'); msg.style.color = '#D68A00'; msg.innerText = 'Memproses gambar tabel analisa...';
         const tblEl = document.getElementById('{tabel_analisa_dom_id}');
         const btns = tblEl.querySelectorAll('.no-capture');
         const bannerEl = tblEl.querySelector('.capture-only-banner');
         btns.forEach(b => b.style.display = 'none');
         if (bannerEl) bannerEl.style.display = 'block';
         try {{
-            const canvas = await html2canvas(tblEl, {{ backgroundColor: '#0E1117', scale: 2, useCORS: true, logging: false }});
+            const canvas = await html2canvas(tblEl, {{ backgroundColor: '#FFFFFF', scale: 2, useCORS: true, logging: false }});
             btns.forEach(b => b.style.display = 'flex');
             if (bannerEl) bannerEl.style.display = 'none';
             if (mode === 'copy') {{
                 canvas.toBlob(async (blob) => {{
                     try {{
                         await navigator.clipboard.write([new ClipboardItem({{ 'image/png': blob }})]);
-                        msg.style.color = '#00FF66'; msg.innerText = '✅ Gambar Tabel Analisa + Judul disalin ke Clipboard! (Siap Ctrl+V di WA/Word/Excel)';
+                        msg.style.color = '#12A150'; msg.innerText = '✅ Gambar Tabel Analisa + Judul disalin ke Clipboard! (Siap Ctrl+V di WA/Word/Excel)';
                     }} catch (err) {{
                         const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_dlr_fname}.jpg'; a.click();
-                        msg.style.color = '#00E5FF'; msg.innerText = '📥 Gambar otomatis diunduh sebagai JPG.';
+                        msg.style.color = '#0891B2'; msg.innerText = '📥 Gambar otomatis diunduh sebagai JPG.';
                     }}
                     setTimeout(() => msg.innerText = '', 4500);
                 }}, 'image/png');
             }} else {{
                 const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', 0.95); a.download = '{safe_dlr_fname}.jpg'; a.click();
-                msg.style.color = '#00FF66'; msg.innerText = '✅ File {safe_dlr_fname}.jpg berhasil diunduh!';
+                msg.style.color = '#12A150'; msg.innerText = '✅ File {safe_dlr_fname}.jpg berhasil diunduh!';
                 setTimeout(() => msg.innerText = '', 4000);
             }}
         }} catch (e) {{
             btns.forEach(b => b.style.display = 'flex');
             if (bannerEl) bannerEl.style.display = 'none';
-            msg.style.color = '#FF007F'; msg.innerText = 'Gagal: ' + e.message;
+            msg.style.color = '#E0115F'; msg.innerText = 'Gagal: ' + e.message;
         }}
     }}
     function printAnalisaTbl() {{
@@ -5221,7 +6741,7 @@ elif menu_pilihan == '🏢 STU':
                 .sub {{ color: #4B5563; font-size: 12.5px; margin-bottom: 12px; font-weight: 600; }}
                 table.narrative-tbl {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
                 table.narrative-tbl th {{ background-color: #1E3A8A !important; color: #FFFFFF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 8px 10px; border: 1px solid #1F2937; text-align: left; }}
-                table.narrative-tbl td {{ padding: 8px 10px; border: 1px solid #374151; vertical-align: top; text-align: left; line-height: 1.5; color: #111827; }}
+                table.narrative-tbl td {{ padding: 8px 10px; border: 1px solid #8FA8F0; vertical-align: top; text-align: left; line-height: 1.5; color: #111827; }}
                 table.narrative-tbl td.item-col {{ font-weight: bold; width: 14%; background-color: #F3F4F6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; white-space: nowrap; }}
                 p.nar-p {{ margin: 0; }}
                 .no-print-bar {{ margin-bottom: 12px; padding: 8px 12px; background: #EEF2FF; border: 1px solid #4318FF; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }}
@@ -5239,7 +6759,7 @@ elif menu_pilihan == '🏢 STU':
         `);
         w.document.close();
     }}
-    </script></body></html>""", height=620, scrolling=True)
+    </script></body></html>""", height=780, scrolling=True)
 
         st.divider()
         bsg_render_stu_per_leasing_faktur()
