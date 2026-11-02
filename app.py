@@ -27,9 +27,9 @@ st.markdown("""<style>
 .target-ideal-caption { font-size: 12.5px !important; font-weight: 700 !important; color: #FFFFFF !important; margin-top: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.35); }
 .main-title { font-size: 44px !important; font-weight: 800 !important; color: #4318FF !important; margin-bottom: 2px; line-height: 1.1; }
 .sub-title { font-size: 15px; font-weight: 600; color: #3B5BC8 !important; margin-bottom: 15px; }
-.section-title { font-size: 22px !important; font-weight: 700 !important; color: #4318FF !important; margin: 8px 0 4px 0; }
+.section-title { font-size: 22px !important; font-weight: 700 !important; color: #4318FF !important; margin: 10px 0 12px 0; }
 /* PEMAMPATAN OTOMATIS: jarak antar tabel / grafik / judul di area utama dirapatkan */
-[data-testid="stMain"] [data-testid="stVerticalBlock"], section.main [data-testid="stVerticalBlock"] { gap: 0.3rem !important; }
+[data-testid="stMain"] [data-testid="stVerticalBlock"], section.main [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 [data-testid="stMain"] [data-testid="stElementContainer"]:has(> iframe[height="0"]), [data-testid="stMain"] [data-testid="stElementContainer"]:has(.stMarkdown:empty) { display: none !important; }
 [data-testid="stMain"] iframe { display: block; margin: 0 !important; }
 [data-testid="stMain"] [data-testid="stMarkdownContainer"] > div:empty { display: none; }
@@ -651,6 +651,8 @@ def bsg_render_master_kpi_cards(tot_d, ideal):
 _BSG_BASE_CSS = _BSG_FRAME.split('<style>')[1].split('__CSS__')[0]
 _BSG_TIPJS = '<script>' + _BSG_FRAME.split('<div id="tip"></div>')[1].split('<script>')[1].split('</script>')[0] + '</script>'
 
+_H2C_JS = """function h2cO(el){var r=el.getBoundingClientRect(),w=Math.ceil(r.width),h=Math.ceil(r.height);var k=Math.max(0.8,Math.min(2,Math.sqrt(14000000/Math.max(1,w*h))));return {backgroundColor:'#FFFFFF',scale:k,useCORS:true,logging:false,windowWidth:Math.max(w,1000),windowHeight:Math.max(h,600),scrollX:0,scrollY:0};}"""   # HP: viewport tangkapan = lebar elemen (bukan lebar layar) + skala dibatasi agar canvas tidak melewati batas memori browser mobile
+
 _PN_CSS = """
 .pn-grid{display:grid;gap:12px;align-items:start}
 .pn-charts{display:grid;gap:12px;min-width:0;grid-template-columns:minmax(0,1fr)}
@@ -739,7 +741,7 @@ _PN_CSS = """
 .narrow .pn-charts{grid-template-columns:minmax(0,1fr) !important}
 .cap-only{display:none}.cap .cap-only{display:block}
 .cap *{animation:none !important;transition:none !important}
-.pn-banner{background:linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:12px;letter-spacing:.3px}
+.pn-banner{background:linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:14px;letter-spacing:.3px}
 .tb{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
 .btn{background:#EAF0FF;color:#1E3A8A;border:1px solid #8FA8F0;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{background:#4318FF;border-color:#4318FF;color:#fff}
@@ -757,6 +759,7 @@ __FOOTER__</div>
 <div class="tb"><button class="btn" onclick="pnCap('copy')">📸 Copy (Tabel + Grafik · HD)</button><button class="btn" onclick="pnCap('jpg')">📥 Download JPG</button><span id="st"></span></div></div>
 <div id="hold"></div><div id="tip"></div>__TIPJS__
 <script>(function(){
+__H2C__
 var FN="__FNAME__";
 function fitTables(root){root.querySelectorAll('.pn-table').forEach(function(w){var t=w.querySelector('table');if(!t)return;t.style.zoom=1;t.style.width='max-content';
  var nat=t.getBoundingClientRect().width,av=w.clientWidth;if(nat>av+1){t.style.zoom=(av/nat).toFixed(4);}else{t.style.width=av+'px';}});}
@@ -788,7 +791,7 @@ window.pnCap=async function(mode){
   var hold=document.getElementById('hold');hold.innerHTML='';
   var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
   hold.appendChild(c);fitTables(c);fitCards(c);c.querySelectorAll('.card').forEach(function(x){x.style.zoom='';});stretch(c);await svgFix(c);await new Promise(function(r){setTimeout(r,120);});
-  var canvas=await html2canvas(hold,{backgroundColor:'#FFFFFF',scale:2,useCORS:true,logging:false});hold.innerHTML='';
+  var canvas=await html2canvas(hold,h2cO(hold));hold.innerHTML='';
   function dl(){var a=document.createElement('a');a.href=canvas.toDataURL('image/jpeg',0.95);a.download=FN+'.jpg';a.click();}
   if(mode==='copy'){canvas.toBlob(async function(blob){try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
     st.style.color='#12A150';st.textContent='✅ Tabel + grafik disalin (HD). Siap Ctrl+V di WA/Word/Excel';}catch(e){dl();st.style.color='#12A150';st.textContent='📥 Browser membatasi clipboard, gambar diunduh sebagai JPG.';}
@@ -797,7 +800,7 @@ window.pnCap=async function(mode){
  }catch(e){st.style.color='#DC2626';st.textContent='Gagal membuat gambar: '+e.message;}
 };
 window.pnCapData=async function(){var hold=document.getElementById('hold');hold.innerHTML='';var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
-  hold.appendChild(c);fitTables(c);fitCards(c);c.querySelectorAll('.card').forEach(function(x){x.style.zoom='';});stretch(c);await svgFix(c);await new Promise(function(r){setTimeout(r,150);});var canvas=await html2canvas(hold,{backgroundColor:'#FFFFFF',scale:2,useCORS:true,logging:false});hold.innerHTML='';return canvas.toDataURL('image/jpeg',0.95);};
+  hold.appendChild(c);fitTables(c);fitCards(c);c.querySelectorAll('.card').forEach(function(x){x.style.zoom='';});stretch(c);await svgFix(c);await new Promise(function(r){setTimeout(r,150);});var canvas=await html2canvas(hold,h2cO(hold));hold.innerHTML='';return canvas.toDataURL('image/jpeg',0.95);};
 })();</script></body></html>"""
 
 def _pn_bottom_html(bottom, cols=None):
@@ -842,7 +845,7 @@ def bsg_panel(table_html, charts, layout, title, file_label, cap_header='', n_ro
            .replace('__LAYOUT__', {'side': 'L-side', 'side2': 'L-side L-side2', 'side2s': 'L-side L-side2 L-leg', 'stack': 'L-stack', 'stack_eq': 'L-stack L-eq', 'stack_c': 'L-stack L-cmp', 'side2c': 'L-side L-side2 L-cmp L-mini', 'side2d': 'L-side L-side2 L-cmp L-mini L-stretch', 'stackm': 'L-stack L-mini', 'sidecm': 'L-side L-cmp L-mini L-tight', 'sidecmx': 'L-side L-cmp L-mini L-tight L-stretch', 'stack1': 'L-stack L-one', 'stack3': 'L-stack3', 'stack3s': 'L-stack3 L-leg', 'charts': 'L-charts'}.get(layout, 'L-stack')).replace('__CAPHDR__', f'<div class="cap-only" style="margin-bottom:12px">{cap_header}</div>' if cap_header else '')
            .replace('__TITLE__', _esc(title)).replace('__TABLE__', tbl).replace('__CHARTS__', ch_html).replace('__BOTTOM__', bt_html)
            .replace('__GRIDSTYLE__', (' style="' + (f'grid-template-columns:{grid_cols};' if grid_cols else '') + ('align-items:stretch' if bottom_left else '') + '"' if (grid_cols or bottom_left) else '')).replace('__CHSTYLE__', (f' style="grid-template-columns:{chart_cols}"' if chart_cols else '')).replace('__TIPJS__', _BSG_TIPJS)
-           .replace('__FNAME__', re.sub(r'[^a-zA-Z0-9_-]', '_', file_label)))
+           .replace('__H2C__', _H2C_JS).replace('__FNAME__', re.sub(r'[^a-zA-Z0-9_-]', '_', file_label)))
     doc = doc.replace('__FOOTER__', footer_html or '')
     _PANEL_REG[re.sub(r'[^a-zA-Z0-9_-]', '_', file_label)] = doc   # dipakai CREATE PPT untuk memotret panel
     return doc, int(body_h + 62 + (110 if footer_html else 0))
@@ -1338,6 +1341,7 @@ _PPT_JS = """<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/htm
 #st{font-size:11.5px;font-weight:600;color:#3B5BC8;margin-top:5px;line-height:1.3}</style></head><body>
 <button class="b" id="go" onclick="run()">⬇️ UNDUH PPT</button><div id="st"></div><div id="hold" style="position:fixed;left:-20000px;top:0;"></div>
 <script>
+__H2C__
 const P=__PAYLOAD__;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitFor(fn,ms){const t0=Date.now();while(Date.now()-t0<ms){try{if(fn())return true;}catch(e){}await sleep(150);}return false;}
@@ -1353,7 +1357,7 @@ async function run(){
     if(it.kind==='panel'){const f=document.createElement('iframe');f.style.cssText='position:fixed;left:-20000px;top:0;width:1500px;height:1400px;border:0;';f.srcdoc=it.html;document.body.appendChild(f);
      const good=await waitFor(()=>f.contentWindow&&f.contentWindow.pnCapData&&typeof f.contentWindow.html2canvas!=='undefined',25000);if(!good)throw new Error('panel tidak termuat');
      await sleep(600);url=await f.contentWindow.pnCapData();f.remove();}
-    else{const h=document.getElementById('hold');h.innerHTML=it.html;await sleep(300);const c=await html2canvas(h.firstElementChild,{backgroundColor:'#FFFFFF',scale:2,useCORS:true,logging:false});h.innerHTML='';url=c.toDataURL('image/jpeg',0.95);}
+    else{const h=document.getElementById('hold');h.innerHTML=it.html;await sleep(300);const c=await html2canvas(h.firstElementChild,h2cO(h.firstElementChild));h.innerHTML='';url=c.toDataURL('image/jpeg',0.95);}
     const out=await fit(url,it.aspect);zip.file(it.media.replace(/^\\//,''),out.split(',')[1],{base64:true});ok++;
    }catch(e){fail.push(it.tag+' ('+e.message+')');}}
   if(!ok)throw new Error('tidak ada gambar yang berhasil dibuat');
@@ -1677,6 +1681,7 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
     <button class="act-btn" onclick="captureTbl('jpg')">📥 Download JPG</button>
     <span id="status_msg"></span><div id="offscreen_holder"></div>
     <script>
+    {_H2C_JS}
     const fallbackHtml = {hidden_payload};
     async function captureTbl(mode) {{
         const msg = document.getElementById('status_msg'); msg.style.color = '#D68A00'; msg.innerText = 'Memproses gambar...';
@@ -1684,7 +1689,7 @@ def render_table_image_buttons(table_dom_id, file_label, standalone_html=None):
             const holder = document.getElementById('offscreen_holder');
             let targetEl = fallbackHtml ? (holder.innerHTML = fallbackHtml, holder.firstElementChild) : window.parent.document.getElementById('{table_dom_id}');
             if (!targetEl) {{ msg.style.color = '#E0115F'; msg.innerText = 'Tabel tidak ditemukan.'; return; }}
-            const canvas = await html2canvas(targetEl, {{ backgroundColor: '#FFFFFF', scale: 2, useCORS: true, logging: false }});
+            const canvas = await html2canvas(targetEl,h2cO(targetEl));
             if (mode === 'copy') {{
                 canvas.toBlob(async (blob) => {{
                     try {{
@@ -1732,12 +1737,13 @@ def render_compact_html_table(df_items, df_full, columns, name_col, metric_col, 
         <div class="toolbar"><button class="act-btn" onclick="captureUC('copy')">📸 Copy Tabel (Gambar)</button><button class="act-btn" onclick="captureUC('jpg')">📥 Download JPG</button><span id="status_msg"></span></div>
         <div id="offscreen_uc"></div>
         <script>
-        const ucCaptureHtml = {hidden_uc_payload};
+        {_H2C_JS}
+    const ucCaptureHtml = {hidden_uc_payload};
         async function captureUC(mode) {{
             const msg = document.getElementById('status_msg'); msg.style.color = '#D68A00'; msg.innerText = 'Memproses gambar...';
             try {{
                 const holder = document.getElementById('offscreen_uc'); holder.innerHTML = ucCaptureHtml;
-                const canvas = await html2canvas(holder.firstElementChild, {{ backgroundColor: '#FFFFFF', scale: 2, useCORS: true, logging: false }});
+                const canvas = await html2canvas(holder.firstElementChild,h2cO(holder.firstElementChild));
                 holder.innerHTML = '';
                 if (mode === 'copy') {{
                     canvas.toBlob(async (blob) => {{
@@ -4593,7 +4599,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
             _dd_totname, _dd_tot, _dd_scope = f'Total {_sub_sel}', f'TOTAL {_sub_sel}', _sub_nm
         _bm_slot = st.container()
     def _jb_sep(jdl_x):   # garis pemisah + judul tabel dalam SATU blok, jarak ke tabel di atas/bawahnya dirapatkan
-        st.markdown(f'<div style="margin:-12px 0 -6px 0;border-top:1px solid #8FA8F0;"><div class="section-title" style="margin:6px 0 0 0 !important;">{jdl_x}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="margin:-8px 0 0 0;border-top:1px solid #8FA8F0;"><div class="section-title" style="margin:8px 0 12px 0 !important;">{jdl_x}</div></div>', unsafe_allow_html=True)
     if df_faktur_all is None or df_faktur_all.empty or 'Nama Dealer' not in df_faktur_all.columns or 'bulan' not in df_faktur_all.columns:
         st.info('ℹ️ File Faktur belum diunggah / belum terbaca. Unggah di menu 📁 UPLOAD FILE.')
     else:
@@ -4655,7 +4661,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                     else: st.rerun()
                 _ppt_fin = st.session_state.get('ppt_final')
                 if _dd_picked and _ppt_fin and _ppt_fin['dealer'] == _dd_dealer and not _job_on:   # tampil hanya untuk dealer yang sedang dipilih
-                    components.html(_PPT_JS.replace('__PAYLOAD__', _ppt_fin['payload']), height=96)
+                    components.html(_PPT_JS.replace('__H2C__', _H2C_JS).replace('__PAYLOAD__', _ppt_fin['payload']), height=96)
                     for w_ in _ppt_fin['warn']:
                         if not w_.startswith('ℹ️'): st.warning(w_)
             _dd_lbl = _dd_dealer + (f' · {_dd_koor}' if _dd_koor else '') + (f' · {_dd_sales}' if _dd_sales else '')
@@ -4740,8 +4746,8 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
         if not rows_jb:
             st.info('ℹ️ Tidak ada data dealer SIP / SENTRAL YAMAHA pada periode ini.')
         else:
-            _jt_all = st.tabs(['💰 PENJUALAN', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '👥 MAN POWER'] + ['⭐ DEALER RATING'] + (['🧠 ANALISA PROBLEM & PERBAIKAN'] if (_dd_mode and IS_SPV) else []))   # sub-menu Dashboard Jember / Dealer (+ CREATE PPT di samping MAN POWER)
-            jt_pj, jt_pr, jt_ak, jt_sl, jt_mp = _jt_all[:5]; jt_rt = _jt_all[5]; jt_an_tab = _jt_all[6] if (_dd_mode and IS_SPV) else None
+            _jt_all = st.tabs(['💰 PENJUALAN', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '📊 PENJUALAN BY TYPE', '👥 MAN POWER'] + ['⭐ DEALER RATING'] + (['🧠 ANALISA PROBLEM & PERBAIKAN'] if (_dd_mode and IS_SPV) else []))   # sub-menu Dashboard Jember / Dealer (+ CREATE PPT di samping MAN POWER)
+            jt_pj, jt_pr, jt_ak, jt_sl, jt_ty, jt_mp = _jt_all[:6]; jt_rt = _jt_all[6]; jt_an_tab = _jt_all[7] if (_dd_mode and IS_SPV) else None
             for r_ in rows_jb: r_['_lm_val'] = (r_['STU'] / r_['STU LM'] * 100.0) if r_['STU LM'] > 0 else -1.0
             df_jb = pd.DataFrame(rows_jb); df_jb['_nt0'] = (df_jb['TARGET'] <= 0)
             df_jb = df_jb.sort_values(by=['_nt0', '_pct', 'STU'], ascending=[True, True, True]).reset_index(drop=True)   # tabel: STU/TARGET terjelek -> terbaik (tanpa target di bawah)
@@ -4808,13 +4814,15 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                 if _mp_tg_d <= 0: b5, c5 = 'Target dealer belum diisi — kebutuhan Man Power belum dapat dihitung', GRY_
                 elif _mp_nd > 0: b5, c5 = f"Untuk mencapai target bulan ini dengan lancar butuh <b style='color:{YEL_};'>{_mp_nd} salesman baru</b> <span style='color:#3B5BC8;'>(MP Health 120% · {_mp_tx} → dibulatkan ke atas)</span>", YEL_
                 else: b5, c5 = f"<b style='color:{GRN_};'>Man Power mencukupi</b> — tidak perlu salesman baru <span style='color:#3B5BC8;'>(MP Health 120% · {_mp_tx})</span>", GRN_
-                css_ = ('<style>.bmk-bd{display:flex;align-items:stretch;gap:12px;background:#FFFFFF;border:1px solid #8FA8F0;border-radius:10px;padding:5px 12px 5px 5px;margin:0 0 7px 0;font-size:14.5px;color:#1E3A8A;box-sizing:border-box}'
-                        '.bmk-bdl{flex:none;width:300px;display:flex;align-items:center;font-size:13.5px;font-weight:800;letter-spacing:.3px;color:#FFFFFF;background:#2563EB;border-radius:7px;padding:8px 12px}.bmk-bdv{flex:1;min-width:0;line-height:1.55;align-self:center}'
-                        '@media (max-width:900px){.bmk-bd{flex-direction:column;gap:5px}.bmk-bdl{width:auto}}</style>')
-                def _bd(ic, lb, body, col): return f'<div class="bmk-bd" style="border-left:4px solid {col};"><div class="bmk-bdl">{ic} {lb}</div><div class="bmk-bdv">{body}</div></div>'
+                css_ = ('<style>.bmk-one{background:#FFFFFF;border:1px solid #8FA8F0;border-left:4px solid #2563EB;border-radius:10px;padding:1px 10px;margin:0 0 6px 0;width:100%;box-sizing:border-box;font-size:13px;color:#1E3A8A}'
+                        '.bmk-r{display:flex;align-items:baseline;gap:10px;padding:3px 0;border-bottom:1px dashed #C7D3F7}.bmk-r:last-child{border-bottom:0}'
+                        '.bmk-rl{flex:none;width:160px;white-space:nowrap;font-size:12px;font-weight:800;letter-spacing:.2px;color:#2563EB;border-left:3px solid #2563EB;padding-left:7px}.bmk-rv{flex:1;min-width:0;line-height:1.35;white-space:nowrap}'
+                        '@media (max-width:1300px){.bmk-rv{white-space:normal}}@media (max-width:700px){.bmk-r{flex-direction:column;gap:2px}.bmk-rl{width:auto}}</style>')
+                def _bd(ic, lb, body, col): return f'<div class="bmk-r"><div class="bmk-rl" style="border-left-color:{col};">{ic} {lb}</div><div class="bmk-rv">{body}</div></div>'
                 _only_wi = bool(_dd_koor and str(_dd_koor).strip().upper().startswith('COUNTER'))   # Counter tidak punya target / salesman / koordinator → hanya Walk In yang relevan
-                _bd_all = ('' if _only_wi else _bd('🎯', 'KOORDINATOR PERFORM TERBURUK', b1, c1) + _bd('👤', 'SALESMAN PERFORM TERBURUK', b2, c2) + _bd('🏪', 'PERFORM COUNTER', b3, c3)) \
-                          + _bd('🚶', 'WALK IN DEALER', b4, CYN_) + ('' if _only_wi else _bd('👷', 'MAN POWER', b5, c5))
+                _bd_all = ('' if _only_wi else _bd('🎯', 'Koordinator Terburuk', b1, c1) + _bd('👤', 'Salesman Terburuk', b2, c2) + _bd('🏪', 'Perform Counter', b3, c3)) \
+                          + _bd('🚶', 'Walk In Dealer', b4, CYN_) + ('' if _only_wi else _bd('👷', 'Man Power', b5, c5))
+                _bd_all = f'<div class="bmk-one">{_bd_all}</div>'   # SEMUA badge digabung dalam 1 kotak (lebih ringkas saat di-copy)
                 return (css_ + f'<div class="bmk-wrap"><div class="bmk-ttl">🧭 RINGKASAN PERFORM DEALER — {_esc(_dd_dealer)} (1 s.d {tanggal_akhir})</div>' + _bd_all + '</div>')
             _bm3_html = ''
             if _bm_slot is not None:   # Benchmark KPI: Sub Area (Dashboard Jember) atau Dealer / Koor / Salesman terpilih (Dashboard Dealer)
@@ -4840,6 +4848,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                 jdl_jb = f'1. TABEL PENJUALAN — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
                 st.markdown(f'<div class="section-title">{jdl_jb}</div>', unsafe_allow_html=True)
                 _cap_jb = f'<div style="font-size:30px;font-weight:800;color:#4318FF;margin-bottom:4px;line-height:1.1;">{'DASHBOARD DEALER — ' + _dd_lbl if _dd_mode else 'DASHBOARD JEMBER — SIP & SENTRAL YAMAHA'} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>' + ((_bm1_html + _bm2_html).replace('class="bmk-grid"', 'class="bmk-grid" style="grid-template-columns:repeat(7,minmax(0,1fr))"') + _bm3_html if _bm_slot is not None else '')   # kartu Benchmark KPI (2 baris) ikut tertangkap tombol Copy / Download HD
+                _jb_rh = {'v': 0}   # tinggi alami grafik kanan (diisi _jb_growth_chart, dibaca _jb_bottom)
                 def _jb_growth_chart(df_x):
                     rws = []
                     for _, r_ in df_x.iterrows():
@@ -4866,7 +4875,12 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                     c_nota = bsg_chart_rank('Nota', '', nota_rws, unit='', fixed_color='#0891B2', parts=True, total=f"{int(r_tot_jb['NOTA']):,}", total_color='#0891B2')
                     c_tg = bsg_chart_rank('STU vs Target', '', tg_rws, ideal=_idl, parts=True, ascending=False, split='target', split_total=(_tot_stu, int(r_tot_jb['TARGET'])), total=f'{_tot_pct:.1f}%', total_color=bsg_stat_color(_tot_pct, _idl, _idl * 0.85))
                     c_lm = bsg_chart_rank('STU vs Bulan Lalu', '', rws, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, ascending=False, split='lm', split_total=(_tot_stu, int(r_tot_jb['STU LM'])), scale_max=max([r_['val'] for r_ in rws] + [115.0]), total=f'{_tot_lm - 100.0:+.1f}%', total_color=bsg_stat_color(_tot_lm, 100.0, 85.0))
-                    return [_mini(c_stu, len(stu_rws), None), _mini(c_nota, len(nota_rws), None), c_tg, c_lm]
+                    _r4 = [_mini(c_stu, len(stu_rws), None), _mini(c_nota, len(nota_rws), None), c_tg, c_lm]
+                    try:   # tinggi alami kolom kanan (2 baris kartu) → dipakai Kurva di kiri agar tinggi panel mengikuti isi grafik
+                        _h_ = [(c_[2] if c_ else 0) for c_ in _r4]
+                        _jb_rh['v'] = max(_h_[0], _h_[1]) + 12 + max(_h_[2], _h_[3])
+                    except Exception: _jb_rh['v'] = 0
+                    return _r4
                 def _jb_pies():
                     _fk_ = df_faktur_kontribusi if df_faktur_kontribusi is not None else df_faktur_all   # SEMUA dealer: hanya untuk menghitung kontribusi MDS
                     fa_ = _fk_[(_fk_['bulan'] == current_month) & (_fk_['tahun'] == current_year) & (_fk_['hari'] <= tanggal_akhir)]
@@ -4886,7 +4900,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                 def _jb_bottom():   # DASHBOARD DEALER: Kurva Pencapaian STU (target ideal vs realisasi + Forc Nota/7/3) tepat di bawah 4 grafik penjualan; pie kontribusi MDS hanya utk level dealer / Jember
                     out_ = []
                     if _dd_mode:
-                        c_cv = bsg_chart_curve(f'STU Kumulatif Harian — {_dd_lbl}', '', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=None, extra=[('Forc 3', r_tot_jb.get('FORC 3'), '#DC2626', '8 3 2 3')], h=(380 if _dd_side else 330), parts=True)   # kurva 3 item: STU, Target, Forc 3
+                        c_cv = bsg_chart_curve(f'STU Kumulatif Harian — {_dd_lbl}', '', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=None, extra=[('Forc 3', r_tot_jb.get('FORC 3'), '#DC2626', '8 3 2 3')], h=((max(110, min(380, int(_jb_rh['v']) - 180)) if _jb_rh['v'] else 380) if _dd_side else 330), parts=True)   # kurva 3 item: STU, Target, Forc 3
                         if c_cv: out_.append(c_cv)
                     if not (_dd_mode and _dd_lvl != 'dealer'): out_ += (_jb_pies() or [])
                     return out_
@@ -5293,7 +5307,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                 bsg_panel_table(pd.DataFrame({'x': [1]}), pd.DataFrame({'x': [1]}), ['x'], 'x', 'x', 'Jember_ACC_DP_STU_Type', f'ACC BY DP, STU KREDIT BY TYPE & REJECT REASON — {jb_lsg_sel} (1 s.d {tanggal_akhir} {periode_bulan_tahun})', None, (), layout='stack', no_table=True, bottom_fn=lambda: [_jb_dp_pies(), _jb_type_pies(), _jb_rej_pies()], bottom_cols='minmax(0,1fr)')
                 st.caption('ℹ️ ACC by DP = SPK bulan ini berstatus DISETUJUI per cluster DP pricelist (< 5 jt, 5 jt s.d < 10 jt, ≥ 10 jt). STU Kredit by Type = faktur non-cash per kelompok type. Reject Reason = alasan pada file SPK kolom S untuk SPK berstatus DITOLAK. SPK tunai dan batal tidak dihitung.')
 
-            with jt_pj:
+            with jt_ty:   # sub-menu sendiri setelah SPK & LEASING (key panel 'Jember_Penjualan_By_Type' tetap → CREATE PPT tidak terpengaruh)
                 # ---- 7. TABEL PENJUALAN BY TYPE (STU per dealer per kelompok type) ----
                 jdl_jb_ty = f'7. PENJUALAN BY TYPE — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
                 _jb_sep(jdl_jb_ty)
@@ -5976,7 +5990,8 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
     <span id="status_analisa"></span>
 </div>
 <script>
-const cellTexts = {copy_payload_json};
+{_H2C_JS}
+    const cellTexts = {copy_payload_json};
 function fallbackCopyText(text) {{
     const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
     document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
@@ -5995,7 +6010,7 @@ async function captureAnalisaTbl(mode) {{
     btns.forEach(b => b.style.display = 'none');
     if (bannerEl) bannerEl.style.display = 'block';
     try {{
-        const canvas = await html2canvas(tblEl, {{ backgroundColor: '#FFFFFF', scale: 2, useCORS: true, logging: false }});
+        const canvas = await html2canvas(tblEl,h2cO(tblEl));
         btns.forEach(b => b.style.display = 'flex');
         if (bannerEl) bannerEl.style.display = 'none';
         if (mode === 'copy') {{
