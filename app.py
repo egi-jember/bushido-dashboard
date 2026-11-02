@@ -30,9 +30,7 @@ st.markdown("""<style>
 .section-title { font-size: 22px !important; font-weight: 700 !important; color: #4318FF !important; margin: 10px 0 12px 0; }
 /* PEMAMPATAN OTOMATIS: jarak antar tabel / grafik / judul di area utama dirapatkan */
 [data-testid="stMain"] [data-testid="stVerticalBlock"], section.main [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
-[data-testid="stMain"] [data-testid="stElementContainer"]:has(> iframe[height="0"]), [data-testid="stMain"] [data-testid="stElementContainer"]:has(.stMarkdown:empty) { display: none !important; }
 [data-testid="stMain"] iframe { display: block; margin: 0 !important; }
-[data-testid="stMain"] [data-testid="stMarkdownContainer"] > div:empty { display: none; }
 .compact-table-wrap, .ultra-compact-wrap { margin-bottom: 2px !important; }
 .cap-title-banner { background: linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }
 .compact-table-wrap { width: 100%; overflow-x: auto; margin-bottom: 4px; border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; }
@@ -260,8 +258,12 @@ def bsg_benchmark_kpi_html(title, r_tot, nm, ideal_pct, f_c, db_c, sp_c, sp_lm, 
     def _avg(lbl, ic, a_, f_):   # rata-rata | forecast akhir bulan | % forecast terhadap target
         return (ic, lbl, f'{lbl} | {lbl.replace("AVG", "FORC")} | %Target', [(f'{a_:.2f}', GRY), (f'{safe_int(f_):,}', GRY), _pt(_pc(safe_int(f_), tg))], CYN, None, None)
     p_id, p_lm, p_spk = _pc(stu, idl_u), _pc(stu, stu_lm), _pc(sp_n, sp_lm_n)
+    def _fmt_pct_ideal():   # Ideal% = persen target ideal pada tanggal terpilih (Data Lookup kolom M-P: Tanggal → Target %), bukan STU/Ideal
+        try: v_ = float(tabel_target_harian.get(int(tanggal_akhir), ideal_pct if ideal_pct is not None else 0.0))
+        except Exception: v_ = 0.0
+        return f'{v_:.0f}%' if abs(v_ - round(v_)) < 0.05 else f'{v_:.1f}%'
     cards = [
-        ('🎯', 'TARGET', 'Target | Ideal | Ideal%', [(f'{tg:,}', BLU), (f'{idl_u:,}', BLU), _pt(p_id)], BLU, None, None),
+        ('🎯', 'TARGET', 'Target | Ideal | Ideal%', [(f'{tg:,}', BLU), (f'{idl_u:,}', BLU), (_fmt_pct_ideal(), BLU)], BLU, None, None),
         ('🏍️', 'RESULT', 'STU | Nota', [(f'{stu:,}', BLU), (f'{nota:,}', CYN)], BLU, None, None),
         ('🏆', 'ACHIEVEMENT', 'Achievement | %LM', [(f'{pct:.1f}%', bsg_stat_color(pct, idl, 0.85 * idl)), _pt(p_lm)], bsg_stat_color(pct, idl, 0.85 * idl), min(pct, 100.0), idl),
         ('📥', 'DB QUALITY', f'HOT {hot_n:,} | DB {db_n:,}', [(f'{dbq:.1f}%', bsg_stat_color(dbq, 30.0, 20.0))], bsg_stat_color(dbq, 30.0, 20.0), min(dbq / 30.0 * 100.0, 100.0), None),
@@ -322,13 +324,15 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 .rk-m{position:absolute;top:-3px;bottom:-3px;width:3px;background:#DC2626;opacity:1;border-radius:1px;z-index:2}
 .rk-v{flex:0 0 64px;text-align:right;font-size:13.5px;font-weight:800}
 .sp-tt{font-size:14.5px;font-weight:900;color:#0B2A5B;text-align:center;margin:4px 0 5px;letter-spacing:.2px}
-.sp{display:flex;height:30px;border-radius:10px;overflow:hidden;font-size:12.5px;font-weight:800;color:#FFFFFF}
-.sp>div{flex:1 1 50%;display:flex;align-items:center;justify-content:center;padding:0 6px;white-space:nowrap;overflow:hidden;min-width:0}
+.sp{position:relative;display:flex;height:30px;border-radius:10px;overflow:hidden;font-size:12.5px;font-weight:800;color:#FFFFFF}
+.sp>div{flex:1 1 50%;display:flex;align-items:center;padding:0 9px;white-space:nowrap;overflow:hidden;min-width:0}
+.sp>div.l{justify-content:flex-start}.sp>div.e{justify-content:flex-end}
 .sp .r{background:#F20000}.sp .b{background:#4472C4}
+.sp .j{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;background:#FFFFFF;border:2px solid #64748B;border-radius:999px;padding:0 7px;font-size:11px;line-height:16px;font-weight:900;white-space:nowrap}
 .sp-sum{margin:0 0 10px 0}
 .sp-row{display:flex;align-items:center;gap:8px;margin:0 0 7px 0}
 .sp-n{flex:0 0 92px;font-size:12.5px;font-weight:700;color:#1E3A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sp-b{flex:1;min-width:0}.sp-b .sp{height:26px;font-size:11.5px;border-radius:8px}
+.sp-b{flex:1;min-width:0}.sp-b .sp{height:26px;font-size:11.5px;border-radius:8px}.sp-b .sp .j{font-size:10.5px;line-height:14px}
 .sp-p{flex:0 0 54px;text-align:right;font-size:13.5px;font-weight:800}
 .rk-note{font-size:11px;font-weight:600;color:#3B5BC8;background:#EAF0FF;border-radius:6px;padding:4px 7px;margin:0 0 6px 0;line-height:1.3}
 .rk-x{flex:0 0 auto;min-width:26px;text-align:right;font-size:11.5px;font-weight:700;color:#475569;white-space:nowrap}
@@ -337,11 +341,15 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 .ttl-r{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .ttl-tot{font-size:22px;font-weight:900;line-height:1.05;white-space:nowrap}"""
 
-def _split_bar(a, b, kind):
-    """Diagram batang terbelah 50 : 50, isi hanya angka. kind='target': [merah STU | biru TARGET]; kind='lm': [biru LM | merah STU]."""
+def _split_bar(a, b, kind, p_=None, c_='#64748B'):
+    """Diagram batang terbelah 50 : 50. Segmen capaian (STU) berwarna MENGIKUTI PERSENTASE (hijau / kuning / merah; abu-abu bila n/a), segmen pembanding (Target / LM) biru.
+    Angka capaian di KEDUA UJUNG batang; persentase di titik temu kedua warna. kind='target': [STU | TARGET]; kind='lm': [LM | STU]."""
     fa, fb = f'{int(round(float(a or 0))):,}', f'{int(round(float(b or 0))):,}'
-    r_, b_ = f'<div class="r">{fa}</div>', f'<div class="b">{fb}</div>'
-    return f'<div class="sp">{r_ + b_ if kind == "target" else b_ + r_}</div>'
+    ptxt = 'n/a' if p_ is None else f'{p_:.0f}%'
+    ach = lambda v_, cls_: f'<div class="{cls_}" style="background:{c_}">{v_}</div>'
+    blu = lambda v_, cls_: f'<div class="b {cls_}">{v_}</div>'
+    body = (ach(fa, 'l') + blu(fb, 'e')) if kind == 'target' else (blu(fb, 'l') + ach(fa, 'e'))
+    return f'<div class="sp">{body}<span class="j" style="color:{c_};border-color:{c_}">{ptxt}</span></div>'
 
 BSG_ONE_ROW = False   # True (Dashboard Dealer): tiap kelompok pie/grafik per Koordinator-Counter selalu 1 baris, berapapun jumlahnya
 
@@ -361,15 +369,15 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
     if split:
         sm = ''
         if split_total is not None:
-            ta, tb = split_total; pt_ = (ta / tb * 100.0) if tb else 0.0
-            sm = f'<div class="sp-sum"><div class="sp-tt">{"ACHIEV" if split == "target" else "VS LM"} {pt_:.0f}%</div>{_split_bar(ta, tb, split)}</div>'
+            ta, tb = split_total; pt_ = (ta / tb * 100.0) if tb else None
+            c_sum = '#64748B' if pt_ is None else (BSG_GRN if pt_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and pt_ >= 0.85 * ideal) else BSG_RED))
+            sm = f'<div class="sp-sum"><div class="sp-tt">{"ACHIEV" if split == "target" else "VS LM"}</div>{_split_bar(ta, tb, split, pt_, c_sum)}</div>'
         sb = ''
         for r in rows:
             a_, b_ = r.get('a', 0), r.get('b', 0); p_ = (a_ / b_ * 100.0) if b_ else None
             c = ('#64748B' if p_ is None else (BSG_GRN if p_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and p_ >= 0.85 * ideal) else BSG_RED)))
             tip = r.get('tip') or f"<b>{_esc(r['name'])}</b>"
-            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split)}</div>'
-                   f'<div class="sp-p" style="color:{c}">{("n/a" if p_ is None else f"{p_:.0f}%")}</div></div>')
+            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split, p_, c)}</div></div>')
         hdr = _hdr(title, '')
         if total is not None:
             hdr = f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div><div style="height:6px"></div>'
@@ -542,8 +550,10 @@ def bsg_chart_curve(title, subtitle, df_stu, target, tgl_akhir, max_day, forc=No
         cnt_l = {}
         if hasattr(df_lm, 'empty') and not df_lm.empty and 'hari' in df_lm.columns:
             for hh, cc in df_lm['hari'].dropna().astype(int).value_counts().items(): cnt_l[int(hh)] = int(cc)
-        for d in range(1, int(tgl_akhir) + 1):
+        _lm_last = min(int(max_day), max([int(tgl_akhir)] + list(cnt_l.keys())))   # kumulatif bulan lalu ditarik sampai akhir bulan (bila data tersedia)
+        for d in range(1, _lm_last + 1):
             lm_tot += cnt_l.get(d, 0); lm_pts.append([d, lm_tot])
+    lm_same = next((v_ for d_, v_ in lm_pts if d_ == int(tgl_akhir)), lm_tot)   # STU bulan lalu pada tanggal yang sama (pembanding realisasi)
     proj = [[int(tgl_akhir), run], [int(max_day), float(forc)]] if (forc is not None and bsg_num(forc) > 0 and int(tgl_akhir) < int(max_day)) else []
     ext = []
     if int(tgl_akhir) < int(max_day):
@@ -553,11 +563,11 @@ def bsg_chart_curve(title, subtitle, df_stu, target, tgl_akhir, max_day, forc=No
     gcol = BSG_GRN if gap >= 0 else BSG_RED
     chips = (f'<span class="chip">Realisasi <b style="color:{BSG_GRN}">{run:,}</b></span><span class="chip">Ideal tgl {int(tgl_akhir)} <b>{ideal[int(tgl_akhir) - 1]:,.0f}</b></span>'
              f'<span class="chip">Gap <b style="color:{gcol}">{gap:+,.0f}</b></span><span class="chip">Target <b>{int(target):,}</b></span>'
-             + (f'<span class="chip">STU LM <b style="color:#475569">{lm_tot:,}</b> · vs LM <b style="color:{BSG_GRN if run >= lm_tot else BSG_RED}">{run - lm_tot:+,}</b></span>' if lm_pts else '')
+             + (f'<span class="chip">STU LM <b style="color:#475569">{lm_same:,}</b>' + (f' (closing <b>{lm_tot:,}</b>)' if lm_tot != lm_same else '') + f' · vs LM <b style="color:{BSG_GRN if run >= lm_same else BSG_RED}">{run - lm_same:+,}</b></span>' if lm_pts else '')
              + (f'<span class="chip">Forecast closing <b style="color:{BSG_CYN}">{int(bsg_num(forc)):,}</b></span>' if proj else ''))
     leg = (f'<span class="lg"><span class="ds"></span>Target ideal</span><span class="lg"><span class="dot" style="background:{BSG_GRN}"></span>Realisasi STU</span>'
            + (f'<span class="lg"><span class="dot" style="background:{BSG_CYN}"></span>Forecast {int(bsg_num(forc)):,}</span>' if proj else '')
-           + (f'<span class="lg"><span class="dot" style="background:#475569"></span>STU LM {lm_tot:,}</span>' if lm_pts else '')
+           + (f'<span class="lg"><span class="dot" style="background:#475569"></span>STU Kumulatif Bulan Lalu {lm_tot:,}</span>' if lm_pts else '')
            + ''.join(f'<span class="lg"><span class="ds" style="border-top-color:{e["c"]}"></span><span style="color:{e["c"]};font-weight:700">{_esc(e["n"])} {int(e["v"]):,}' + (f' ({e["v"] / target * 100.0:.0f}%)' if target > 0 else '') + '</span></span>' for e in ext))
     cfg = json.dumps({'maxd': int(max_day), 'ideal': ideal, 'real': real, 'lm': lm_pts, 'proj': proj, 'ext': ext, 'today': int(tgl_akhir), 'target': target, 'h': int(h)})
     inner = f'<div class="card">{_hdr(title, subtitle)}<div>{chips}</div><div>{leg}</div><div id="cv" style="width:100%;height:{int(h)}px"></div></div>'
@@ -4654,6 +4664,13 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
             with _dd_c4:   # CREATE PPT: klik → loading (tahap dealer → koordinator → counter) → tombol UNDUH PPT muncul di sini
                 st.markdown('<div style="height:29px"></div>', unsafe_allow_html=True)
                 _ppt_go, _ppt_err = st.button('📑 CREATE PPT', key='btn_go_create_ppt', type='primary', use_container_width=True, disabled=not _dd_picked or _job_on, help='Buat PowerPoint review dealer terpilih: kolom CONDITION & gambar dashboard terisi otomatis (kecuali slide Recruitment & Documentation).'), None
+                components.html("""<script>(function(){try{var d=window.parent.document;
+function al(){var b=d.querySelector('.st-key-btn_go_create_ppt button');if(!b){var bs=d.querySelectorAll('button');for(var i=0;i<bs.length;i++){if(/CREATE PPT/.test(bs[i].textContent)){b=bs[i];break;}}}
+ if(!b)return;var blk=b.closest('[data-testid="stHorizontalBlock"]');if(!blk)return;var sel=blk.querySelector('[data-baseweb="select"]');if(!sel)return;
+ var w=b.closest('[data-testid="stElementContainer"]')||b.parentElement;var sr=sel.getBoundingClientRect(),br=b.getBoundingClientRect();
+ var dl=sr.top-br.top;if(Math.abs(dl)>1){var cur=parseFloat(w.getAttribute('data-ppt-mt')||'0')+dl;w.setAttribute('data-ppt-mt',cur);w.style.marginTop=cur+'px';}
+ var h=Math.round(sr.height);if(h>24&&Math.abs(br.height-h)>1){b.style.height=h+'px';b.style.minHeight=h+'px';}}
+al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREATE PPT diratakan otomatis dengan kotak drop box (atas & tinggi sama)
                 if _ppt_go:
                     with st.spinner(f'Menyiapkan PPT {_dd_dealer}…'):
                         try: bsg_ppt_job_start(_dd_dealer)
@@ -4670,7 +4687,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
             _dd_lbl = _dd_dealer + (f' · {_dd_koor}' if _dd_koor else '') + (f' · {_dd_sales}' if _dd_sales else '')
             _dd_lvl = 'sales' if (_dd_koor or _dd_sales) else 'koor'   # Dashboard Dealer selalu membahas Koordinator / Counter (semua dealer atau satu dealer)
             if _dd_lvl != 'dealer':
-                _dd_totname, _dd_tot, _dd_scope = _dd_lbl.title().replace('Sip ', 'SIP '), f'TOTAL {_dd_lbl}', f'{_dd_lbl} — ' + ('PER KOORDINATOR / COUNTER' if _dd_lvl == 'koor' else 'PER SALESMAN')
+                _dd_totname, _dd_tot, _dd_scope = _dd_lbl.title().replace('Sip ', 'SIP '), f'TOTAL {_dd_lbl}', _dd_lbl   # judul = nama dealer saja; nama Koordinator / Salesman baru tampil bila dipilih
                 _NM_COL = 'NAMA KOOR / COUNTER' if _dd_lvl == 'koor' else 'NAMA SALESMAN'
             st.caption({'dealer': 'ℹ️ Menampilkan data per Koordinator / Counter.', 'koor': f'ℹ️ Menampilkan data per Koordinator / Counter dari **{_dd_dealer}**. Pilih Koordinator / Counter untuk melihat per Salesman.', 'sales': f'ℹ️ Menampilkan data per Salesman dari **{_dd_lbl}**.'}[_dd_lvl])
             _bm_slot = st.container()   # Benchmark KPI tepat di bawah drop box
@@ -4706,6 +4723,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
         if _dd_mode and _dd_lvl != 'dealer' and not _jf.empty: _jf['_jb'] = _dd_key(_jf, '_jb')
         jb_f_c = _jf[(_jf['bulan'] == current_month) & (_jf['tahun'] == current_year) & (_jf['hari'] <= tanggal_akhir)]
         jb_f_l = _jf[(_jf['bulan'] == last_month) & (_jf['tahun'] == last_month_year) & (_jf['hari'] <= tanggal_akhir)]
+        jb_f_l_full = _jf[(_jf['bulan'] == last_month) & (_jf['tahun'] == last_month_year)]   # STU bulan lalu 1 bulan penuh → kurva kumulatif bulan lalu
         jb_n_c, jb_n_t = pd.DataFrame(), pd.DataFrame()
         if path_nota:
             try:
@@ -4903,7 +4921,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                 def _jb_bottom():   # DASHBOARD DEALER: Kurva Pencapaian STU (target ideal vs realisasi + Forc Nota/7/3) tepat di bawah 4 grafik penjualan; pie kontribusi MDS hanya utk level dealer / Jember
                     out_ = []
                     if _dd_mode:
-                        c_cv = bsg_chart_curve(f'STU Kumulatif Harian — {_dd_lbl}', '', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=None, extra=[('Forc 3', r_tot_jb.get('FORC 3'), '#DC2626', '8 3 2 3')], h=((max(110, min(380, int(_jb_rh['v']) - 180)) if _jb_rh['v'] else 380) if _dd_side else 330), parts=True)   # kurva 3 item: STU, Target, Forc 3
+                        c_cv = bsg_chart_curve(f'STU Kumulatif Harian — {_dd_lbl}', '', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=None, df_lm=jb_f_l_full, extra=[('Forc 3', r_tot_jb.get('FORC 3'), '#DC2626', '8 3 2 3')], h=((max(110, min(380, int(_jb_rh['v']) - 180)) if _jb_rh['v'] else 380) if _dd_side else 330), parts=True)   # kurva 3 item: STU, Target, Forc 3
                         if c_cv: out_.append(c_cv)
                     if not (_dd_mode and _dd_lvl != 'dealer'): out_ += (_jb_pies() or [])
                     return out_
@@ -4972,10 +4990,10 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                         _nm_e = lambda r_: _esc(str(r_[kol_pr_jb]))
                         def _rk_e(key, ok_fn, tip_fn): return [{'name': str(r_[kol_pr_jb]), 'val': float(r_[key]), 'label': f"{r_[key]:.1f}%", 'tip': tip_fn(r_)} for r_ in rows_pr_jb if ok_fn(r_)]
                         _tp = tot_pr_jb
-                        return [bsg_chart_rank(f'Database Quality — per {_en}', 'HOT ÷ DB · garis merah = ideal 30%', _rk_e('_dbq', lambda r_: r_['DATABASE'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>DB Q <b>{r_['_dbq']:.2f}%</b><br>HOT {r_['HOT PROSPEK']:,} / DB {r_['DATABASE']:,}"), ideal=30.0, parts=True, total=f"{_tp['_dbq']:.1f}%", total_color=_tcx(_tp['_dbq'], 30.0)),
-                                bsg_chart_rank(f'Approval Ratio (ACC%) — per {_en}', 'Disetujui ÷ (disetujui + ditolak) · garis merah = ideal 50%', _rk_e('_acc', lambda r_: r_['SPK'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>ACC% <b>{r_['_acc']:.2f}%</b><br>SPK {r_['SPK']:,} · Terbuka {int(r_['_open']):,}"), ideal=50.0, parts=True, total=f"{_tp['_acc']:.1f}%", total_color=_tcx(_tp['_acc'], 50.0)),
-                                bsg_chart_rank(f'Open SPK — per {_en}', 'Jumlah SPK berstatus terbuka (belum disetujui / ditolak)', [{'name': str(r_[kol_pr_jb]), 'val': float(r_['_open']), 'label': f"{int(r_['_open']):,}", 'tip': f"<b>{_nm_e(r_)}</b><br>SPK terbuka <b>{int(r_['_open']):,}</b><br>dari total SPK {r_['SPK']:,}"} for r_ in rows_pr_jb], unit='', fixed_color='#F97316', parts=True, total=f"{int(sum(r_['_open'] for r_ in rows_pr_jb)):,}", total_color='#F97316'),
-                                bsg_chart_rank(f'STU Ratio (STU%) — per {_en}', 'STU ÷ DB · garis merah = ideal 10%', _rk_e('_stu_pct', lambda r_: r_['DATABASE'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>STU% <b>{r_['_stu_pct']:.2f}%</b><br>STU {r_['STU']:,} / DB {r_['DATABASE']:,}"), ideal=10.0, parts=True, total=f"{_tp['_stu_pct']:.1f}%", total_color=_tcx(_tp['_stu_pct'], 10.0))]
+                        return [bsg_chart_rank(f'Database Quality' + (f' — {_dd_koor}' if _dd_koor else ''), 'HOT ÷ DB · garis merah = ideal 30%', _rk_e('_dbq', lambda r_: r_['DATABASE'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>DB Q <b>{r_['_dbq']:.2f}%</b><br>HOT {r_['HOT PROSPEK']:,} / DB {r_['DATABASE']:,}"), ideal=30.0, parts=True, total=f"{_tp['_dbq']:.1f}%", total_color=_tcx(_tp['_dbq'], 30.0)),
+                                bsg_chart_rank(f'Approval Ratio (ACC%)' + (f' — {_dd_koor}' if _dd_koor else ''), 'Disetujui ÷ (disetujui + ditolak) · garis merah = ideal 50%', _rk_e('_acc', lambda r_: r_['SPK'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>ACC% <b>{r_['_acc']:.2f}%</b><br>SPK {r_['SPK']:,} · Terbuka {int(r_['_open']):,}"), ideal=50.0, parts=True, total=f"{_tp['_acc']:.1f}%", total_color=_tcx(_tp['_acc'], 50.0)),
+                                bsg_chart_rank(f'Open SPK' + (f' — {_dd_koor}' if _dd_koor else ''), 'Jumlah SPK berstatus terbuka (belum disetujui / ditolak)', [{'name': str(r_[kol_pr_jb]), 'val': float(r_['_open']), 'label': f"{int(r_['_open']):,}", 'tip': f"<b>{_nm_e(r_)}</b><br>SPK terbuka <b>{int(r_['_open']):,}</b><br>dari total SPK {r_['SPK']:,}"} for r_ in rows_pr_jb], unit='', fixed_color='#F97316', parts=True, total=f"{int(sum(r_['_open'] for r_ in rows_pr_jb)):,}", total_color='#F97316'),
+                                bsg_chart_rank(f'STU Ratio (STU%)' + (f' — {_dd_koor}' if _dd_koor else ''), 'STU ÷ DB · garis merah = ideal 10%', _rk_e('_stu_pct', lambda r_: r_['DATABASE'] > 0, lambda r_: f"<b>{_nm_e(r_)}</b><br>STU% <b>{r_['_stu_pct']:.2f}%</b><br>STU {r_['STU']:,} / DB {r_['DATABASE']:,}"), ideal=10.0, parts=True, total=f"{_tp['_stu_pct']:.1f}%", total_color=_tcx(_tp['_stu_pct'], 10.0))]
                     kota_rows = []
                     for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
                         nms_ = [n_ for n_ in _jb_names if mapping_dealer_kota.get(_nrm_dlr(n_)) == kt_ and (mapping_dealer_status.get(_nrm_dlr(n_)) or 'MDS') == 'MDS']
