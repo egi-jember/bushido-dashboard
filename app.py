@@ -970,6 +970,11 @@ def bsg_arsip_activate(upfile):
 _TPL_NAME = 'TEMPLATE_PPT_BUSHIDO.pptx'
 _KN = 'KOOR / COUNTER / DEALER'
 
+def _act_vals(d_x):   # (DB, HOT, DB Q, STU, STU%) -- level modul, dipakai _ppt_scope & tabel Analisa/Action Plan
+    n_db = len(d_x); n_hot = int(d_x['Data_Type_Clean'].isin(['DEAL PROSPECT', 'SEAL PROSPECT']).sum()) if (n_db and 'Data_Type_Clean' in d_x.columns) else 0
+    n_stu = int((d_x['STU'] == 'STU').sum()) if (n_db and 'STU' in d_x.columns) else 0
+    return n_db, n_hot, (n_hot / n_db * 100.0 if n_db else 0.0), n_stu, (n_stu / n_db * 100.0 if n_db else 0.0)
+
 def _ppt_san(x): return re.sub(r'[^A-Za-z0-9]+', '_', str(x)).strip('_')
 
 def _ppt_find_template():
@@ -1029,10 +1034,6 @@ def _ppt_scope(dealer, koor=None):
     mp_raw = (safe_int(r_p['TARGET']) * 1.20 - int(sum(r_['target'] for r_ in sm_rows))) / 2.0   # kebutuhan salesman baru
     mp_need = int(math.ceil(mp_raw)) if mp_raw > 0 else 0
 
-    def _act_vals(d_x):   # (DB, HOT, DB Q, STU, STU%)
-        n_db = len(d_x); n_hot = int(d_x['Data_Type_Clean'].isin(['DEAL PROSPECT', 'SEAL PROSPECT']).sum()) if (n_db and 'Data_Type_Clean' in d_x.columns) else 0
-        n_stu = int((d_x['STU'] == 'STU').sum()) if (n_db and 'STU' in d_x.columns) else 0
-        return n_db, n_hot, (n_hot / n_db * 100.0 if n_db else 0.0), n_stu, (n_stu / n_db * 100.0 if n_db else 0.0)
     is_counter = bool(koor) and str(koor).upper().startswith('COUNTER')   # COUNTER: Walk In 60% | Media Sosial 30% | Event 7% | Service 3%
     ACT = {'WALKIN': 60, 'MEDIASOSIAL': 30, 'EVENT': 7, 'SERVICE': 3} if is_counter else {'EVENT': 30, 'WALKIN': 20, 'MEDIASOSIAL': 25, 'EVENTNONNACS': 10, 'KUNJUNGANRUMAH': 10, 'SERVICE': 5}
     def _pct_of(nm):
