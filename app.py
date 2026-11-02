@@ -4156,7 +4156,7 @@ def bsg_award_compute(level, d1, d2, cm=None, cy=None, lmm=None, lmy=None):
     return rows or None
 
 def bsg_render_award_label():
-    """Label AWARDING (foto) di atas running text — LOW PERFORMANCE per cluster: 6 foto = (Dealer · Koordinator · Counter) × (Lowest Growth · Lowest Achievement).
+    """Label AWARDING (foto) di atas running text — per cluster: 6 foto = (Dealer · Koordinator · Counter) × (Lowest Growth · Best Achievement).
     Tgl 8-14 → performa tgl 1-7 · tgl 15-21 → tgl 1-14 · tgl 22-akhir bulan → tgl 1-21."""
     cm_args, ttl_per = {}, None
     if tanggal_akhir <= 7:   # tgl 1-7: tampilkan HASIL CLOSING bulan lalu (1 bulan penuh) vs 2 bulan lalu, dari file Faktur yang sama
@@ -4172,17 +4172,18 @@ def bsg_render_award_label():
         except Exception: data[lv] = []
     if not any(data.values()): return
     idx = _bsg_award_photo_index()
-    cats = [('grw', 'LOWEST GROWTH', '#D9480F', '#FFF1E8'), ('ach', 'LOWEST ACHIEVEMENT', '#E0115F', '#FFEAF2')]
+    cats = [('grw', 'LOWEST GROWTH', '#D9480F', '#FFF1E8', 'min'), ('ach', 'BEST ACHIEVEMENT', '#15803D', '#E8F8EE', 'max')]   # Growth = terendah · Achievement = TERBAIK per cluster
     panels = ''
     for ci_, (cl_nm, _ks) in enumerate(BSG_AWARD_CLUSTERS):
         cards = ''
-        for k_, ttl_, col_, bg_ in cats:
+        for k_, ttl_, col_, bg_, md_ in cats:
             for lv, lv_lbl in BSG_AWARD_LEVELS:
                 v_ = [r_ for r_ in data[lv] if r_['cl'] == ci_ and r_[k_] is not None]
                 dlr_h = '-'
                 if len(v_) < 2: pic_h = f'<div class="bsg-aw-img bsg-aw-ini" style="border-color:{col_};color:#94A3B8;">-</div>'
                 else:
-                    w_ = min(v_, key=lambda r_: (round(r_[k_], 1), r_['stu'], r_['n']))
+                    w_ = (min(v_, key=lambda r_: (round(r_[k_], 1), r_['stu'], r_['n'])) if md_ == 'min' else
+                          max(v_, key=lambda r_: (round(r_[k_], 1), r_['stu'], r_['n'])))   # best = achievement tertinggi (seri → STU terbanyak)
                     dlr_h = _esc(w_['dlr'])   # nama dealer (untuk Koordinator & Counter = dealer tempat bertugas)
                     p_ = _bsg_award_find_photo(idx, lv, w_['n'], w_['dlr'])
                     try: uri_ = _bsg_award_img_uri(p_, os.path.getmtime(p_)) if p_ else None
@@ -4190,7 +4191,7 @@ def bsg_render_award_label():
                     pic_h = (f'<img class="bsg-aw-img" style="border-color:{col_};" src="{uri_}">' if uri_ else
                              f'<div class="bsg-aw-img bsg-aw-ini" style="border-color:{col_};color:{col_};" title="Foto belum diupload">{_esc(w_["n"] if lv != "dealer" else w_["dlr"])}</div>')
                 cards += f'<div class="bsg-aw-c" style="--c:{col_};--bg:{bg_};">{pic_h}<div class="bsg-aw-t">{ttl_} {lv_lbl}</div><div class="bsg-aw-r">{dlr_h}</div></div>'
-        panels += f'<div class="bsg-aw-p"><div class="bsg-aw-h">🏆 LOW PERFORMANCE ( {cl_nm} ) — {ttl_per}</div><div class="bsg-aw-g">{cards}</div></div>'
+        panels += f'<div class="bsg-aw-p"><div class="bsg-aw-h">🏆 LOW GROWTH & BEST ACHIEVEMENT ( {cl_nm} ) — {ttl_per}</div><div class="bsg-aw-g">{cards}</div></div>'
     st.markdown(
         '<style>.bsg-aw{display:flex;flex-direction:column;gap:10px;margin:0 0 10px 0;}'
         '.bsg-aw-p{border:2px solid #F5B301;border-radius:14px;background:#FFFFFF;padding:8px 12px 10px 12px;}'
