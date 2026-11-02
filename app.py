@@ -343,12 +343,12 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 
 def _split_bar(a, b, kind, p_=None, c_='#64748B'):
     """Diagram batang terbelah 50 : 50. Segmen capaian (STU) berwarna MENGIKUTI PERSENTASE (hijau / kuning / merah; abu-abu bila n/a), segmen pembanding (Target / LM) biru.
-    Angka capaian di KEDUA UJUNG batang; persentase di titik temu kedua warna. kind='target': [STU | TARGET]; kind='lm': [LM | STU]."""
+    Angka capaian di KEDUA UJUNG batang; persentase di titik temu kedua warna. kind='target' & kind='lm': [STU | pembanding] — capaian selalu di kiri."""
     fa, fb = f'{int(round(float(a or 0))):,}', f'{int(round(float(b or 0))):,}'
     ptxt = 'n/a' if p_ is None else f'{p_:.0f}%'
     ach = lambda v_, cls_: f'<div class="{cls_}" style="background:{c_}">{v_}</div>'
     blu = lambda v_, cls_: f'<div class="b {cls_}">{v_}</div>'
-    body = (ach(fa, 'l') + blu(fb, 'e')) if kind == 'target' else (blu(fb, 'l') + ach(fa, 'e'))
+    body = ach(fa, 'l') + blu(fb, 'e')   # SEMUA batang 2 kategori (vs Target & vs Bulan Lalu): capaian / result di KIRI, pembanding (Target / LM) di KANAN
     return f'<div class="sp">{body}<span class="j" style="color:{c_};border-color:{c_}">{ptxt}</span></div>'
 
 BSG_ONE_ROW = False   # True (Dashboard Dealer): tiap kelompok pie/grafik per Koordinator-Counter selalu 1 baris, berapapun jumlahnya
