@@ -1876,6 +1876,26 @@ def save_raw_file(up_file, prefix):
     save_json(meta, RAW_META_FILE)
     gcs_sync_up()
 
+AWARD_PHOTO_DIR = os.path.join(UPLOAD_DIR, 'award_photos')   # foto awarding (ikut tersinkron ke cloud bersama file upload lain)
+
+def save_award_photos(up_files):
+    """Simpan foto awarding. Nama file = nama orang (mis. SUGIANTO.jpg); foto dengan nama sama otomatis diganti."""
+    os.makedirs(AWARD_PHOTO_DIR, exist_ok=True); names = []
+    for uf in up_files:
+        stem, ext = os.path.splitext(os.path.basename(uf.name))
+        for old in glob.glob(os.path.join(glob.escape(AWARD_PHOTO_DIR), glob.escape(stem) + '.*')):
+            try:
+                os.remove(old); _GCS_PENDING_DEL.append(os.path.relpath(old, UPLOAD_DIR).replace(os.sep, '/'))
+            except Exception: pass
+        with open(os.path.join(AWARD_PHOTO_DIR, stem + ext.lower()), 'wb') as f: f.write(uf.getbuffer())
+        names.append(stem)
+    gcs_sync_up()
+    return names
+
+def _real_files(dir_x):
+    """Daftar file data di folder; abaikan file kunci/sementara Excel (~$nama.xlsx) dan file tersembunyi."""
+    return [p_ for p_ in glob.glob(os.path.join(dir_x, '*.*')) if not os.path.basename(p_).startswith(('~$', '.'))]
+
 def save_database_files(up_files):
     meta = load_json(RAW_META_FILE)
     now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
@@ -1883,7 +1903,7 @@ def save_database_files(up_files):
     updated_dealers = []
     for uf in up_files:
         new_dlr = normalize_dealer_name(os.path.splitext(uf.name)[0])
-        for old_p in glob.glob(os.path.join(DB_Multi_DIR, "*.*")):
+        for old_p in _real_files(DB_Multi_DIR):
             old_bname = os.path.basename(old_p)
             old_dlr = normalize_dealer_name(os.path.splitext(old_bname)[0])
             if (new_dlr in daftar_dealer and old_dlr == new_dlr) or (old_bname.upper() == uf.name.upper()):
@@ -1894,7 +1914,7 @@ def save_database_files(up_files):
         with open(p, 'wb') as f: f.write(uf.getbuffer())
         file_times[uf.name] = now_str
         updated_dealers.append(f"{uf.name} ({new_dlr})")
-    all_saved_paths = sorted(glob.glob(os.path.join(DB_Multi_DIR, "*.*")))
+    all_saved_paths = sorted(_real_files(DB_Multi_DIR))
     all_names = [os.path.basename(p) for p in all_saved_paths]
     file_times = {k: file_times.get(k, now_str) for k in all_names}
     meta['database_multi'] = {'file_names': all_names, 'saved_paths': all_saved_paths, 'file_times': file_times, 'count': len(all_names), 'updated_at': now_str}
@@ -1909,7 +1929,7 @@ def get_saved_file_path(prefix):
     return m[0] if m else None
 
 def get_saved_database_paths():
-    return sorted(glob.glob(os.path.join(DB_Multi_DIR, "*.*")))
+    return sorted(_real_files(DB_Multi_DIR))
 
 def save_rating_files(up_files):
     meta = load_json(RAW_META_FILE)
@@ -1918,7 +1938,7 @@ def save_rating_files(up_files):
     updated_dealers = []
     for uf in up_files:
         new_dlr = normalize_dealer_name(os.path.splitext(uf.name)[0])
-        for old_p in glob.glob(os.path.join(RATING_Multi_DIR, "*.*")):
+        for old_p in _real_files(RATING_Multi_DIR):
             old_bname = os.path.basename(old_p)
             old_dlr = normalize_dealer_name(os.path.splitext(old_bname)[0])
             if (new_dlr in daftar_dealer and old_dlr == new_dlr) or (old_bname.upper() == uf.name.upper()):
@@ -1929,7 +1949,7 @@ def save_rating_files(up_files):
         with open(p, 'wb') as f: f.write(uf.getbuffer())
         file_times[uf.name] = now_str
         updated_dealers.append(f"{uf.name} ({new_dlr})")
-    all_saved_paths = sorted(glob.glob(os.path.join(RATING_Multi_DIR, "*.*")))
+    all_saved_paths = sorted(_real_files(RATING_Multi_DIR))
     all_names = [os.path.basename(p) for p in all_saved_paths]
     file_times = {k: file_times.get(k, now_str) for k in all_names}
     meta['rating_multi'] = {'file_names': all_names, 'saved_paths': all_saved_paths, 'file_times': file_times, 'count': len(all_names), 'updated_at': now_str}
@@ -1938,7 +1958,7 @@ def save_rating_files(up_files):
     return updated_dealers, len(all_names)
 
 def get_saved_rating_paths():
-    return sorted(glob.glob(os.path.join(RATING_Multi_DIR, "*.*")))
+    return sorted(_real_files(RATING_Multi_DIR))
 
 def get_azura_logo_path():
     saved_logo = get_saved_file_path('azura_logo')
@@ -2482,6 +2502,25 @@ if menu_pilihan == UPLOAD_TAB:
                         except Exception: pass
                     meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
             else: st.warning("⚠️ Belum ada file Rating.")
+
+    # ---------- Foto Awarding ----------
+    with st.expander('📸 Foto Awarding (Shop Manager · Koord/Kapos · Sales Counter)'):
+        st.caption('Aturan nama file: Dealer = SM + nama dealer (mis. SM SIP SOBO.jpg) · Counter = COUNTER + nama dealer (mis. COUNTER SIP SOBO.jpg) · Koordinator = nama koordinatornya sendiri (mis. MUCHAMMAD ISHAQ SETIAWAN.jpg). Format jpg / png / webp; foto bernama sama akan diganti. Tanpa foto, kartu menampilkan nama.')
+        aw_ups = st.file_uploader('Upload foto (boleh banyak sekaligus)', type=['jpg', 'jpeg', 'png', 'webp'], accept_multiple_files=True, key='award_photo_up')
+        if aw_ups:
+            _aw_names = save_award_photos(aw_ups)
+            st.success(f"✅ {len(_aw_names)} foto tersimpan: `{', '.join(_aw_names)}`")
+            bsg_toast_once('up_aw_' + '|'.join(f'{u.name}{u.size}' for u in aw_ups), f'{len(aw_ups)} foto awarding tersimpan')
+        _aw_saved = sorted(os.path.basename(p_) for p_ in glob.glob(os.path.join(glob.escape(AWARD_PHOTO_DIR), '*')))
+        if _aw_saved:
+            st.info(f"📌 **Foto aktif ({len(_aw_saved)}):** " + ' | '.join(f'`{n_}`' for n_ in _aw_saved))
+            if st.button('🗑️ Hapus semua foto awarding', key='btn_rst_aw_photo'):
+                for n_ in _aw_saved:
+                    try:
+                        os.remove(os.path.join(AWARD_PHOTO_DIR, n_)); _GCS_PENDING_DEL.append('award_photos/' + n_)
+                    except Exception: pass
+                gcs_sync_up(); st.rerun()
+        else: st.warning('⚠️ Belum ada foto awarding.')
 
     # ---------- Logo ----------
     with st.expander('🐺 Logo AZURA (pojok kiri atas)'):
@@ -4023,6 +4062,146 @@ def bsg_render_running_text():
         '.bsg-mq:hover span{animation-play-state:paused;}</style>'
         f'<div class="bsg-mq"><span>📢 {msg}</span></div>', unsafe_allow_html=True)
 
+# ============ AWARDING (label penghargaan + foto di atas running text — hanya Dashboard Dealer) ============
+# (tampil tgl dari, tampil tgl sampai, data tgl dari, data tgl sampai, level, label) → performa AKUMULASI tgl 1 s.d d2
+BSG_AWARD_CLUSTERS = [('JEMBER & BONDOWOSO', {'JEMBER', 'BONDOWOSO'}), ('BANYUWANGI & SITUBONDO', {'BANYUWANGI', 'SITUBONDO'})]
+BSG_AWARD_LEVELS = [('dealer', 'DEALER'), ('koor', 'KOORDINATOR'), ('counter', 'COUNTER')]
+
+def _bsg_award_photo_index():
+    """Foto di menu UPLOAD FILE › Foto Awarding (cadangan: folder foto/). Aturan nama file:
+    'SM SIP SOBO' = foto Shop Manager dealer · 'COUNTER SIP SOBO' = foto Counter dealer · selain itu = nama Koordinator itu sendiri."""
+    try: base = os.path.dirname(os.path.abspath(__file__))
+    except Exception: base = os.getcwd()
+    idx = []
+    for d_ in (AWARD_PHOTO_DIR, os.path.join(base, 'foto'), os.path.join(base, 'foto_awarding')):
+        for p_ in glob.glob(os.path.join(glob.escape(d_), '*')):
+            if not p_.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')): continue
+            stem = clean_str(os.path.splitext(os.path.basename(p_))[0]); k_ = alnum_str(stem)
+            if stem.startswith('SM '): idx.append(('sm', k_[2:], p_))
+            elif stem.startswith('COUNTER'): idx.append(('counter', k_[7:], p_))
+            else: idx.append(('person', k_, p_))
+    return idx
+
+def _bsg_award_find_photo(idx, level, ent, dlr):
+    if not idx: return None
+    if level == 'koor':
+        k_ = alnum_str(clean_str(ent)); pl_ = [(r_, p_) for kd_, r_, p_ in idx if kd_ == 'person']
+        if not k_ or not pl_: return None
+        for r_, p_ in pl_:
+            if r_ == k_: return p_
+        for r_, p_ in pl_:
+            if len(r_) >= 4 and len(k_) >= 4 and (r_ in k_ or k_ in r_): return p_
+        import difflib
+        best_ = max(pl_, key=lambda x_: difflib.SequenceMatcher(None, x_[0], k_).ratio())
+        return best_[1] if difflib.SequenceMatcher(None, best_[0], k_).ratio() >= 0.88 else None
+    t_ = alnum_str(clean_str(dlr)); kind = 'sm' if level == 'dealer' else 'counter'
+    for kd_, r_, p_ in idx:
+        if kd_ == kind and r_ and (r_ == t_ or (len(r_) >= 6 and (t_.startswith(r_) or r_.startswith(t_)))): return p_
+    return None
+
+@st.cache_data(show_spinner=False)
+def _bsg_award_img_uri(path_x, mt_x):
+    import io
+    from PIL import Image
+    im = Image.open(path_x).convert('RGB'); w_, h_ = im.size; s_ = min(w_, h_)
+    l_ = (w_ - s_) // 2
+    im = im.crop((l_, 0, l_ + s_, s_)).resize((240, 240))   # kotak dari bagian atas foto (wajah)
+    bf = io.BytesIO(); im.save(bf, format='JPEG', quality=85)
+    return 'data:image/jpeg;base64,' + base64.b64encode(bf.getvalue()).decode()
+
+def bsg_award_compute(level, d1, d2, cm=None, cy=None, lmm=None, lmy=None):
+    """Performa AKUMULASI tgl d1..d2 per Dealer / Koordinator / Counter, dikelompokkan per cluster.
+    Achievement = STU ÷ Target bulanan (sama dgn kartu Achievement dashboard) · Growth = STU vs STU bulan lalu pada rentang tanggal yang sama."""
+    df = df_faktur_all
+    if df is None or df.empty or any(c_ not in df.columns for c_ in ('Nama Dealer', 'bulan', 'tahun', 'hari')): return None
+    key_col = 'Nama Dealer' if level == 'dealer' else 'Koor'
+    if key_col not in df.columns: return None
+    ok_d = {n_ for n_ in df['Nama Dealer'].astype(str).unique() if is_mds_dealer(n_)}
+    f = df[df['Nama Dealer'].astype(str).isin(ok_d)]
+    if f.empty: return None
+    nrm = lambda s_: s_.astype(str).str.upper().str.replace(r'\s+', ' ', regex=True).str.strip()
+    f = f.assign(_k=nrm(f[key_col]), _d=nrm(f['Nama Dealer']))
+    cm, cy, lmm, lmy = (cm or current_month), (cy or current_year), (lmm or last_month), (lmy or last_month_year)   # bulan yang dinilai & pembandingnya
+    m_cur, m_lm = (f['bulan'] == cm) & (f['tahun'] == cy), (f['bulan'] == lmm) & (f['tahun'] == lmy)
+    rng = (f['hari'] >= d1) & (f['hari'] <= d2)
+    cur, lm = f[m_cur & rng]['_k'].value_counts().to_dict(), f[m_lm & rng]['_k'].value_counts().to_dict()
+    rec = f[m_cur | m_lm]
+    cand = set(rec['_k'].unique())
+    if level != 'dealer':
+        try:
+            ks_, cs_ = get_focus_entities(); cand |= set(clean_str(x_) for x_ in (ks_ if level == 'koor' else cs_))
+        except Exception: pass
+        resigned = get_resigned_koor()
+        cand = {e_ for e_ in cand if e_ and e_ not in ('NAN', 'NONE', 'LAIN-LAIN') and e_ not in resigned and not is_hidden_koor(e_) and (e_.startswith('COUNTER') == (level == 'counter'))}   # Shop Manager tidak ditampilkan
+    else: cand = {e_ for e_ in cand if e_ and e_ not in ('NAN', 'NONE')}
+    dlr_of = {}   # dealer tempat entitas bertugas (yang paling sering muncul di Faktur bulan ini / lalu)
+    if level == 'dealer': dlr_of = {e_: e_ for e_ in cand}
+    else:
+        for e_, g_ in rec.groupby('_k')['_d']:
+            if len(g_): dlr_of[e_] = g_.value_counts().index[0]
+        for e_ in cand:
+            if e_ not in dlr_of and mapping_koor_dealer.get(e_): dlr_of[e_] = _nrm_dlr(mapping_koor_dealer[e_])
+    if tabel_target_harian.get(d2, 0.0) <= 0: return None
+    rows = []
+    for e_ in cand:
+        dl_ = dlr_of.get(e_)
+        if not dl_: continue
+        kota_ = mapping_dealer_kota.get(_nrm_dlr(dl_))
+        cl_ = next((i_ for i_, (_, ks_) in enumerate(BSG_AWARD_CLUSTERS) if kota_ in ks_), None)
+        if cl_ is None: continue
+        tg = master_kpi_dealer_target(e_) if level == 'dealer' else master_kpi_stu_target(e_)   # T. STU di MASTER KPI (sama dgn dashboard)
+        if tg <= 0: continue
+        stu, stl = int(cur.get(e_, 0)), int(lm.get(e_, 0))
+        rows.append({'n': e_, 'dlr': dl_, 'cl': cl_, 'stu': stu, 'stl': stl, 'tg': tg, 'ach': stu / tg * 100.0, 'grw': ((stu / stl - 1.0) * 100.0) if stl > 0 else None})
+    return rows or None
+
+def bsg_render_award_label():
+    """Label AWARDING (foto) di atas running text — LOW PERFORMANCE per cluster: 6 foto = (Dealer · Koordinator · Counter) × (Lowest Growth · Lowest Achievement).
+    Tgl 8-14 → performa tgl 1-7 · tgl 15-21 → tgl 1-14 · tgl 22-akhir bulan → tgl 1-21."""
+    cm_args, ttl_per = {}, None
+    if tanggal_akhir <= 7:   # tgl 1-7: tampilkan HASIL CLOSING bulan lalu (1 bulan penuh) vs 2 bulan lalu, dari file Faktur yang sama
+        d2 = 31; m2_, y2_ = (last_month - 1, last_month_year) if last_month > 1 else (12, last_month_year - 1)
+        cm_args = {'cm': last_month, 'cy': last_month_year, 'lmm': m2_, 'lmy': y2_}; ttl_per = f'CLOSING {NAMA_BULAN_ID.get(last_month, last_month).upper()} {last_month_year}'
+    elif tanggal_akhir <= 14: d2 = 7
+    elif tanggal_akhir <= 21: d2 = 14
+    else: d2 = 21
+    ttl_per = ttl_per or f'Tgl 1 s.d {d2}'
+    data = {}
+    for lv, _lb in BSG_AWARD_LEVELS:
+        try: data[lv] = bsg_award_compute(lv, 1, d2, **cm_args) or []
+        except Exception: data[lv] = []
+    if not any(data.values()): return
+    idx = _bsg_award_photo_index()
+    cats = [('grw', 'LOWEST GROWTH', '#D9480F', '#FFF1E8'), ('ach', 'LOWEST ACHIEVEMENT', '#E0115F', '#FFEAF2')]
+    panels = ''
+    for ci_, (cl_nm, _ks) in enumerate(BSG_AWARD_CLUSTERS):
+        cards = ''
+        for k_, ttl_, col_, bg_ in cats:
+            for lv, lv_lbl in BSG_AWARD_LEVELS:
+                v_ = [r_ for r_ in data[lv] if r_['cl'] == ci_ and r_[k_] is not None]
+                dlr_h = '-'
+                if len(v_) < 2: pic_h = f'<div class="bsg-aw-img bsg-aw-ini" style="border-color:{col_};color:#94A3B8;">-</div>'
+                else:
+                    w_ = min(v_, key=lambda r_: (round(r_[k_], 1), r_['stu'], r_['n']))
+                    dlr_h = _esc(w_['dlr'])   # nama dealer (untuk Koordinator & Counter = dealer tempat bertugas)
+                    p_ = _bsg_award_find_photo(idx, lv, w_['n'], w_['dlr'])
+                    try: uri_ = _bsg_award_img_uri(p_, os.path.getmtime(p_)) if p_ else None
+                    except Exception: uri_ = None
+                    pic_h = (f'<img class="bsg-aw-img" style="border-color:{col_};" src="{uri_}">' if uri_ else
+                             f'<div class="bsg-aw-img bsg-aw-ini" style="border-color:{col_};color:{col_};" title="Foto belum diupload">{_esc(w_["n"] if lv != "dealer" else w_["dlr"])}</div>')
+                cards += f'<div class="bsg-aw-c" style="--c:{col_};--bg:{bg_};">{pic_h}<div class="bsg-aw-t">{ttl_} {lv_lbl}</div><div class="bsg-aw-r">{dlr_h}</div></div>'
+        panels += f'<div class="bsg-aw-p"><div class="bsg-aw-h">🏆 LOW PERFORMANCE ( {cl_nm} ) — {ttl_per}</div><div class="bsg-aw-g">{cards}</div></div>'
+    st.markdown(
+        '<style>.bsg-aw{display:flex;flex-direction:column;gap:10px;margin:0 0 10px 0;}'
+        '.bsg-aw-p{border:2px solid #F5B301;border-radius:14px;background:#FFFFFF;padding:8px 12px 10px 12px;}'
+        '.bsg-aw-h{font-size:14px;font-weight:800;color:#C2570C;text-align:center;margin-bottom:8px;}'
+        '.bsg-aw-g{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}@media(max-width:900px){.bsg-aw-g{grid-template-columns:repeat(3,1fr);}}'
+        '.bsg-aw-c{border-radius:12px;padding:8px 4px;border-top:4px solid var(--c);background:var(--bg);text-align:center;}'
+        '.bsg-aw-img{width:118px;height:118px;max-width:90%;aspect-ratio:1/1;border-radius:50%;object-fit:cover;border:4px solid;margin:0 auto 6px auto;display:block;}'
+        '.bsg-aw-ini{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:#FFFFFF;padding:8px;box-sizing:border-box;line-height:1.2;word-break:break-word;}'
+        '.bsg-aw-t{font-size:11.5px;font-weight:800;color:var(--c);line-height:1.2;}.bsg-aw-r{font-size:14px;font-weight:800;color:#0F172A;margin-top:3px;line-height:1.2;}</style>'
+        f'<div class="bsg-aw">{panels}</div>', unsafe_allow_html=True)
+
 def bsg_admin_running_text_editor():
     """Hanya dipanggil dari tab Analisa & Action Plan (tab ini hanya tampil untuk SPV/admin)."""
     d = load_json(RUNNING_TEXT_FILE)
@@ -4390,6 +4569,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
     _sub_kota, _bm_slot = None, None   # _sub_kota: filter Sub Area Dashboard Jember (None = ALL) | _bm_slot: tempat Benchmark KPI (di bawah drop box)
     _dd_lvl = 'dealer'   # level baris tabel/grafik: 'dealer' (semua dealer) → 'koor' (dealer dipilih: Koordinator & Counter) → 'sales' (koor dipilih: Salesman)
     _dd_totname, _dd_tot, _dd_scope, _NM_COL = 'Total Area', 'TOTAL JEMBER', 'DEALER JEMBER (SIP & SENTRAL YAMAHA)', 'NAMA DEALER'
+    if _dd_mode: bsg_render_award_label()   # label AWARDING tepat di atas running text (hanya Dashboard Dealer)
     bsg_render_running_text()
     st.markdown(f'<div class="main-title">{"DASHBOARD DEALER" if _dd_mode else "DASHBOARD JEMBER"} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
     _job = st.session_state.get('ppt_job'); _job_on = bool(_job and _dd_mode and _job['idx'] < len(_job['stages']))
