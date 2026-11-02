@@ -27,7 +27,13 @@ st.markdown("""<style>
 .target-ideal-caption { font-size: 12.5px !important; font-weight: 700 !important; color: #FFFFFF !important; margin-top: 6px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.35); }
 .main-title { font-size: 44px !important; font-weight: 800 !important; color: #4318FF !important; margin-bottom: 2px; line-height: 1.1; }
 .sub-title { font-size: 15px; font-weight: 600; color: #3B5BC8 !important; margin-bottom: 15px; }
-.section-title { font-size: 22px !important; font-weight: 700 !important; color: #4318FF !important; margin: 20px 0 10px 0; }
+.section-title { font-size: 22px !important; font-weight: 700 !important; color: #4318FF !important; margin: 8px 0 4px 0; }
+/* PEMAMPATAN OTOMATIS: jarak antar tabel / grafik / judul di area utama dirapatkan */
+[data-testid="stMain"] [data-testid="stVerticalBlock"], section.main [data-testid="stVerticalBlock"] { gap: 0.3rem !important; }
+[data-testid="stMain"] [data-testid="stElementContainer"]:has(> iframe[height="0"]), [data-testid="stMain"] [data-testid="stElementContainer"]:has(.stMarkdown:empty) { display: none !important; }
+[data-testid="stMain"] iframe { display: block; margin: 0 !important; }
+[data-testid="stMain"] [data-testid="stMarkdownContainer"] > div:empty { display: none; }
+.compact-table-wrap, .ultra-compact-wrap { margin-bottom: 2px !important; }
 .cap-title-banner { background: linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%); color: #FFFFFF !important; font-family: 'Source Sans Pro', sans-serif; font-size: 15px; font-weight: 800; padding: 9px 14px; border-bottom: 2px solid #3B18FF; letter-spacing: 0.4px; text-align: left; }
 .compact-table-wrap { width: 100%; overflow-x: auto; margin-bottom: 4px; border-radius: 8px; border: 1px solid #8FA8F0; background-color: #FFFFFF; }
 table.compact-tbl { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; font-size: 13px; background-color: #FFFFFF; }
@@ -3291,10 +3297,10 @@ with st.sidebar: components.html(_rm_js.replace('__ITEMS__', json.dumps(_rm_pend
 
 _FIT_JS = """<script>(function(){try{var P=window.parent,D=P.document;if(D.getElementById('bsg-fit-js'))return;
 var code="(function(){function fit(){document.querySelectorAll('iframe').forEach(function(f){try{var d=f.contentDocument,c=d&&d.getElementById('fit');if(!c)return;"
-+"var h=Math.ceil(c.getBoundingClientRect().height)+8;if(Math.abs(f.getBoundingClientRect().height-h)<=2)return;"
++"var h=Math.ceil(Math.max(c.getBoundingClientRect().height,0))+4;if(h<=12)return;if(Math.abs(f.getBoundingClientRect().height-h)<=2)return;"
 +"f.style.setProperty('height',h+'px','important');f.setAttribute('height',h);var el=f.parentElement,i=0;"
 +"while(el&&el.children.length===1&&i<6){el.style.setProperty('height',h+'px','important');el.style.setProperty('min-height',h+'px','important');el=el.parentElement;i++;}}catch(e){}});}"
-+"setInterval(fit,500);window.addEventListener('resize',fit);})();";
++"setInterval(fit,300);window.addEventListener('resize',fit);})();";
 var s=D.createElement('script');s.id='bsg-fit-js';s.textContent=code;D.head.appendChild(s);}catch(e){}})();</script>"""
 components.html(_FIT_JS, height=0)
 
@@ -4825,6 +4831,9 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
                     try: _bm3_html = _bm_badges_html()
                     except Exception as _e_bd: _bm3_html = ''; st.caption(f'⚠️ Badge ringkasan perform dealer tidak dapat dibuat ({type(_e_bd).__name__}: {_e_bd}).')
                 with _bm_slot: st.markdown(_bm1_html + _bm2_html + _bm3_html, unsafe_allow_html=True)
+            if _dd_mode and not _dd_picked and not _job_on:   # Dashboard Dealer: belum ada dealer dipilih → hanya Benchmark KPI + Ringkasan; tabel & grafik TIDAK dirender (hemat scroll & proses)
+                st.info('ℹ️ Pilih dealer pada drop box **🏢 Pilih Dealer** di atas untuk menampilkan tabel & grafik penjualan. (Pilih **SEMUA DEALER** untuk melihat seluruh dealer.)')
+                st.stop()
             df_jb_full = pd.concat([df_jb, pd.DataFrame([r_tot_jb])], ignore_index=True)
             with jt_pj:
                 jdl_jb = f'1. TABEL PENJUALAN — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
