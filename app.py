@@ -250,6 +250,7 @@ def bsg_benchmark_kpi_html(title, r_tot, nm, ideal_pct, f_c, db_c, sp_c, sp_lm, 
         return (a_ / (a_ + r_) * 100.0) if (a_ + r_) > 0 else 0.0
     db_n, sp_n, sp_lm_n = _n(db_c), _n(sp_c), _n(sp_lm)
     hot_n = int((db_c['Data_Type_Clean'] == 'DEAL PROSPECT').sum()) if _has(db_c, 'Data_Type_Clean') else 0
+    open_n = int((sp_c['Status_SPK_Clean'] == 'TERBUKA').sum()) if _has(sp_c, 'Status_SPK_Clean') else 0
     accp, accp_lm = _acc(sp_c), _acc(sp_lm); dbq = (hot_n / db_n * 100.0) if db_n > 0 else 0.0
     def _tod(df_x): return df_x[df_x['hari'] == tanggal_akhir] if _has(df_x, 'hari') else pd.DataFrame()
     db_t, sp_t = _tod(db_c), _tod(sp_c)
@@ -262,19 +263,19 @@ def bsg_benchmark_kpi_html(title, r_tot, nm, ideal_pct, f_c, db_c, sp_c, sp_lm, 
         try: v_ = float(tabel_target_harian.get(int(tanggal_akhir), ideal_pct if ideal_pct is not None else 0.0))
         except Exception: v_ = 0.0
         return f'{v_:.0f}%' if abs(v_ - round(v_)) < 0.05 else f'{v_:.1f}%'
-    cards = [   # Baris 1 (7 kartu): TARGET - RESULT - ACHIEVEMENT - DB QUALITY - SPK - APPROVAL SPK - TODAY NOTA | Baris 2 (7 kartu): AVG NOTA - AVG 7 - AVG 3 - TODAY WALK IN - TODAY HOT PROSPECT - TODAY SPK - TODAY STU
+    cards = [   # Baris 1 (7 kartu): TARGET - RESULT - ACHIEVEMENT - DB QUALITY - SPK - APPROVAL SPK - TOTAL OPEN | Baris 2 (7 kartu): AVG NOTA - AVG 7 - AVG 3 - TODAY DB|HOT - TODAY WALK IN - TODAY SPK - TODAY STU|NOTA
         ('🎯', 'TARGET', 'Target | Ideal | Ideal%', [(f'{tg:,}', BLU), (f'{idl_u:,}', BLU), (_fmt_pct_ideal(), BLU)], BLU, None, None),
-        ('🏍️', 'RESULT', 'STU | Nota', [(f'{stu:,}', BLU), (f'{nota:,}', CYN)], BLU, None, None),
+        ('🏍️', 'RESULT', 'STU | Nota | Last Month', [(f'{stu:,}', (GRN if stu >= idl_u else ('#F97316' if stu >= stu_lm else RED))), (f'{nota:,}', CYN), (f'{stu_lm:,}', GRY)], BLU, None, None),
         ('🏆', 'ACHIEVEMENT', 'Achievement | %LM', [(f'{pct:.1f}%', bsg_stat_color(pct, idl, 0.85 * idl)), _pt(p_lm)], bsg_stat_color(pct, idl, 0.85 * idl), min(pct, 100.0), idl),
         ('📥', 'DB QUALITY', f'HOT {hot_n:,} | DB {db_n:,}', [(f'{dbq:.1f}%', bsg_stat_color(dbq, 30.0, 20.0))], bsg_stat_color(dbq, 30.0, 20.0), min(dbq / 30.0 * 100.0, 100.0), None),
         ('📝', 'SPK', 'SPK | SPK LM | %LM', [(f'{sp_n:,}', GRY), (f'{sp_lm_n:,}', GRY), _pt(p_spk)], CYN, None, None),
         ('✅', 'APPROVAL SPK', 'ACC% | ACC% LM', [(f'{accp:.1f}%', _gr(accp, accp_lm)), (f'{accp_lm:.1f}%', GRY)], bsg_stat_color(accp, 50.0, 40.0), min(accp, 100.0), 50.0),
-        ('🧾', 'TODAY NOTA', f'tgl {tanggal_akhir}', [(f'{_n(nota_today):,}', CYN)], CYN, None, None),
+        ('📂', 'TOTAL OPEN', 'SPK terbuka', [(f'{open_n:,}', '#F97316')], '#F97316', None, None),
         _avg('AVG NOTA', '🧾', nm['avg'], nm['f_nota']), _avg('AVG 7', '📆', nm['avg7'], nm['f7']), _avg('AVG 3', '⏱️', nm['avg3'], nm['f3']),
+        ('📥', 'TODAY DB | HOT', f'tgl {tanggal_akhir}', [(f'{_n(db_t):,}', CYN), (f'{hot_t:,}', CYN)], CYN, None, None),
         ('🚶', 'TODAY WALK IN', f'tgl {tanggal_akhir}', [(f'{count_walkin(db_t) if not db_t.empty else 0:,}', CYN)], CYN, None, None),
-        ('🔥', 'TODAY HOT PROSPECT', f'tgl {tanggal_akhir}', [(f'{hot_t:,}', CYN)], CYN, None, None),
         ('📄', 'TODAY SPK', f'tgl {tanggal_akhir}', [(f'{_n(sp_t):,}', CYN)], CYN, None, None),
-        ('🏁', 'TODAY STU', f'tgl {tanggal_akhir}', [(f'{stu_t:,}', BLU)], BLU, None, None),
+        ('🏁', 'TODAY STU | NOTA', f'tgl {tanggal_akhir}', [(f'{stu_t:,}', BLU), (f'{_n(nota_today):,}', CYN)], BLU, None, None),
     ]
     return _bmk_render(cards, f'📌 BENCHMARK KPI — {_esc(title)} (1 s.d {tanggal_akhir})')
 
@@ -342,10 +343,10 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 .ttl-r{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .ttl-tot{font-size:22px;font-weight:900;line-height:1.05;white-space:nowrap}"""
 
-def _split_bar(a, b, kind, p_=None, c_='#64748B'):
+def _split_bar(a, b, kind, p_=None, c_='#64748B', a_txt=None):
     """Diagram batang terbelah 50 : 50. Segmen capaian (STU) berwarna MENGIKUTI PERSENTASE (hijau / kuning / merah; abu-abu bila n/a), segmen pembanding (Target / LM) biru.
     Angka capaian di KEDUA UJUNG batang; persentase di titik temu kedua warna. kind='target' & kind='lm': [STU | pembanding] — capaian selalu di kiri."""
-    fa, fb = f'{int(round(float(a or 0))):,}', f'{int(round(float(b or 0))):,}'
+    fa, fb = (a_txt if a_txt else f'{int(round(float(a or 0))):,}'), f'{int(round(float(b or 0))):,}'
     ptxt = 'n/a' if p_ is None else f'{p_:.0f}%'
     ach = lambda v_, cls_: f'<div class="{cls_}" style="background:{c_}">{v_}</div>'
     blu = lambda v_, cls_: f'<div class="b {cls_}">{v_}</div>'
@@ -354,13 +355,13 @@ def _split_bar(a, b, kind, p_=None, c_='#64748B'):
 
 BSG_ONE_ROW = False   # True (Dashboard Dealer): tiap kelompok pie/grafik per Koordinator-Counter selalu 1 baris, berapapun jumlahnya
 
-def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None, total=None, total_color=None, note=None, split=None, split_total=None):
+def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None, total=None, total_color=None, note=None, split=None, split_total=None, split_a_txt=None, keep_order=False):
     """rows: list dict(name, val, label=None, tip=None). split='target'|'lm' → baris berupa diagram batang terbelah (butuh rows[...]['a'] = STU & ['b'] = Target / LM; split_total=(a, b) untuk batang ringkasan). note = teks rumus kecil di bawah judul. Warna otomatis terhadap ideal (hijau ≥ ideal, kuning ≥ 85%, merah di bawahnya).
     parts=True → kembalikan (inner_html, css, tinggi) untuk digabung ke panel; False → (dokumen_iframe, tinggi)."""
     subtitle = ''   # keterangan di bawah judul grafik dihapus
     rows = [r for r in rows if r is not None and not is_hidden_koor(r.get('name'))]   # koordinator Shop Manager tidak ditampilkan (tetap dihitung di total)
     if not rows: return None
-    rows = sorted(rows, key=lambda r: r['val'], reverse=not ascending)
+    if not keep_order: rows = sorted(rows, key=lambda r: r['val'], reverse=not ascending)
     if max_rows: rows = rows[:max_rows]
     mx = float(scale_max) if scale_max else max([r['val'] for r in rows] + ([ideal * 1.15] if ideal else []) + [1.0])
     def _c(v):
@@ -372,17 +373,17 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
         if split_total is not None:
             ta, tb = split_total; pt_ = (ta / tb * 100.0) if tb else None
             c_sum = '#64748B' if pt_ is None else (BSG_GRN if pt_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and pt_ >= 0.85 * ideal) else BSG_RED))
-            sm = f'<div class="sp-sum"><div class="sp-tt">{"ACHIEV" if split == "target" else "VS LM"}</div>{_split_bar(ta, tb, split, pt_, c_sum)}</div>'
+            sm = f'<div class="sp-sum"><div class="sp-tt">{"ACHIEV" if split == "target" else "VS LM"}</div>{_split_bar(ta, tb, split, pt_, c_sum, split_a_txt)}</div>'
         sb = ''
         for r in rows:
             a_, b_ = r.get('a', 0), r.get('b', 0); p_ = (a_ / b_ * 100.0) if b_ else None
             c = ('#64748B' if p_ is None else (BSG_GRN if p_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and p_ >= 0.85 * ideal) else BSG_RED)))
             tip = r.get('tip') or f"<b>{_esc(r['name'])}</b>"
-            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split, p_, c)}</div></div>')
+            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"))}</div></div>')
         hdr = _hdr(title, '')
         if total is not None:
             hdr = f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div><div style="height:6px"></div>'
-        inner = f'<div class="card">{hdr}{sm}{sb}</div>'; h = 70 + (82 if sm else 0) + 38 * len(rows)
+        inner = f'<div class="card">{hdr}{sm}{sb}</div>'; h = 56 + (68 if sm else 0) + 34 * len(rows)
         return (inner, _RANK_CSS, h) if parts else (_bsg_frame(inner, css=_RANK_CSS), h)
     body = ''; has_x = any(r.get('extra') is not None for r in rows)
     for i, r in enumerate(rows):
@@ -778,7 +779,8 @@ function fitTables(root){root.querySelectorAll('.pn-table').forEach(function(w){
  var nat=t.getBoundingClientRect().width,av=w.clientWidth;if(nat>av+1){t.style.zoom=(av/nat).toFixed(4);}else{t.style.width=av+'px';}});}
 function fitCards(root){try{root.querySelectorAll('.pn-sub>.card,.pn-bottom>.card,.pn-charts>.card').forEach(function(c){c.style.zoom='';var w=c.getBoundingClientRect().width,B=270;if(w>0&&w<B-1){c.style.zoom=Math.max(0.92,w/B).toFixed(3);}});}catch(e){}}
 function setFrameH(h){var fe=window.frameElement;if(!fe)return;var old=fe.getBoundingClientRect().height;if(Math.abs(old-h)<=2)return;var els=[],el=fe.parentElement,i=0;while(el&&el.children.length===1&&i<6){els.push(el);el=el.parentElement;i++;}els.forEach(function(e){e.style.height=h+'px';e.style.minHeight=h+'px';});fe.style.height=h+'px';fe.setAttribute('height',h);}
-function fitHeight(){try{var c=document.getElementById('fit');setFrameH(Math.ceil(c.getBoundingClientRect().height)+8);}catch(e){}}
+var _fh={n:0,last:0,max:0,t:Date.now()};
+function fitHeight(){try{var c=document.getElementById('fit');var h=Math.ceil(c.getBoundingClientRect().height)+8;if(Math.abs(h-_fh.last)<=4)return;if(Date.now()-_fh.t>3000){_fh.t=Date.now();_fh.n=0;}_fh.max=Math.max(_fh.max,h);if(++_fh.n>6)h=_fh.max;_fh.last=h;setFrameH(h);}catch(e){}}
 function stretch(root){try{if(!root.classList.contains('L-side2')||root.classList.contains('narrow'))return;var w=root.querySelector('.pn-table'),c=root.querySelector('.pn-charts'),t=w&&w.querySelector('table');if(!t||!c)return;
  var cells=t.querySelectorAll('td,th'),rows=t.querySelectorAll('tr');cells.forEach(function(x){x.style.paddingTop='';x.style.paddingBottom='';});
  var z=parseFloat(t.style.zoom)||1,th=t.getBoundingClientRect().height,ch=c.getBoundingClientRect().height,wb=w.offsetHeight-w.clientHeight;
@@ -892,7 +894,7 @@ def bsg_panel_charts(title, charts, file_label, chart_cols=None):
 # ---------------------------------------------------------------- grafik pendamping tiap tabel ----
 
 
-def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koordinator', max_rows=10):
+def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koordinator', max_rows=10, grev=None, mydr=None):
     """Pie sudah vs belum registrasi rating (KIRI) + grafik My Yamaha Dealer Rating (MYDR) di sebelah KANAN.
     by_col = 'Koor' → ranking per Koordinator/Counter; by_col = '_jb' (atau kolom dealer) → ranking per Dealer."""
     donut = bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Persentase konsumen faktur yang sudah vs belum registrasi', [('Sudah Registrasi', sudah, '#12A150'), ('Belum Registrasi', belum, '#DC2626')], 'Konsumen', parts=True, keep_zero=True)
@@ -906,7 +908,39 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
             rows.append({'name': n, 'val': pc, 'label': f'{pc:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>Sudah registrasi <b>{sdh:,}</b> dari {tot:,} konsumen<br><b>{pc:.1f}%</b>"})
     rank = bsg_chart_rank(f'My Yamaha Dealer Rating — {by_label} (Registrasi Tertinggi)', f'Persentase konsumen yang sudah registrasi ({max_rows} teratas)', rows, ideal=None, fixed_color='#12A150', max_rows=max_rows, scale_max=100.0, parts=True)
     if donut: donut = (donut[0].replace('<svg class="dc"', '<svg class="dc" style="max-width:150px"', 1), donut[1], max(200, donut[2] - 100))   # pie diperkecil
-    bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [donut, rank], 'Registrasi_MYDR_' + str(title), chart_cols='minmax(0,300px) minmax(0,480px)')   # pie di kiri, grafik MYDR di kanan (HP/layar sempit otomatis ke bawah)
+    if mydr:   # mydr: [(nama dealer, target MYDR, result MYDR)] → format sama dgn batang Google Review
+        _gd_ = {n_: (t_, r_) for n_, t_, r_ in (grev or [])}
+        _ord_ = sorted([n_ for n_, _t, _r in mydr], key=lambda n_: -((_gd_[n_][1] / _gd_[n_][0] * 100.0) if (n_ in _gd_ and _gd_[n_][0] > 0) else -1.0))
+        _md_ = {n_: (t_, r_) for n_, t_, r_ in mydr}
+        def _mrow(n_):
+            t_, r_ = _md_[n_]
+            if t_ > 0: return {'name': n_, 'val': r_ / t_ * 100.0, 'a': int(r_), 'b': int(t_), 'label': f'{r_ / t_ * 100.0:.0f}%', 'tip': f'<b>{_esc(n_)}</b><br>MYDR <b>{int(r_):,}</b> / Target {int(t_):,}<br>Pencapaian <b>{r_ / t_ * 100.0:.1f}%</b>'}
+            return {'name': n_, 'val': 0.0, 'a': int(r_), 'b': 0, 'label': 'n/a', 'tip': f'<b>{_esc(n_)}</b><br>MYDR {int(r_):,} · belum ada target'}
+        m_rows = [_mrow(n_) for n_ in _ord_]
+        if m_rows:
+            MT_, MR_ = sum(x_['b'] for x_ in m_rows), sum(x_['a'] for x_ in m_rows if x_['b'] > 0); MP_ = MR_ / MT_ * 100.0 if MT_ else 0.0
+            rank = bsg_chart_rank('My Yamaha Dealer Rating vs Target', '', m_rows, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(MR_, MT_), total=f'{MP_:.1f}%', total_color=bsg_stat_color(MP_, 100.0, 85.0))
+    gr_c = None; gr_pie = None
+    if grev:   # grev: [(nama dealer, target G REV, result G REV)] → batang pencapaian Google Review vs Target
+        _gall_ = {n_: (t_, r_) for n_, t_, r_ in grev}
+        _gord_ = sorted(_gall_, key=lambda n_: -((_gall_[n_][1] / _gall_[n_][0] * 100.0) if _gall_[n_][0] > 0 else -1.0))
+        def _grow(n_):
+            t_, r_ = _gall_[n_]
+            if t_ > 0: return {'name': n_, 'val': r_ / t_ * 100.0, 'a': int(r_), 'b': int(t_), 'label': f'{r_ / t_ * 100.0:.0f}%', 'tip': f'<b>{_esc(n_)}</b><br>Google Review <b>{int(r_):,}</b> / Target {int(t_):,}<br>Pencapaian <b>{r_ / t_ * 100.0:.1f}%</b>'}
+            return {'name': n_, 'val': 0.0, 'a': int(r_), 'b': 0, 'label': 'n/a', 'tip': f'<b>{_esc(n_)}</b><br>Google Review {int(r_):,} · belum ada target'}
+        g_rows = [_grow(n_) for n_ in _gord_]
+        if g_rows and any(x_['b'] > 0 for x_ in g_rows):
+            _pv = [x_['val'] for x_ in g_rows if x_['b'] > 0] or [100.0]; _mn = min(_pv)
+            def _gcol(v_):   # merah (terburuk) → kuning → hijau (>= 100%)
+                if v_ >= 100.0: return '#12A150'
+                f_ = 0.0 if _mn >= 100.0 else max(0.0, min(1.0, (v_ - _mn) / (100.0 - _mn)))
+                a_, b_, c_ = ((220, 38, 38), (245, 197, 24), f_ * 2.0) if f_ < 0.5 else ((245, 197, 24), (18, 161, 80), (f_ - 0.5) * 2.0)
+                return '#%02X%02X%02X' % tuple(int(round(a_[i_] + (b_[i_] - a_[i_]) * c_)) for i_ in range(3))
+            gr_pie = bsg_chart_donut('Kontribusi Google Review', '', [(x_['name'], x_['a'], _gcol(x_['val'])) for x_ in g_rows if x_['b'] > 0], 'Review', parts=True)
+            T_, R_ = sum(x_['b'] for x_ in g_rows), sum(x_['a'] for x_ in g_rows if x_['b'] > 0); P_ = R_ / T_ * 100.0 if T_ else 0.0
+            gr_c = bsg_chart_rank('Google Review vs Target', '', g_rows, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(R_, T_), total=f'{P_:.1f}%', total_color=bsg_stat_color(P_, 100.0, 85.0))
+    if gr_c: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank, gr_c], 'Registrasi_MYDR_' + str(title), chart_cols='repeat(2,minmax(0,1fr))')   # tanpa pie: batang MYDR di kiri, Google Review di kanan
+    else: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank], 'Registrasi_MYDR_' + str(title), chart_cols='minmax(0,720px)')
 
 
 # ====================================================================================================
@@ -4797,7 +4831,7 @@ elif menu_pilihan in (JEMBER_TAB, DEALER_TAB):
             _dd_totname, _dd_tot, _dd_scope = f'Total {_sub_sel}', f'TOTAL {_sub_sel}', _sub_nm
         _bm_slot = st.container()
     def _jb_sep(jdl_x):   # garis pemisah + judul tabel dalam SATU blok, jarak ke tabel di atas/bawahnya dirapatkan
-        st.markdown(f'<div style="margin:-8px 0 0 0;border-top:1px solid #8FA8F0;"><div class="section-title" style="margin:8px 0 12px 0 !important;">{jdl_x}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="margin:-8px 0 0 0;border-top:1px solid #8FA8F0;"><div class="section-title" style="margin:8px 0 4px 0 !important;">{jdl_x}</div></div>', unsafe_allow_html=True)
     if df_faktur_all is None or df_faktur_all.empty or 'Nama Dealer' not in df_faktur_all.columns or 'bulan' not in df_faktur_all.columns:
         st.info('ℹ️ File Faktur belum diunggah / belum terbaca. Unggah di menu 📁 UPLOAD FILE.')
     else:
@@ -5067,32 +5101,30 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     rws = []
                     for _, r_ in df_x.iterrows():
                         stu_, lm_, v_ = int(r_['STU']), int(r_['STU LM']), r_['_lm_val']
+                        _at_ = f"{int(r_['STU']):,} | {int(r_['NOTA']):,} | {int(r_['TODAY']):,}"
                         if lm_ > 0:
                             g_ = v_ - 100.0
-                            rws.append({'name': str(r_[kol_nm_jb]), 'val': v_, 'a': stu_, 'b': lm_, 'label': f'{g_:+.1f}%', 'extra': f'{lm_:,}→{stu_:,}', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU {stu_:,} vs bulan lalu {lm_:,}<br>Selisih <b>{stu_ - lm_:+,}</b> unit<br>Kenaikan <b>{g_:+.1f}%</b>"})
+                            rws.append({'name': str(r_[kol_nm_jb]), 'val': v_, 'a': stu_, 'a_txt': _at_, 'b': lm_, 'label': f'{g_:+.1f}%', 'extra': f'{lm_:,}→{stu_:,}', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU {stu_:,} vs bulan lalu {lm_:,}<br>Selisih <b>{stu_ - lm_:+,}</b> unit<br>Kenaikan <b>{g_:+.1f}%</b>"})
                         else:
-                            rws.append({'name': str(r_[kol_nm_jb]), 'val': 0.0, 'a': stu_, 'b': 0, 'label': 'n/a', 'extra': f'0→{stu_:,}', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU {stu_:,} · tidak ada pembanding bulan lalu"})
+                            rws.append({'name': str(r_[kol_nm_jb]), 'val': 0.0, 'a': stu_, 'a_txt': _at_, 'b': 0, 'label': 'n/a', 'extra': f'0→{stu_:,}', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU {stu_:,} · tidak ada pembanding bulan lalu"})
                     tg_rws = []
                     for _, r_ in df_x.iterrows():
                         tg_ = int(r_['TARGET'])
                         if tg_ <= 0: continue
                         pc_ = float(r_['_pct'])
-                        tg_rws.append({'name': str(r_[kol_nm_jb]), 'val': pc_, 'a': int(r_['STU']), 'b': tg_, 'label': f'{pc_:.1f}%', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU <b>{int(r_['STU']):,}</b> / Target {tg_:,}<br>Ideal {int(r_['IDEAL']):,} → <b>{int(r_['STU']) - int(r_['IDEAL']):+,}</b><br>Pencapaian <b>{pc_:.1f}%</b>"})
+                        tg_rws.append({'name': str(r_[kol_nm_jb]), 'val': pc_, 'a': int(r_['STU']), 'a_txt': f"{int(r_['STU']):,} | {int(r_['NOTA']):,} | {int(r_['TODAY']):,}", 'b': tg_, 'label': f'{pc_:.1f}%', 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU <b>{int(r_['STU']):,}</b> / Target {tg_:,}<br>Ideal {int(r_['IDEAL']):,} → <b>{int(r_['STU']) - int(r_['IDEAL']):+,}</b><br>Pencapaian <b>{pc_:.1f}%</b>"})
                     def _mini(c_, n_, ideal_):
                         return (c_[0], c_[1], 62 + 17 * n_ + (22 if ideal_ else 0)) if c_ else None
                     _tot_stu = int(r_tot_jb['STU']); _tot_pct = float(r_tot_jb['_pct'])
                     _tot_lm = (r_tot_jb['STU'] / r_tot_jb['STU LM'] * 100.0) if r_tot_jb['STU LM'] > 0 else 100.0
                     _idl = float(target_persen_harian)
-                    stu_rws = [{'name': str(r_[kol_nm_jb]), 'val': float(r_['STU']), 'label': f"{int(r_['STU']):,}", 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>STU <b>{int(r_['STU']):,}</b> · Nota {int(r_['NOTA']):,}"} for _, r_ in df_x.iterrows()]
-                    c_stu = bsg_chart_rank('STU', '', stu_rws, unit='', fixed_color='#2563EB', parts=True, total=f'{_tot_stu:,}', total_color='#2563EB')
-                    nota_rws = [{'name': str(r_[kol_nm_jb]), 'val': float(r_['NOTA']), 'label': f"{int(r_['NOTA']):,}", 'tip': f"<b>{_esc(str(r_[kol_nm_jb]))}</b><br>Nota <b>{int(r_['NOTA']):,}</b> · STU {int(r_['STU']):,}"} for _, r_ in df_x.iterrows()]
-                    c_nota = bsg_chart_rank('Nota', '', nota_rws, unit='', fixed_color='#0891B2', parts=True, total=f"{int(r_tot_jb['NOTA']):,}", total_color='#0891B2')
-                    c_tg = bsg_chart_rank('STU vs Target', '', tg_rws, ideal=_idl, parts=True, ascending=False, split='target', split_total=(_tot_stu, int(r_tot_jb['TARGET'])), total=f'{_tot_pct:.1f}%', total_color=bsg_stat_color(_tot_pct, _idl, _idl * 0.85))
-                    c_lm = bsg_chart_rank('STU vs Bulan Lalu', '', rws, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, ascending=False, split='lm', split_total=(_tot_stu, int(r_tot_jb['STU LM'])), scale_max=max([r_['val'] for r_ in rws] + [115.0]), total=f'{_tot_lm - 100.0:+.1f}%', total_color=bsg_stat_color(_tot_lm, 100.0, 85.0))
-                    _r4 = [_mini(c_stu, len(stu_rws), None), _mini(c_nota, len(nota_rws), None), c_tg, c_lm]
+                    _at_tot = f"{_tot_stu:,} | {int(r_tot_jb['NOTA']):,} | {int(r_tot_jb['TODAY']):,}"
+                    c_tg = bsg_chart_rank('STU vs Target', '', tg_rws, ideal=_idl, parts=True, ascending=False, split='target', split_total=(_tot_stu, int(r_tot_jb['TARGET'])), split_a_txt=_at_tot, total=f'{_tot_pct:.1f}%', total_color=bsg_stat_color(_tot_pct, _idl, _idl * 0.85))
+                    c_lm = bsg_chart_rank('STU vs Bulan Lalu', '', rws, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, ascending=False, split='lm', split_total=(_tot_stu, int(r_tot_jb['STU LM'])), split_a_txt=_at_tot, scale_max=max([r_['val'] for r_ in rws] + [115.0]), total=f'{_tot_lm - 100.0:+.1f}%', total_color=bsg_stat_color(_tot_lm, 100.0, 85.0))
+                    _r4 = [c_tg, c_lm]
                     try:   # tinggi alami kolom kanan (2 baris kartu) → dipakai Kurva di kiri agar tinggi panel mengikuti isi grafik
                         _h_ = [(c_[2] if c_ else 0) for c_ in _r4]
-                        _jb_rh['v'] = max(_h_[0], _h_[1]) + 12 + max(_h_[2], _h_[3])
+                        _jb_rh['v'] = max(_h_)
                     except Exception: _jb_rh['v'] = 0
                     return _r4
                 def _jb_pies():
@@ -5110,15 +5142,18 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
                         pies_.append(_pie(fa_[fa_[COL_KOTA] == kt_], (fl_[fl_[COL_KOTA] == kt_] if COL_KOTA in fl_.columns else None), f'MDS — Kota {kt_.title()}', f'Kontribusi MDS terhadap total {kt_.title()}', 'STU'))
                     return [{'group': [c_ for c_ in pies_ if c_], 'cols': 5}]
-                _dd_side = bool(_dd_mode and _dd_lvl != 'dealer')   # batang kumulatif di kiri (tinggi), 4 kotak ringkas di kanan (2 x 2)
+                _dd_side = bool(_dd_mode)   # batang kumulatif di kiri (tinggi), 4 kotak ringkas di kanan (2 x 2)
                 def _jb_bottom():   # DASHBOARD DEALER: Kurva Pencapaian STU (target ideal vs realisasi + Forc Nota/7/3) tepat di bawah 4 grafik penjualan; pie kontribusi MDS hanya utk level dealer / Jember
                     out_ = []
                     if _dd_mode:
-                        c_cv = bsg_chart_curve(f'STU Kumulatif Harian — {_dd_lbl}', '', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=None, df_lm=jb_f_l_full, extra=[('Forc 3', r_tot_jb.get('FORC 3'), '#DC2626', '8 3 2 3')], h=((max(110, min(380, int(_jb_rh['v']) - 180)) if _jb_rh['v'] else 380) if _dd_side else 330), parts=True)   # kurva 3 item: STU, Target, Forc 3
+                        c_cv = bsg_chart_curve(f'STU Kumulatif Harian — {_dd_lbl}', '', jb_f_c, bsg_num(r_tot_jb['TARGET']), tanggal_akhir, max_day_in_month, forc=None, df_lm=jb_f_l_full, extra=[('Forc 3', r_tot_jb.get('FORC 3'), '#DC2626', '8 3 2 3')], h=((max(110, min(380, int(_jb_rh['v']) - 140)) if _jb_rh['v'] else 380) if _dd_side else 330), parts=True)   # kurva 3 item: STU, Target, Forc 3
                         if c_cv: out_.append(c_cv)
-                    if not (_dd_mode and _dd_lvl != 'dealer'): out_ += (_jb_pies() or [])
+                    if not _dd_mode: out_ += (_jb_pies() or [])
                     return out_
-                bsg_panel_table(df_jb, df_jb_full, kol_pj_jb, kol_nm_jb, '_pct', 'Jember_Penjualan_SIP_SENTRAL', jdl_jb, _jb_growth_chart, (df_jb,), layout=('side2d' if _dd_side else 'stackm'), cap_header=_cap_jb, bottom_fn=_jb_bottom, bottom_cols=('minmax(0,1fr)' if _dd_mode else None), chart_cols=('repeat(2,minmax(0,1fr))' if _dd_side else 'repeat(4,minmax(0,1fr))'), no_table=True, bottom_left=_dd_side, grid_cols=('minmax(0,1.6fr) minmax(0,1fr)' if _dd_side else None))   # urutan: STU | Nota | STU vs Target | STU vs LM (grafik dipersempit)
+                bsg_panel_table(df_jb, df_jb_full, kol_pj_jb, kol_nm_jb, '_pct', 'Jember_Penjualan_SIP_SENTRAL', jdl_jb, _jb_growth_chart, (df_jb,), layout=('side2d' if _dd_side else 'stackm'), cap_header=_cap_jb, bottom_fn=_jb_bottom, bottom_cols=('minmax(0,1fr)' if _dd_mode else None), chart_cols='repeat(2,minmax(0,1fr))', no_table=True, bottom_left=_dd_side, grid_cols=('minmax(0,1fr) minmax(0,1.3fr)' if _dd_side else None))   # urutan kiri → kanan: Kurva | STU vs Target | STU vs LM
+                if _dd_mode and _dd_lvl == 'dealer':   # pie kontribusi MDS (level Sub Area / semua dealer) dipindah ke bawah panel
+                    _pie_g = _jb_pies()
+                    if _pie_g: bsg_panel_charts('Kontribusi MDS', _pie_g[0]['group'], 'Jember_Kontribusi_MDS', chart_cols='repeat(5,minmax(0,1fr))')
                 if _dd_lvl == 'dealer':   # Penjualan per Koordinator & Counter (lintas dealer pada tabel di atas) — jenis grafik sama dengan penjualan per dealer
                     _jb_sep(f'1B. PENJUALAN PER KOORDINATOR & COUNTER — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})')
                     def _kc_rows(is_cnt):
@@ -5137,12 +5172,13 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     def _kc_charts(rows_, lbl_):
                         if not rows_: return []
                         idl_ = float(target_persen_harian)
-                        tg_r = [{'name': r_[kol_nm_jb], 'val': float(r_['_pct']), 'label': f"{r_['_pct']:.1f}%", 'a': int(r_['STU']), 'b': int(r_['TARGET']), 'extra': f"{int(r_['STU']):,}/{int(r_['TARGET']):,}", 'tip': f"<b>{_esc(r_[kol_nm_jb])}</b><br>STU <b>{int(r_['STU']):,}</b> / Target {int(r_['TARGET']):,}<br>Ideal {int(r_['IDEAL']):,} → <b>{int(r_['STU']) - int(r_['IDEAL']):+,}</b><br>Pencapaian <b>{r_['_pct']:.1f}%</b>"} for r_ in rows_ if r_['TARGET'] > 0]
-                        lm_r = [{'name': r_[kol_nm_jb], 'val': (r_['STU'] / r_['STU LM'] * 100.0) if r_['STU LM'] > 0 else 0.0, 'label': (f"{r_['STU'] / r_['STU LM'] * 100.0 - 100.0:+.1f}%" if r_['STU LM'] > 0 else 'n/a'), 'a': int(r_['STU']), 'b': int(r_['STU LM']), 'extra': f"{int(r_['STU LM']):,}→{int(r_['STU']):,}", 'tip': f"<b>{_esc(r_[kol_nm_jb])}</b><br>STU {int(r_['STU']):,} vs bulan lalu {int(r_['STU LM']):,}<br>Selisih <b>{int(r_['STU']) - int(r_['STU LM']):+,}</b> unit"} for r_ in rows_]
+                        tg_r = [{'name': r_[kol_nm_jb], 'val': float(r_['_pct']), 'label': f"{r_['_pct']:.1f}%", 'a': int(r_['STU']), 'a_txt': f"{int(r_['STU']):,} | {int(r_['NOTA']):,} | {int(r_['TODAY']):,}", 'b': int(r_['TARGET']), 'extra': f"{int(r_['STU']):,}/{int(r_['TARGET']):,}", 'tip': f"<b>{_esc(r_[kol_nm_jb])}</b><br>STU <b>{int(r_['STU']):,}</b> / Target {int(r_['TARGET']):,}<br>Ideal {int(r_['IDEAL']):,} → <b>{int(r_['STU']) - int(r_['IDEAL']):+,}</b><br>Pencapaian <b>{r_['_pct']:.1f}%</b>"} for r_ in rows_ if r_['TARGET'] > 0]
+                        lm_r = [{'name': r_[kol_nm_jb], 'val': (r_['STU'] / r_['STU LM'] * 100.0) if r_['STU LM'] > 0 else 0.0, 'label': (f"{r_['STU'] / r_['STU LM'] * 100.0 - 100.0:+.1f}%" if r_['STU LM'] > 0 else 'n/a'), 'a': int(r_['STU']), 'a_txt': f"{int(r_['STU']):,} | {int(r_['NOTA']):,} | {int(r_['TODAY']):,}", 'b': int(r_['STU LM']), 'extra': f"{int(r_['STU LM']):,}→{int(r_['STU']):,}", 'tip': f"<b>{_esc(r_[kol_nm_jb])}</b><br>STU {int(r_['STU']):,} vs bulan lalu {int(r_['STU LM']):,}<br>Selisih <b>{int(r_['STU']) - int(r_['STU LM']):+,}</b> unit"} for r_ in rows_]
                         s_t, s_l, t_t = sum(int(r_['STU']) for r_ in rows_), sum(int(r_['STU LM']) for r_ in rows_), sum(int(r_['TARGET']) for r_ in rows_)
                         p_t = (s_t / t_t * 100.0) if t_t > 0 else 0.0; p_l = (s_t / s_l * 100.0) if s_l > 0 else 100.0
-                        return [bsg_chart_rank(f'STU {lbl_} vs Target', '', tg_r, ideal=idl_, parts=True, split='target', split_total=(s_t, t_t), total=f'{p_t:.1f}%', total_color=bsg_stat_color(p_t, idl_, idl_ * 0.85)) if tg_r else None,
-                                bsg_chart_rank(f'STU {lbl_} vs LM', '', lm_r, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(s_t, s_l), scale_max=max([r_['val'] for r_ in lm_r] + [115.0]), total=f'{p_l - 100.0:+.1f}%', total_color=bsg_stat_color(p_l, 100.0, 85.0))]
+                        _at_s = f"{s_t:,} | {sum(int(r_['NOTA']) for r_ in rows_):,} | {sum(int(r_['TODAY']) for r_ in rows_):,}"
+                        return [bsg_chart_rank(f'STU {lbl_} vs Target', '', tg_r, ideal=idl_, parts=True, split='target', split_total=(s_t, t_t), split_a_txt=_at_s, total=f'{p_t:.1f}%', total_color=bsg_stat_color(p_t, idl_, idl_ * 0.85)) if tg_r else None,
+                                bsg_chart_rank(f'STU {lbl_} vs LM', '', lm_r, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(s_t, s_l), split_a_txt=_at_s, scale_max=max([r_['val'] for r_ in lm_r] + [115.0]), total=f'{p_l - 100.0:+.1f}%', total_color=bsg_stat_color(p_l, 100.0, 85.0))]
                     bsg_panel_charts(f'Penjualan per Koordinator & Counter — {_dd_scope}', _kc_charts(_kc_rows(False), 'Koordinator') + _kc_charts(_kc_rows(True), 'Counter'), 'Jember_Penjualan_Koor_Counter', chart_cols='repeat(4,minmax(0,1fr))')
 
             with jt_pr:
@@ -5871,7 +5907,30 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         <span style="color:#12A150;font-weight:800;">✅ Sudah Registrasi: {jml_sudah} Konsumen ({pct_reg_dlr:.1f}%)</span> &nbsp;|&nbsp;
                         <span style="color:#E0115F;font-weight:800;">⚠️ Belum Registrasi: {jml_belum} Konsumen ({100.0 - pct_reg_dlr:.1f}%)</span>
                     </div>''', unsafe_allow_html=True)
-                        bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, label="Grafik registrasi")
+                        if _dd_lvl == 'dealer':   # Sub Area dipilih → daftar per DEALER + batang Google Review vs Target
+                            _gv_ = []
+                            for _dn_ in df_jb[kol_nm_jb].astype(str).tolist():
+                                _rw_ = get_dealer_master_row(_dn_)
+                                if not (_rw_.get('T. G REV') or _rw_.get('R. G REV')):
+                                    _mk_ = next((k_ for k_ in _kpi_dealers() if _nrm_dlr(k_) == _nrm_dlr(_dn_)), None)
+                                    _rw_ = get_dealer_master_row(_mk_) if _mk_ else _rw_
+                                _gv_.append((_dn_, safe_int(_rw_.get('T. G REV')), safe_int(_rw_.get('R. G REV'))))
+                            _my_ = []
+                            _sz_ = jb_f_c.groupby('_jb').size().to_dict(); _sd_ = jb_f_c[jb_f_c['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI'].groupby('_jb').size().to_dict()
+                            for _dn_ in df_jb[kol_nm_jb].astype(str).tolist():
+                                _k_ = str(_dn_).strip().upper(); _rw_ = get_dealer_master_row(_dn_)
+                                _t_my = safe_int(_rw_.get('T. MYDR')) or int(round(_sz_.get(_k_, 0) * 0.40))   # target MYDR = 40% STU bila belum ada di MASTER KPI
+                                _my_.append((_dn_, _t_my, int(_sd_.get(_k_, 0))))
+                            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, by_col='_jb', by_label='Dealer', max_rows=max(1, int(jb_f_c['_jb'].nunique())), grev=_gv_, mydr=_my_, label="Grafik registrasi")
+                        else:   # dealer tertentu dipilih → tambah batang Google Review dealer tsb vs target
+                            _dn1_ = str(_dd_dealer or '').strip(); _gv1_ = None
+                            if _dn1_ and _dn1_ != 'SEMUA DEALER':
+                                _rw1_ = get_dealer_master_row(_dn1_)
+                                if not (_rw1_.get('T. G REV') or _rw1_.get('R. G REV')):
+                                    _mk1_ = next((k_ for k_ in _kpi_dealers() if _nrm_dlr(k_) == _nrm_dlr(_dn1_)), None)
+                                    _rw1_ = get_dealer_master_row(_mk1_) if _mk1_ else _rw1_
+                                _gv1_ = [(_dn1_, safe_int(_rw1_.get('T. G REV')), safe_int(_rw1_.get('R. G REV')))]
+                            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, grev=_gv1_, label="Grafik registrasi")
 
                         if not df_belum_reg.empty:
                             _kr_nm = lambda x_: clean_str(x_) or '-'
