@@ -3652,7 +3652,7 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
         if filter_mode == 'dealer':
             t_grev = safe_int(ent_saved.get('T. G REV', 0))
             r_grev = safe_int(ent_saved.get('R. G REV', 0))
-            extra_cols = {}
+            extra_cols = {'URL GOOGLE': str(ent_saved.get('URL GOOGLE', '') or '').strip()}   # link Google Maps dealer (untuk tarik jumlah review via Apify)
         else:
             # MYDR & Google Review koordinator / counter: target & result mengikuti dealer induk (baris dealer di MASTER KPI)
             _dm = get_dealer_master_row(kpi_entity_dealer(ent))
@@ -3697,6 +3697,7 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
         'T. G REV': int(df_items['T. G REV'].sum()), 'R. G REV': int(df_items['R. G REV'].sum()),
         '_pct_stu': (tot_r_stu / tot_t_stu * 100.0) if tot_t_stu > 0 else 0.0
     }
+    if 'URL GOOGLE' in df_items.columns: tot_row['URL GOOGLE'] = ''
     if filter_mode != 'dealer' and '_dealer' in df_items.columns:
         _ud = df_items.drop_duplicates('_dealer')
         for _c in ['T. MYDR', 'R. MYDR', 'T. G REV', 'R. G REV']: tot_row[_c] = int(_ud[_c].sum())
@@ -4362,16 +4363,37 @@ if menu_pilihan == MASTER_TAB:
 
     KPI_METRIC_COLS = ['T. STU', 'R. STU', 'T. MAXI', 'R. MAXI', 'T. CLASSY', 'R. CLASSY', 'T. MP', 'R. MP', 'T. INC', 'R. INC', 'T. ACC%', 'R. ACC%', 'T. MYDR', 'R. MYDR', 'T. G REV', 'R. G REV']
     KPI_EDITABLE_COLS = ['T. STU', 'T. MAXI', 'T. CLASSY', 'T. MP', 'T. INC', 'T. ACC%', 'T. G REV', 'R. G REV']
+    KPI_URL_COL = 'URL GOOGLE'   # hanya tabel Dealer: link Google Maps dealer (teks, bisa diisi lewat Excel)
     KPI_PAIRS_ALL = [('T. STU', 'R. STU'), ('T. MAXI', 'R. MAXI'), ('T. CLASSY', 'R. CLASSY'), ('T. MP', 'R. MP'), ('T. INC', 'R. INC'), ('T. ACC%', 'R. ACC%'), ('T. MYDR', 'R. MYDR'), ('T. G REV', 'R. G REV'), ('T. DB', 'R. DB'), ('T. Walk In', 'R. Walk In')]
 
     def kpi_metric_cols(section_key):
         # Koordinator: + DB | Counter: + DB & Walk In | Dealer: kolom dasar
-        return KPI_METRIC_COLS + {'koor': ['T. DB', 'R. DB'], 'counter': ['T. DB', 'R. DB', 'T. Walk In', 'R. Walk In']}.get(section_key, [])
+        return KPI_METRIC_COLS + {'koor': ['T. DB', 'R. DB'], 'counter': ['T. DB', 'R. DB', 'T. Walk In', 'R. Walk In'], 'dealer': [KPI_URL_COL]}.get(section_key, [])
 
     def kpi_editable_cols(section_key):
-        if section_key == 'dealer': return list(KPI_EDITABLE_COLS)
+        if section_key == 'dealer': return list(KPI_EDITABLE_COLS) + [KPI_URL_COL]
         # G REV koordinator/counter mengikuti dealer -> tidak diedit di sini
         return [c for c in KPI_EDITABLE_COLS if c not in ('T. G REV', 'R. G REV')] + ['T. DB'] + (['T. Walk In'] if section_key == 'counter' else [])
+
+    def apify_token():   # token Apify: st.secrets['APIFY_TOKEN'] atau environment APIFY_TOKEN (JANGAN ditulis di kode)
+        try: t_ = st.secrets.get('APIFY_TOKEN', None)
+        except Exception: t_ = None
+        return str(t_ or os.environ.get('APIFY_TOKEN') or '').strip()
+
+    def apify_google_reviews(url_g, token_g, timeout_s=170):
+        """Jumlah review Google (angka yang tampil di Google Maps SAAT INI) + rating untuk 1 URL dealer, lewat actor Apify Google Maps Scraper (compass/crawler-google-places)."""
+        try: actor_ = str(st.secrets.get('APIFY_ACTOR', '') or '').strip() or 'compass~crawler-google-places'
+        except Exception: actor_ = 'compass~crawler-google-places'
+        body_ = {'startUrls': [{'url': url_g}], 'maxCrawledPlacesPerSearch': 1, 'maxReviews': 0, 'maxImages': 0, 'language': 'id'}
+        ep_ = f'https://api.apify.com/v2/acts/{actor_}/run-sync-get-dataset-items?token={urllib.parse.quote(token_g)}&timeout={int(timeout_s)}'
+        req_ = urllib.request.Request(ep_, data=json.dumps(body_).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
+        try:
+            with urllib.request.urlopen(req_, timeout=timeout_s + 30) as r_: items_ = json.loads(r_.read().decode('utf-8') or '[]')
+        except urllib.error.HTTPError as he_: raise ValueError(f'Apify HTTP {he_.code} (cek token / saldo / URL)')
+        if not isinstance(items_, list) or not items_ or not isinstance(items_[0], dict): raise ValueError('Apify tidak mengembalikan data tempat (cek URL Google Maps)')
+        it_ = items_[0]
+        if it_.get('reviewsCount') is None: raise ValueError('data Apify tidak memuat jumlah review')
+        return safe_int(it_.get('reviewsCount')), safe_float(it_.get('totalScore')), str(it_.get('title') or '')
 
     def build_kpi_capture_html(df_full, name_col, title_txt, dom_id, metric_cols=None):
         cols_all = [name_col] + (metric_cols or KPI_METRIC_COLS)
@@ -4410,7 +4432,9 @@ if menu_pilihan == MASTER_TAB:
 
         col_cfg = {name_col: st.column_config.TextColumn(name_col, width="medium")}
         for c in metric_cols_sec:
-            if c in ['T. ACC%', 'R. ACC%']:
+            if c == KPI_URL_COL:
+                col_cfg[c] = st.column_config.TextColumn(c, width="large", help='Tempel link Google Maps dealer (boleh diisi lewat Excel). Dipakai untuk menarik jumlah review via Apify.')
+            elif c in ['T. ACC%', 'R. ACC%']:
                 col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%.1f%%")
             else:
                 col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d")
@@ -4438,7 +4462,7 @@ if menu_pilihan == MASTER_TAB:
             for _, r in df_rows.iterrows():
                 enm = str(r[name_col])
                 if enm == 'TOTAL': continue
-                sec_dict[enm] = {k_ed: (safe_float(r[k_ed]) if 'ACC%' in k_ed else safe_int(r[k_ed])) for k_ed in edit_cols_sec}
+                sec_dict[enm] = {**(sec_dict.get(enm, {}) or {}), **{k_ed: (str(r[k_ed] if not pd.isna(r[k_ed]) else '').strip() if k_ed == KPI_URL_COL else (safe_float(r[k_ed]) if 'ACC%' in k_ed else safe_int(r[k_ed]))) for k_ed in edit_cols_sec}}   # kolom lain (mis. waktu tarik Apify) dipertahankan
                 if section_key == 'dealer' and enm not in daftar_dealer:
                     for k_old in [k_ for k_ in tj_sync if _nrm_dlr(k_) == _nrm_dlr(enm)]: tj_sync.pop(k_old, None)
                     tj_sync[enm] = safe_int(r['T. STU'])
@@ -4453,6 +4477,34 @@ if menu_pilihan == MASTER_TAB:
         c_b1, c_b2 = st.columns([1, 3])
         with c_b1:
             if st.button(btn_label, type='primary', key=f'btn_save_kpi_{section_key}'): _save_rows(ed_df)
+        if section_key == 'dealer':
+            with st.expander('🌐 Google Review via Apify — Result G REV = jumlah review Google dealer SAAT INI', expanded=False):
+                _tok = apify_token()
+                _sv_d = (load_json(KPI_SAVED_FILE).get('dealer', {}) or {})
+                _urls = {str(r_[name_col]): str(r_.get(KPI_URL_COL, '') or '').strip() for _, r_ in df_items.iterrows() if str(r_.get(KPI_URL_COL, '') or '').strip().lower().startswith('http')}
+                st.caption('Isi kolom **URL GOOGLE** (link Google Maps dealer) di tabel atau lewat Excel, klik **Simpan**, lalu tarik. Angka review yang tampil di Google Maps hari ini otomatis mengisi **R. G REV** dealer tersebut.')
+                if not _tok: st.warning('Token Apify belum diisi. Tambahkan `APIFY_TOKEN` di st.secrets (atau environment APIFY_TOKEN).')
+                elif not _urls: st.info('Belum ada dealer yang kolom URL GOOGLE-nya terisi (harus diawali http).')
+                else:
+                    st.caption(f'{len(_urls)} dealer berURL: ' + ', '.join(_urls.keys()))
+                    if st.button('🔄 Tarik Google Review hari ini (Apify)', key='btn_apify_grev', type='primary'):
+                        _all_a = load_json(KPI_SAVED_FILE); _sd_a = _all_a.get('dealer', {}); _okn, _errs = 0, []
+                        _pb = st.progress(0.0, text='Menarik data Google Maps…')
+                        for _i, (_dn, _un) in enumerate(_urls.items()):
+                            _pb.progress(_i / len(_urls), text=f'{_dn} ({_i + 1}/{len(_urls)})')
+                            try:
+                                _rc, _sc, _ttl = apify_google_reviews(_un, _tok)
+                                _e_a = _sd_a.get(_dn, {}) or {}
+                                _e_a['R. G REV'] = int(_rc); _e_a['G RATING'] = round(float(_sc), 2); _e_a['G REV UPDATE'] = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
+                                _sd_a[_dn] = _e_a; _okn += 1
+                            except Exception as _ex: _errs.append(f'{_dn}: {str(_ex)[:90]}')
+                        _pb.progress(1.0, text='Selesai')
+                        _all_a['dealer'] = _sd_a; save_json(_all_a, KPI_SAVED_FILE)
+                        st.session_state['apify_grev_msg'] = (f'✅ {_okn} dealer diperbarui.' if _okn else '') + ((' ⚠️ Gagal: ' + ' | '.join(_errs)) if _errs else '')
+                        st.rerun()
+                if st.session_state.get('apify_grev_msg'): st.info(st.session_state['apify_grev_msg'])
+                _upd = [f"{n_}: {_sv_d[n_].get('R. G REV', 0)} review (rating {_sv_d[n_].get('G RATING', '-')}) · {_sv_d[n_].get('G REV UPDATE')}" for n_ in _urls if (_sv_d.get(n_, {}) or {}).get('G REV UPDATE')]
+                if _upd: st.caption('Penarikan terakhir — ' + '  |  '.join(_upd))
         if _can_del:
             _sel_del = [str(r_[name_col]) for _, r_ in ed_df.iterrows() if bool(r_.get('✖')) and str(r_[name_col]) != 'TOTAL']
             _pk = f'kpi_del_pending_{section_key}'
@@ -4471,7 +4523,7 @@ if menu_pilihan == MASTER_TAB:
                 if _cn.button('Batal', key=f'btn_del_no_{section_key}'): st.session_state.pop(_pk, None); st.rerun()
         with c_b2:
             cap_id = f'cap_kpi_{section_key}'
-            cap_html = build_kpi_capture_html(df_full, name_col, title_txt, cap_id, metric_cols_sec)
+            cap_html = build_kpi_capture_html(df_full, name_col, title_txt, cap_id, [c_ for c_ in metric_cols_sec if c_ != KPI_URL_COL])
             render_table_image_buttons(cap_id, f'{title_txt}_Tgl_{tanggal_akhir}', standalone_html=cap_html)
 
         with st.expander('📥 Excel — unduh template, isi di Excel, lalu unggah kembali', expanded=False):
@@ -4482,7 +4534,7 @@ if menu_pilihan == MASTER_TAB:
             with pd.ExcelWriter(_bio, engine='openpyxl') as _wr:
                 _xl_base.to_excel(_wr, index=False, sheet_name='Master Target')
                 _ws = _wr.sheets['Master Target']
-                for _ci, _cn in enumerate(_xl_cols, start=1): _ws.column_dimensions[_ws.cell(row=1, column=_ci).column_letter].width = 30 if _ci == 1 else 13
+                for _ci, _cn in enumerate(_xl_cols, start=1): _ws.column_dimensions[_ws.cell(row=1, column=_ci).column_letter].width = 30 if _ci == 1 else (60 if _cn == KPI_URL_COL else 13)
             st.download_button('⬇️ Unduh template Excel', data=_bio.getvalue(), file_name=f'Master_Target_{section_key}_{periode_bulan_tahun.replace(" ", "_")}.xlsx',
                                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', key=f'dl_kpi_{section_key}')
             st.caption(f'Isi kolom target ({", ".join(edit_cols_sec)}). Jangan ubah kolom nama — nama dicocokkan dengan tabel; sel kosong = nilai lama dipertahankan.')
@@ -4503,7 +4555,7 @@ if menu_pilihan == MASTER_TAB:
                             if _c not in _du.columns: continue
                             _v = _du.at[_kk, _c]
                             if pd.isna(_v) or str(_v).strip() == '': continue
-                            _nv = safe_float(str(_v).replace('%', '').replace(',', '.')) if 'ACC%' in _c else safe_int(safe_float(str(_v).replace(',', '.')))
+                            _nv = str(_v).strip() if _c == KPI_URL_COL else (safe_float(str(_v).replace('%', '').replace(',', '.')) if 'ACC%' in _c else safe_int(safe_float(str(_v).replace(',', '.'))))
                             if _nv != _rw[_c]: _chg += 1
                             _mrg.at[_ix, _c] = _nv
                     st.dataframe(_mrg, hide_index=True, use_container_width=True, height=min(420, calc_table_height(_mrg)))
