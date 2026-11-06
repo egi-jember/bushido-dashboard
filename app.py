@@ -2741,6 +2741,16 @@ if path_lookup:
         xl_lk = pd.ExcelFile(path_lookup)
         sh_lk = next((s for s in xl_lk.sheet_names if 'LOOKUP' in s.strip().upper()), xl_lk.sheet_names[0])
         df_lk = pd.read_excel(path_lookup, sheet_name=sh_lk, header=None)
+        try:   # TARGET TETAP COUNTER: Data Lookup kolom AW (nama salesman counter) & AX (target STU) melengkapi FIXED_COUNTER_TARGETS; daftar bawaan kode tetap jadi cadangan
+            if df_lk.shape[1] > 49:
+                _fx_new = {}
+                for _r_fx in range(len(df_lk)):
+                    _n_fx, _v_fx = clean_str(df_lk.iloc[_r_fx, 48]), pd.to_numeric(df_lk.iloc[_r_fx, 49], errors='coerce')
+                    if _n_fx and _n_fx not in ('NAN', 'NONE') and not _n_fx.startswith('SALES ') and pd.notna(_v_fx) and _v_fx > 0: _fx_new[_n_fx] = int(_v_fx)   # baris 'SALES PLATINUM/GOLD/TRAINING' (5/3/2) dilewati: itu target jabatan, bukan counter
+                if _fx_new:
+                    FIXED_COUNTER_TARGETS.update(_fx_new); FIXED_COUNTER_TARGETS_NS.update({alnum_str(k_): v_ for k_, v_ in _fx_new.items()})
+                    mapping_emp_target, mapping_emp_target_ns = load_employee_targets(path_employee)   # hitung ulang agar nama counter baru tidak ikut target jabatan
+        except Exception: pass
         try:   # nama dealer dari Data Lookup: blok NAMA DEALER | STATUS | KOTA, kolom X (dealer Point Code) & kolom J (nama dealer SPK)
             for r_i in range(min(60, len(df_lk))):
                 for c_i in range(df_lk.shape[1] - 2):
