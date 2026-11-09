@@ -344,10 +344,10 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 .ttl-r{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .ttl-tot{font-size:22px;font-weight:900;line-height:1.05;white-space:nowrap}"""
 
-def _split_bar(a, b, kind, p_=None, c_='#64748B', a_txt=None):
+def _split_bar(a, b, kind, p_=None, c_='#64748B', a_txt=None, b_txt=None):
     """Diagram batang terbelah 50 : 50. Segmen capaian (STU) berwarna MENGIKUTI PERSENTASE (hijau / kuning / merah; abu-abu bila n/a), segmen pembanding (Target / LM) biru.
     Angka capaian di KEDUA UJUNG batang; persentase di titik temu kedua warna. kind='target' & kind='lm': [STU | pembanding] — capaian selalu di kiri."""
-    fa, fb = (a_txt if a_txt else f'{int(round(float(a or 0))):,}'), f'{int(round(float(b or 0))):,}'
+    fa, fb = (a_txt if a_txt else f'{int(round(float(a or 0))):,}'), (b_txt if b_txt else f'{int(round(float(b or 0))):,}')
     ptxt = 'n/a' if p_ is None else f'{p_:.0f}%'
     ach = lambda v_, cls_: f'<div class="{cls_}" style="background:{c_}">{v_}</div>'
     blu = lambda v_, cls_: f'<div class="b {cls_}">{v_}</div>'
@@ -356,7 +356,7 @@ def _split_bar(a, b, kind, p_=None, c_='#64748B', a_txt=None):
 
 BSG_ONE_ROW = False   # True (Dashboard Dealer): tiap kelompok pie/grafik per Koordinator-Counter selalu 1 baris, berapapun jumlahnya
 
-def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None, total=None, total_color=None, note=None, split=None, split_total=None, split_a_txt=None, keep_order=False, lm_label='Bulan lalu'):
+def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit='%', max_rows=None, fixed_color=None, ascending=False, parts=False, scale_max=None, total=None, total_color=None, note=None, split=None, split_total=None, split_a_txt=None, keep_order=False, lm_label='Bulan lalu', split_b_txt=None):
     """rows: list dict(name, val, label=None, tip=None, lm=None → penanda nilai bulan lalu pada batang, extra_html=None → keterangan kanan berwarna). split='target'|'lm' → baris berupa diagram batang terbelah (butuh rows[...]['a'] = STU & ['b'] = Target / LM; split_total=(a, b) untuk batang ringkasan). note = teks rumus kecil di bawah judul. Warna otomatis terhadap ideal (hijau ≥ ideal, kuning ≥ 85%, merah di bawahnya).
     parts=True → kembalikan (inner_html, css, tinggi) untuk digabung ke panel; False → (dokumen_iframe, tinggi)."""
     subtitle = ''   # keterangan di bawah judul grafik dihapus
@@ -374,13 +374,13 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
         if split_total is not None:
             ta, tb = split_total; pt_ = (ta / tb * 100.0) if tb else None
             c_sum = '#64748B' if pt_ is None else (BSG_GRN if pt_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and pt_ >= 0.85 * ideal) else BSG_RED))
-            sm = f'<div class="sp-sum"><div class="sp-tt">{"ACHIEV" if split == "target" else "VS LM"}</div>{_split_bar(ta, tb, split, pt_, c_sum, split_a_txt)}</div>'
+            sm = f'<div class="sp-sum"><div class="sp-tt">{"ACHIEV" if split == "target" else "VS LM"}</div>{_split_bar(ta, tb, split, pt_, c_sum, split_a_txt, split_b_txt)}</div>'
         sb = ''
         for r in rows:
             a_, b_ = r.get('a', 0), r.get('b', 0); p_ = (a_ / b_ * 100.0) if b_ else None
             c = ('#64748B' if p_ is None else (BSG_GRN if p_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and p_ >= 0.85 * ideal) else BSG_RED)))
             tip = r.get('tip') or f"<b>{_esc(r['name'])}</b>"
-            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"))}</div></div>')
+            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
         hdr = _hdr(title, '')
         if total is not None:
             hdr = f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div><div style="height:6px"></div>'
@@ -812,19 +812,20 @@ async function svgFix(root){try{var list=Array.prototype.slice.call(root.querySe
   im.onload=function(){sv.parentNode.replaceChild(im,sv);res();};im.onerror=function(){res();};
   im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);
  }catch(e){res();}});}));}catch(e){}}
-window.pnCap=async function(mode){
- var st=document.getElementById('st');st.style.color='#F97316';st.textContent='Memproses gambar HD...';
+window.pnCap=async function(mode,sel){
+ var st=document.getElementById(sel?'st2':'st');st.style.color='#F97316';st.textContent='Memproses gambar HD...';
  try{
   if(typeof html2canvas==='undefined')throw new Error('html2canvas belum termuat (cek koneksi internet)');
   var hold=document.getElementById('hold');hold.innerHTML='';
   var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
+  if(sel){var br=c.querySelector('.pn-btnrow');if(br){while(br.nextSibling)br.nextSibling.remove();br.remove();}}
   hold.appendChild(c);redrawCharts(c);fitTables(c);fitCards(c);c.querySelectorAll('.card').forEach(function(x){x.style.zoom='';});stretch(c);await svgFix(c);await new Promise(function(r){setTimeout(r,120);});
   var canvas=await html2canvas(hold,h2cO(hold));hold.innerHTML='';
-  function dl(){var a=document.createElement('a');a.href=canvas.toDataURL('image/jpeg',0.95);a.download=FN+'.jpg';a.click();}
+  function dl(){var a=document.createElement('a');a.href=canvas.toDataURL('image/jpeg',0.95);a.download=FN+(sel?'_STU_SPK_ACC':'')+'.jpg';a.click();}
   if(mode==='copy'){canvas.toBlob(async function(blob){try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
     st.style.color='#12A150';st.textContent='✅ Tabel + grafik disalin (HD). Siap Ctrl+V di WA/Word/Excel';}catch(e){dl();st.style.color='#12A150';st.textContent='📥 Browser membatasi clipboard, gambar diunduh sebagai JPG.';}
     setTimeout(function(){st.textContent='';},5000);},'image/png');}
-  else{dl();st.style.color='#12A150';st.textContent='✅ '+FN+'.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
+  else{dl();st.style.color='#12A150';st.textContent='✅ '+FN+(sel?'_STU_SPK_ACC':'')+'.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
  }catch(e){st.style.color='#DC2626';st.textContent='Gagal membuat gambar: '+e.message;}
 };
 window.pnCapData=async function(){var hold=document.getElementById('hold');hold.innerHTML='';var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
@@ -3294,8 +3295,8 @@ if DB_SALESMAN and df_faktur_all is not None and not df_faktur_all.empty and 'Sa
 if DB_SALESMAN:
     # df_faktur_all & df_faktur sengaja TIDAK difilter -> angka STU = jumlah baris di file Faktur
     df_nota = only_db_salesmen(df_nota, 'NOTA')
-    df_spk = only_db_salesmen(df_spk, 'SPK', 'Koor_SPK')
-    df_spk_alldlr = df_spk
+    df_spk_alldlr = df_spk   # Dashboard Dealer: SPK = isi file SPK apa adanya (dealer dari kolom D, koordinator dari lookup nama salesman kolom Z); TIDAK difilter Database, sama seperti STU yang mengikuti file Faktur
+    df_spk = only_db_salesmen(df_spk, 'SPK', 'Koor_SPK')   # filter Database tetap berlaku untuk menu lain yang memakai df_spk
     df_rating = only_db_salesmen(df_rating, 'RATING')
 
 def detect_customer_col(df, is_rating=False):
@@ -5754,8 +5755,9 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         iu_ = tg_n_ * idl_ / 100.0; r_ = (stu_n_ / iu_) if iu_ > 0 else 9.9
                         return (2 if r_ >= 0.85 else (1 if r_ >= 0.60 else 0)), r_
                     dot_ = lambda c_, v_: f'<span class="rv-d" style="background:{c_}"></span><span class="rv-val">{v_}</span>'
+                    _fmt_idl = lambda x_: ('%.1f' % x_).rstrip('0').rstrip('.')   # angka ideal 1 desimal (tanpa .0)
                     def _eval(dbq_, stup_, db_n_, stu_n_, tg_n_):
-                        lr_, rr_ = lv_res(stu_n_, tg_n_); c_r = GRY_ if lr_ < 0 else col_lv(lr_); v_r = f'{int(stu_n_):,} / {int(tg_n_):,}' if tg_n_ > 0 else '-'
+                        lr_, rr_ = lv_res(stu_n_, tg_n_); c_r = GRY_ if lr_ < 0 else col_lv(lr_); v_r = (f'{int(stu_n_):,} / {_fmt_idl(tg_n_ * idl_ / 100.0)}' + (f' ({rr_ * 100.0:.0f}%)' if tg_n_ * idl_ > 0 else '')) if tg_n_ > 0 else '-'   # RESULT (STU) vs IDEAL HARI INI = target x ideal% hari ini (bukan target sebulan penuh)
                         if db_n_ <= 0: return GRY_, GRY_, '-', '-', c_r, v_r, GRY_, 'Belum ada database', 'Belum ada database pada periode ini'
                         ls_, ld_ = lv_stu(stup_), lv_dbq(dbq_)
                         if ls_ == 2:   # closing skill tinggi -> lihat Result STU vs Target
@@ -5767,15 +5769,16 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         return col_lv(ls_), col_lv(ld_), f'{stup_:.1f}%', f'{dbq_:.1f}%', c_r, v_r, col_, txt_, full_
                     def _row(nm_, dbq_, stup_, db_n_, stu_n_, tg_n_, total=False):
                         c_s, c_d, v_s, v_d, c_r, v_r, col_, txt_, full_ = _eval(dbq_, stup_, db_n_, stu_n_, tg_n_)
-                        tip_ = f'<b>{_esc(nm_)}</b><br>STU Ratio {v_s} · DB Quality {v_d} · STU {int(stu_n_):,} / target {int(tg_n_):,}' + (f' (ideal hari ini {tg_n_ * idl_ / 100.0:.1f})' if tg_n_ > 0 else '') + f'<br><b style="color:{col_}">{_esc(full_)}</b>'
+                        tip_ = f'<b>{_esc(nm_)}</b><br>STU Ratio {v_s} · DB Quality {v_d} · STU {int(stu_n_):,}' + (f' vs ideal hari ini {tg_n_ * idl_ / 100.0:.1f} (target sebulan {int(tg_n_):,})' if tg_n_ > 0 else ' · target belum diisi') + f'<br><b style="color:{col_}">{_esc(full_)}</b>'
                         return f'<div class="rv-g rv-i{" rv-tot" if total else ""}" data-tip="{_esc(tip_)}"><div class="rv-n{" rv-nt" if total else ""}">{_esc(nm_)}</div><div class="rv-c">{dot_(c_s, v_s)}</div><div class="rv-c">{dot_(c_d, v_d)}</div><div class="rv-c">{dot_(c_r, v_r)}</div><div class="rv-x" style="color:{col_}">{_esc(txt_)}</div></div>'
                     its_ = []
                     for r_ in rows_pr_jb:
+                        if is_hidden_koor(str(r_[kol_pr_jb])): continue   # Shop Manager tidak ditampilkan di tabel Ulasan
                         stu_n_, tg_n_ = tg_map_.get(str(r_[kol_pr_jb]).strip().upper(), (0, 0))
                         its_.append((r_['_stu_pct'], _row(str(r_[kol_pr_jb]), r_['_dbq'], r_['_stu_pct'], r_['DATABASE'], stu_n_, tg_n_)))
                     its_.sort(key=lambda t_: -t_[0])
                     tot_row_ = _row(_dd_tot, tot_pr_jb['_dbq'], tot_pr_jb['_stu_pct'], tot_pr_jb['DATABASE'], int(df_jb['STU'].sum()), int(_tg_tot_jb), total=True)   # TOTAL DB Quality & STU Ratio
-                    css_ = _RANK_CSS + ('.rv-g{display:grid;grid-template-columns:24% 12% 12% 14% 1fr;align-items:center;gap:10px}.rv-i{height:34px;border-bottom:1px dashed #D5DDF5;padding:0 4px}'
+                    css_ = _RANK_CSS + ('.rv-g{display:grid;grid-template-columns:24% 12% 12% 17% 1fr;align-items:center;gap:10px}.rv-i{height:34px;border-bottom:1px dashed #D5DDF5;padding:0 4px}'
                                         '.rv-h{height:30px;border-bottom:2px solid #C7D3F7;margin-bottom:2px;font-size:11.5px;font-weight:900;color:#0B2A5B;letter-spacing:.4px;padding:0 4px}'
                                         '.rv-n{background:#2563EB;color:#fff;font-size:12.5px;font-weight:800;border-radius:7px;padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
                                         '.rv-nt{background:#1E1B8F}.rv-tot{height:40px;border-top:2px solid #C7D3F7;border-bottom:none;background:#F3F6FF;border-radius:0 0 8px 8px;margin-top:4px}'
@@ -5783,8 +5786,8 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                                         '.rv-x{font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rv-l{font-size:11.5px;color:#64748B;margin:3px 0 8px;line-height:1.4}.rv-l .rv-d{width:9px;height:9px;margin:0 4px 0 8px;vertical-align:baseline;box-shadow:none}')
                     leg_ = (f'<div class="rv-l"><b>STU Ratio</b><span class="rv-d" style="background:{RED_}"></span>0-4 <span class="rv-d" style="background:{ORG_}"></span>4-8 <span class="rv-d" style="background:{GRN_}"></span>8+ &nbsp;·&nbsp; '
                             f'<b>DB Quality</b><span class="rv-d" style="background:{RED_}"></span>0-10 <span class="rv-d" style="background:{ORG_}"></span>11-20 <span class="rv-d" style="background:{GRN_}"></span>21+ &nbsp;·&nbsp; '
-                            f'<b>Result vs Target</b> (ideal hari ini)<span class="rv-d" style="background:{RED_}"></span>&lt;60% <span class="rv-d" style="background:{ORG_}"></span>60-85% <span class="rv-d" style="background:{GRN_}"></span>85%+</div>')
-                    hdr_ = '<div class="rv-g rv-h"><div>NAMA</div><div>STU RATIO</div><div>DB QUALITY</div><div>RESULT vs TARGET</div><div>KESIMPULAN</div></div>'
+                            f'<b>Result vs Ideal hari ini</b> (target × ideal%)<span class="rv-d" style="background:{RED_}"></span>&lt;60% <span class="rv-d" style="background:{ORG_}"></span>60-85% <span class="rv-d" style="background:{GRN_}"></span>85%+</div>')
+                    hdr_ = '<div class="rv-g rv-h"><div>NAMA</div><div>STU RATIO</div><div>DB QUALITY</div><div>RESULT vs IDEAL HARI INI</div><div>KESIMPULAN</div></div>'
                     inner_ = f'<div class="card"><div class="ttl-r"><div class="ttl">Ulasan per {ent_}</div></div>{leg_}{hdr_}' + ''.join(h_ for _, h_ in its_) + tot_row_ + '</div>'
                     return (inner_, css_, 118 + 36 * len(its_) + 44) if its_ else None
                 def _jb_kota_bottom():
@@ -6140,8 +6143,8 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                             st.caption('Nama yang tidak cocok aturan ditampilkan apa adanya (tanpa kode di depan). Aturan ada di variabel _EV_CLUSTER pada app.py.')
 
             with jt_sl:
-                # ---- 5. TABEL ANALISA SPK DAN LEASING (paling bawah Dashboard Dealer) ----
-                jdl_jb_sl = f'5. TABEL ANALISA SPK DAN LEASING — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
+                # ---- 5. ANALISA SPK DAN LEASING (paling bawah Dashboard Dealer) — tabel dihapus, diganti kartu STU vs LM per leasing ----
+                jdl_jb_sl = f'5. ANALISA SPK DAN LEASING — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
                 _jb_sep(jdl_jb_sl)
                 _jb_sl_l = df_spk_alldlr.copy() if (df_spk_alldlr is not None and not df_spk_alldlr.empty and 'Nama_Dealer_SPK' in df_spk_alldlr.columns and 'hari' in df_spk_alldlr.columns) else pd.DataFrame()
                 if not _jb_sl_l.empty:
@@ -6226,8 +6229,82 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         if ln_ > 0 or ln_l > 0: its_.append(('LAINNYA', ln_, '#94A3B8')); pv_['LAINNYA'] = ln_l
                         out_.append(bsg_chart_donut('Kontribusi Leasing STU Kredit — Total' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing STU Kredit — {lb_}', 'Porsi STU kredit per leasing', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})', legend_unit='STU'))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
-                bsg_panel_table(df_sl_jb_i, df_sl_jb_f, kol_sl_jb, _NM_COL, '_acc_val', 'Jember_Analisa_SPK_Leasing', jdl_jb_sl, None, (), layout='stack', bottom_fn=lambda: [_jb_sl_pies(), _jb_sl_acc(), _jb_sl_stu_pies()], bottom_cols='minmax(0,1fr)')   # tabel → donut kontribusi leasing → grafik ACC% per leasing (1 panel, jarak rapat)
-                st.caption('ℹ️ GRW = SPK ÷ SPK bulan lalu (periode sama). ACC % = Disetujui ÷ (Disetujui + Ditolak). STU KREDIT = faktur non-cash. SPK per leasing dari file SPK; STU/Faktur per leasing dari file Faktur.')
+                def _jb_sl_stu_charts():
+                    """5 grafik STU vs bulan lalu (batang terbelah LM : STU, format sama dengan STU AT PREM / CLASSY / AT LPM): STU BAF | STU ADIRA | STU SOF | STU KREDIT | STU TOTAL per dealer (atau koordinator / counter / salesman). Diurut terbaik → terburuk."""
+                    def _n(d_, k_):
+                        if d_ is None or d_.empty: return 0
+                        if k_ == 'TOTAL': return int(len(d_))
+                        if k_ == 'KREDIT': return int(len(_jb_sl_kredit(d_)))
+                        return int((d_['Leasing_Faktur_Clean'] == k_).sum()) if 'Leasing_Faktur_Clean' in d_.columns else 0
+                    names_ = [n_ for n_ in _jb_names if not is_hidden_koor(n_)]
+                    fc_all, fl_all = _jb_sl_gf(_jb_up); out_ = []
+                    for k_, ttl_ in [('BAF', 'STU BAF'), ('ADIRA', 'STU ADIRA'), ('SOF', 'STU SOF'), ('KREDIT', 'STU KREDIT'), ('TOTAL', 'STU TOTAL')]:
+                        r_lm = []
+                        for n_ in names_:
+                            u_ = n_.strip().upper(); s_ = _n(_jb_sl_sub(jb_f_c, u_, '_jb'), k_); l_ = _n(_jb_sl_sub(jb_f_l, u_, '_jb'), k_)
+                            if l_ > 0: r_lm.append({'name': n_, 'val': s_ / l_ * 100.0, 'a': s_, 'b': l_, 'label': f'{s_ / l_ * 100.0 - 100.0:+.1f}%', 'extra': f'{l_:,}→{s_:,}', 'tip': f"<b>{_esc(n_)}</b><br>{ttl_}: {s_:,} vs bulan lalu {l_:,}<br>Selisih <b>{s_ - l_:+,}</b> unit<br>Kenaikan <b>{s_ / l_ * 100.0 - 100.0:+.1f}%</b>"})
+                            else: r_lm.append({'name': n_, 'val': -1.0, 'a': s_, 'b': 0, 'label': 'n/a', 'extra': f'0→{s_:,}', 'tip': f"<b>{_esc(n_)}</b><br>{ttl_}: {s_:,} · tidak ada pembanding bulan lalu"})
+                        tot_s, tot_l = _n(fc_all, k_), _n(fl_all, k_); lm_p = (tot_s / tot_l * 100.0) if tot_l > 0 else 100.0
+                        out_.append(bsg_chart_rank(ttl_, '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(tot_s, tot_l), scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{lm_p - 100.0:+.1f}%', total_color=bsg_stat_color(lm_p, 100.0, 85.0)))
+                    return [c_ for c_ in out_ if c_]
+                def _jb_sl_acc_pct(d_, l_=None):   # (ACC%, disetujui, ditolak) dari df SPK; l_=None → semua leasing
+                    if d_ is None or d_.empty or 'Status_SPK_Clean' not in d_.columns: return 0.0, 0, 0
+                    if l_ is not None: d_ = d_[d_['Leasing_SPK_Clean'] == l_] if 'Leasing_SPK_Clean' in d_.columns else d_.iloc[0:0]
+                    a_, r_ = int((d_['Status_SPK_Clean'] == 'DISETUJUI').sum()), int((d_['Status_SPK_Clean'] == 'DITOLAK').sum())
+                    return ((a_ / (a_ + r_) * 100.0) if (a_ + r_) > 0 else 0.0), a_, r_
+                def _jb_sl_spk_lm():
+                    """5 grafik SPK vs bulan lalu (batang terbelah LM : SPK, format sama dgn kartu STU): SPK BAF | ADIRA | SOF | IMFI | TOTAL per dealer (atau koordinator / counter / salesman)."""
+                    names_ = [n_ for n_ in _jb_names if not is_hidden_koor(n_)]
+                    sc_all, sl_all = _jb_sl_g(_jb_up); out_ = []
+                    _cn = lambda d_, k_: (0 if (d_ is None or d_.empty) else (int(len(d_)) if k_ == 'TOTAL' else _jb_sl_cnt(d_, k_)))
+                    for k_, ttl_ in [('BAF', 'SPK BAF'), ('ADIRA', 'SPK ADIRA'), ('SOF', 'SPK SOF'), ('IMFI', 'SPK IMFI'), ('TOTAL', 'SPK TOTAL')]:
+                        r_lm = []
+                        for n_ in names_:
+                            u_ = n_.strip().upper(); s_ = _cn(_jb_sl_sub(_jb_sp, u_, '_jbk'), k_); l_ = _cn(_jb_sl_sub(_jb_sl_l, u_, '_jbk'), k_)
+                            if l_ > 0: r_lm.append({'name': n_, 'val': s_ / l_ * 100.0, 'a': s_, 'b': l_, 'label': f'{s_ / l_ * 100.0 - 100.0:+.1f}%', 'extra': f'{l_:,}→{s_:,}', 'tip': f"<b>{_esc(n_)}</b><br>{ttl_}: {s_:,} vs bulan lalu {l_:,}<br>Selisih <b>{s_ - l_:+,}</b> SPK<br>Kenaikan <b>{s_ / l_ * 100.0 - 100.0:+.1f}%</b>"})
+                            else: r_lm.append({'name': n_, 'val': -1.0, 'a': s_, 'b': 0, 'label': 'n/a', 'extra': f'0→{s_:,}', 'tip': f"<b>{_esc(n_)}</b><br>{ttl_}: {s_:,} · tidak ada pembanding bulan lalu"})
+                        tot_s, tot_l = _cn(sc_all, k_), _cn(sl_all, k_); lm_p = (tot_s / tot_l * 100.0) if tot_l > 0 else 100.0
+                        out_.append(bsg_chart_rank(ttl_, '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(tot_s, tot_l), scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{lm_p - 100.0:+.1f}%', total_color=bsg_stat_color(lm_p, 100.0, 85.0)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                def _jb_sl_acc_lm():
+                    """5 grafik ACC% vs bulan lalu (kiri = ACC% bulan ini, kanan = ACC% bulan lalu; angka tengah = ACC% ÷ ACC% LM): ACC% BAF | ADIRA | SOF | IMFI | TOTAL per dealer."""
+                    names_ = [n_ for n_ in _jb_names if not is_hidden_koor(n_)]
+                    sc_all, sl_all = _jb_sl_g(_jb_up); out_ = []
+                    for k_, ttl_ in [('BAF', 'ACC% BAF'), ('ADIRA', 'ACC% ADIRA'), ('SOF', 'ACC% SOF'), ('IMFI', 'ACC% IMFI'), ('TOTAL', 'ACC% TOTAL')]:
+                        lg_ = None if k_ == 'TOTAL' else k_; r_lm = []
+                        for n_ in names_:
+                            u_ = n_.strip().upper()
+                            p_c, a_c, r_c = _jb_sl_acc_pct(_jb_sl_sub(_jb_sp, u_, '_jbk'), lg_); p_l, a_l, r_l = _jb_sl_acc_pct(_jb_sl_sub(_jb_sl_l, u_, '_jbk'), lg_)
+                            has_l = (a_l + r_l) > 0
+                            r_lm.append({'name': n_, 'val': (p_c / p_l * 100.0) if p_l > 0 else (-1.0 if not has_l else 0.0), 'a': p_c, 'b': p_l, 'a_txt': f'{p_c:.1f}%', 'b_txt': f'{p_l:.1f}%',
+                                         'label': (f'{p_c - p_l:+.1f} pt' if has_l else 'n/a'), 'extra': f'{p_l:.1f}%→{p_c:.1f}%',
+                                         'tip': f"<b>{_esc(n_)}</b> — {ttl_}<br>Bulan ini <b>{p_c:.2f}%</b> (Disetujui {a_c:,} · Ditolak {r_c:,})<br>Bulan lalu <b>{p_l:.2f}%</b> (Disetujui {a_l:,} · Ditolak {r_l:,})<br>Selisih <b>{p_c - p_l:+.1f} pt</b>"})
+                        t_c, _a, _r = _jb_sl_acc_pct(sc_all, lg_); t_l, _a2, _r2 = _jb_sl_acc_pct(sl_all, lg_)
+                        out_.append(bsg_chart_rank(ttl_, '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(t_c, t_l), split_a_txt=f'{t_c:.1f}%', split_b_txt=f'{t_l:.1f}%', scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{t_c - t_l:+.1f} pt', total_color=(BSG_GRN if t_c >= t_l else BSG_RED)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                _dg_n = len(_jb_sp[_jb_sp['_jbk'].isin(_jb_up)]) if (not _jb_sp.empty and '_jbk' in _jb_sp.columns) else 0
+                if _dg_n == 0:   # diagnosa bertahap: di langkah mana data SPK hilang
+                    try:
+                        _r0 = df_spk_alldlr if (df_spk_alldlr is not None) else pd.DataFrame()
+                        _fl = FILTER_SM_LOG.get('SPK')
+                        _t1 = f'① file SPK terbaca & lolos filter MDS/status = {len(_r0):,} baris' + (f" (filter salesman-Database: {_fl[0]:,} → {_fl[1]:,} baris; salesman dibuang: {sorted(_fl[2])[:10]})" if _fl else ' (filter salesman-Database tidak aktif)')
+                        if len(_r0) and 'bulan' in _r0.columns:
+                            _bt = _r0.groupby(['bulan', 'tahun']).size().sort_index(ascending=False).head(4)
+                            _t2 = '② bulan-tahun di data: ' + ', '.join(f'{int(b_)}/{int(t_)}={n_:,}' for (b_, t_), n_ in _bt.items()) + f' (dashboard memakai {current_month}/{current_year}, tgl ≤ {tanggal_akhir})'
+                            _m1 = _r0[(_r0['bulan'] == current_month) & (_r0['tahun'] == current_year) & (_r0['hari'] <= tanggal_akhir)]
+                            _t3 = f'③ setelah filter bulan & tanggal = {len(_m1):,}'
+                            _dl = sorted({str(x_) for x_ in _m1['Nama_Dealer_SPK'].unique()})[:8] if len(_m1) else sorted({str(x_) for x_ in _r0['Nama_Dealer_SPK'].unique()})[:8]
+                            _t4 = f"④ dealer terpilih = '{_dd_dealer}', nama dealer di data SPK: {_dl}"
+                        else: _t2 = _t3 = _t4 = '② kolom tanggal (bulan/hari) tidak terbentuk di data SPK — cek kolom F file SPK'
+                        st.caption('⚠️ Diagnosa SPK (level ' + _dd_lvl + '): ' + ' → '.join([_t1, _t2, _t3, _t4]))
+                    except Exception as _e_dg: st.caption(f'⚠️ Diagnosa SPK gagal: {type(_e_dg).__name__}: {_e_dg}')
+                def _jb_sl_cap_btn():
+                    """Baris tombol Copy / Download HD: memotret HANYA judul + kartu STU + SPK + ACC% (semua yang berada di atas tombol ini)."""
+                    h_ = ('<div class="tb pn-btnrow"><button class="btn" onclick="pnCap(\'copy\',1)">📸 Copy STU · SPK · ACC% (HD)</button>'
+                          '<button class="btn" onclick="pnCap(\'jpg\',1)">📥 Download JPG</button><span id="st2"></span></div>')
+                    return (h_, '.cap .pn-btnrow{display:none}', 44)
+                bsg_panel_table(df_sl_jb_i, df_sl_jb_f, kol_sl_jb, _NM_COL, '_acc_val', 'Jember_Analisa_SPK_Leasing', jdl_jb_sl, _jb_sl_stu_charts, (), layout='stackm', chart_cols='repeat(5,minmax(0,1fr))', bottom_fn=lambda: [_jb_sl_spk_lm(), _jb_sl_acc_lm(), _jb_sl_cap_btn(), _jb_sl_stu_pies(), _jb_sl_pies(), _jb_sl_acc()], bottom_cols='minmax(0,1fr)', no_table=True)   # tabel dihapus → 5 kartu STU vs LM → donut kontribusi leasing → ACC% per leasing → donut STU kredit
+                st.caption('ℹ️ STU BAF / ADIRA / SOF / KREDIT / TOTAL = jumlah faktur bulan ini vs bulan lalu pada periode yang sama (1 s.d ' + str(tanggal_akhir) + '); angka di tengah = persen STU ÷ STU bulan lalu, judul kartu = pertumbuhan total. STU KREDIT = faktur non-cash; STU TOTAL = semua faktur. ACC % = Disetujui ÷ (Disetujui + Ditolak). SPK per leasing dari file SPK; STU per leasing dari file Faktur.')
 
                 # ---- 6. FILTER LEASING → DONUT ACC BY DP & STU KREDIT BY TYPE ----
                 _JB_LSG_OPT = ['ALL LEASING', 'BAF', 'ADIRA', 'SOF', 'IMFI']
