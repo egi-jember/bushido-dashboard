@@ -1065,11 +1065,24 @@ def _ppt_find_template(tpl_name):
 # Data: hitung ulang angka dealer (atau satu koordinator / counter) — rumus & data sama dengan Dashboard Dealer
 # ---------------------------------------------------------------------------------------------------
 def _ppt_ent_target(e, saved_tk):
-    """Target STU koordinator / counter untuk CREATE PPT. Counter yang belum punya target di file target tersimpan memakai T. STU di MASTER KPI (sama dengan Dashboard Dealer), supaya counter tanpa penjualan di awal bulan tidak hilang dari PPT. Koordinator & counter yang sudah punya target tidak berubah."""
-    t_ = get_koor_or_counter_target(e, saved_tk)
-    if t_ > 0 or not clean_str(e).startswith('COUNTER'): return t_
+    """Target STU koordinator / counter untuk CREATE PPT = SAMA PERSIS dengan Dashboard Dealer & notif Ringkasan Perform: kolom T. STU di MASTER KPI (tersimpan → target koor → default 25 koor / 20 counter). Semua target bergantung pada Master Target KPI."""
     try: return safe_int(master_kpi_stu_target(e))
-    except Exception: return t_
+    except Exception: return get_koor_or_counter_target(e, saved_tk)
+
+def _ppt_notif_frames(dealer):
+    """Data pembanding Fokus yang SAMA dengan notif Ringkasan Perform Dealer (Dashboard Dealer): Faktur apa adanya, Database semua dealer MDS, Nota dari file asli, SPK apa adanya (tidak difilter Database). Return (F, F_lm, N, D, S, S_lm)."""
+    g = globals(); dl_ = str(dealer).strip().upper()
+    def _cur(df_x, dcol, lm=False):
+        if df_x is None or not hasattr(df_x, 'empty') or df_x.empty or dcol not in df_x.columns or 'hari' not in df_x.columns or 'bulan' not in df_x.columns: return pd.DataFrame()
+        d_ = df_x[df_x[dcol].astype(str).str.strip().str.upper() == dl_]
+        m_, y_ = (g['last_month'], g['last_month_year']) if lm else (g['current_month'], g['current_year'])
+        d_ = d_[(d_['bulan'] == m_) & (d_['tahun'] == y_)]
+        return d_[d_['hari'] <= g['tanggal_akhir']]
+    try: N_ = _cur(_jb_read_nota(g['path_nota'], get_file_mtime(g['path_nota']), get_file_mtime(g['path_lookup'])), '_jb') if g.get('path_nota') else pd.DataFrame()
+    except Exception: N_ = pd.DataFrame()
+    F_all = g.get('df_faktur_all')
+    return (_cur(F_all, 'Nama Dealer'), _cur(F_all, 'Nama Dealer', True), N_, _cur(g.get('df_database_alldlr'), 'Nama_Dealer_Clean'),
+            _cur(g.get('df_spk_alldlr'), 'Nama_Dealer_SPK'), _cur(g.get('df_spk_alldlr'), 'Nama_Dealer_SPK', True))
 
 def _ppt_scope(dealer, koor=None):
     g = globals(); saved_td, saved_tk = load_json(TARGET_DEALER_FILE), load_json(TARGET_KOOR_FILE)
@@ -1094,10 +1107,21 @@ def _ppt_scope(dealer, koor=None):
     for ds, dc, kc in [(g.get('df_faktur'), 'Nama Dealer', 'Koor'), (g.get('df_nota'), cdn, 'Koor'), (g.get('df_database'), 'Nama_Dealer_Clean', 'Koor'), (g.get('df_spk'), 'Nama_Dealer_SPK', 'Koor_SPK')]:
         d_ = _sel(ds, dc, kc)
         if not d_.empty and kc in d_.columns: ents.update(clean_str(v) for v in d_[kc].dropna().unique() if clean_str(v) and clean_str(v) not in ['NAN', 'NONE', 'LAIN-LAIN'])
+    nfr_ = None
+    notif_k, notif_c, notif_all = [], [], None   # urutan Fokus PERSIS seperti notif Ringkasan Perform Dealer (Fokus Koordinator / Perform Counter) — hanya level dealer
+    if not koor:
+        try:
+            Fn_, Fnl_, Nn_, Dn_, Sn_, Snl_ = nfr_ = _ppt_notif_frames(dealer)
+            nn_ = sorted({clean_str(k_) for d_x in (Fn_, Dn_) if (d_x is not None and not d_x.empty and 'Koor' in d_x.columns) for k_ in d_x['Koor'].dropna().unique()} - set(_FOK_BAD))
+            nn_ = [k_ for k_ in nn_ if not is_hidden_koor(k_)]
+            rk_ = bsg_focus_rows('Koor', nn_, master_kpi_stu_target, Fn_, Fnl_, Nn_, Dn_, Sn_, Snl_, persen_desimal)
+            notif_k = [x_['n'] for x_ in rk_ if not x_['n'].startswith('COUNTER')]; notif_c = [x_['n'] for x_ in rk_ if x_['n'].startswith('COUNTER')]
+            notif_all = set(nn_)
+        except Exception: notif_k, notif_c, notif_all = [], [], None
     ent_p = []
     for e in sorted(ents):
         rp_ = calc_sales_row(e, _KN, _ppt_ent_target(e, saved_tk), _ek(f_c, e), _ek(f_l, e), _ek(n_c, e), _ek(n_t, e))
-        if rp_['TARGET'] == 0 and rp_['STU'] == 0 and rp_['NOTA'] == 0 and rp_['STU LM'] == 0: continue
+        if rp_['STU'] == 0 and rp_['NOTA'] == 0 and rp_['STU LM'] == 0 and (notif_all is None or e not in notif_all): continue   # tanpa aktivitas & tidak ada di daftar Fokus notif → tidak ditampilkan
         ent_p.append(rp_)
     ent_p = [r_ for r_ in ent_p if not is_hidden_koor(r_[_KN])]   # Shop Manager tidak ditampilkan
     try:   # terlemah di depan: urutan screening Fokus (sama dgn Dashboard Dealer) — STU vs Target → NOTA vs Target → NOTA vs STU LM → SPK vs SPK LM → ACC% vs ACC% LM → DB Quality → Jumlah DB → Jumlah Salesman
@@ -1120,6 +1144,14 @@ def _ppt_scope(dealer, koor=None):
         _fo_s = {x_['n']: i_ for i_, x_ in enumerate(bsg_focus_rows('Salesman_Clean', [r_['name'] for r_ in sm_rows], lambda n_: get_auto_sales_target(n_), f_c, f_l, n_c, db_c, s_c, s_l, persen_desimal))}
         sm_rows.sort(key=lambda r_: _fo_s.get(r_['name'], 10 ** 6))
     except Exception: sm_rows.sort(key=lambda r_: (0 if r_['target'] > 0 else 1, r_['pct'], r_['stu'], r_['db']))
+    if nfr_ is not None:   # level dealer: salesman terlemah = SAMA dengan notif Fokus Salesman (DB >= 2, bukan counter, data Nota/SPK sama dgn Dashboard Dealer)
+        try:
+            Fn_, Fnl_, Nn_, Dn_, Sn_, Snl_ = nfr_
+            cnt_s = Dn_['Salesman_Clean'].map(clean_str).value_counts().to_dict() if (Dn_ is not None and not Dn_.empty and 'Salesman_Clean' in Dn_.columns) else {}
+            sn_ = sorted(n_ for n_, v_ in cnt_s.items() if n_ not in _FOK_BAD and v_ >= 2 and not is_counter_personnel(n_))
+            pos_s = {x_['n']: i_ for i_, x_ in enumerate(bsg_focus_rows('Salesman_Clean', sn_, lambda n_: get_auto_sales_target(n_), Fn_, Fnl_, Nn_, Dn_, Sn_, Snl_, persen_desimal))}
+            sm_rows.sort(key=lambda r_: pos_s.get(r_['name'], 10 ** 6))   # sort stabil: yang di luar daftar notif tetap urutan semula
+        except Exception: pass
     # Kebutuhan salesman baru = (Target dealer / koordinator x 120% - Target STU MP) / 2, dibulatkan ke atas — SAMA dgn badge Ringkasan Perform & tabel Man Power.
     # Target STU MP = total target semua salesman (MP) yang mengisi database (counter ikut dihitung). Level koordinator memakai target & MP koordinator tsb; COUNTER selalu 0.
     mp_set_ = {clean_str(v) for v in db_c['Salesman_Clean'].dropna().unique() if clean_str(v) and clean_str(v) not in ['NAN', 'NONE', 'TOTAL']} if (db_c is not None and not db_c.empty and 'Salesman_Clean' in db_c.columns) else set()
@@ -1163,7 +1195,7 @@ def _ppt_scope(dealer, koor=None):
                 tg_ = int(round(safe_int(r_p['TARGET']) * TYPE_TGT.get(r_['TYPE'], 0) / 100.0)); r_['TARGET'] = tg_; r_['ACHIEV'] = (safe_int(r_['STU']) / tg_ * 100.0 if tg_ > 0 else 0.0); typ_rows.append(r_)
     except Exception: pass
     lsg_stu = {l_: _cnt(f_c, 'Leasing_Faktur_Clean', l_) for l_ in ['BAF', 'ADIRA', 'SOF', 'IMFI', 'CASH']}
-    return dict(label=label, koor=koor, dealer=dealer, r_p=r_p, r_pr=r_pr, r_s=r_s, ent_p=ent_p, sm=sm_rows, mp_need=mp_need, pt=pt_rows, sub=sub_rows, sub_pt=sub_pt, typ=typ_rows, lsg_stu=lsg_stu)
+    return dict(label=label, koor=koor, dealer=dealer, r_p=r_p, r_pr=r_pr, r_s=r_s, ent_p=ent_p, notif_k=notif_k, notif_c=notif_c, sm=sm_rows, mp_need=mp_need, pt=pt_rows, sub=sub_rows, sub_pt=sub_pt, typ=typ_rows, lsg_stu=lsg_stu)
 
 # ---------------------------------------------------------------------------------------------------
 # Teks kolom CONDITION — tiap fungsi mengembalikan list (label, isi condition) sesuai urutan baris tabel template
@@ -1343,7 +1375,9 @@ def bsg_ppt_for_dealer(dealer, tpl_bytes=None):
     src = tpl_bytes or _ppt_find_template(tpl_name)
     if src is None: raise FileNotFoundError(f'File template {tpl_name} tidak ditemukan. Letakkan di folder yang sama dengan app.py (root repo GitHub).')
     def _weakest(counter):   # koordinator / counter terlemah menurut urutan screening Fokus (ent_p sudah terurut; yang punya target didahulukan)
-        c_ = [r_ for r_ in S_d['ent_p'] if str(r_[_KN]).upper().startswith('COUNTER') == counter]
+        nl_ = S_d.get('notif_c' if counter else 'notif_k') or []
+        if nl_: return nl_[0]   # SAMA dengan notif Ringkasan Perform Dealer (Fokus Koordinator / Perform Counter baris pertama)
+        c_ = [r_ for r_ in S_d['ent_p'] if str(r_[_KN]).upper().startswith('COUNTER') == counter]   # cadangan bila daftar notif tidak dapat dibuat
         return next(iter([r_ for r_ in c_ if r_['TARGET'] > 0] or c_), {}).get(_KN)
     S_k, S_c = [(_ppt_scope(dealer, e_) if e_ else None) for e_ in ((_weakest(False) if has_koor else None), _weakest(True))]
     data, warn, slots = _ppt_build(src, S_d, S_k, S_c, slots_map)
@@ -2039,6 +2073,109 @@ def get_saved_file_path(prefix):
     m = glob.glob(os.path.join(UPLOAD_DIR, f"{prefix}_latest.*"))
     return m[0] if m else None
 
+# ======================= STOCK CONDITION (file Stok Detail dari admin MD) =======================
+STOCK_SERIES = ['NMAX SERIES', 'FILLANO SERIES', 'FAZZIO SERIES', 'GEAR SERIES', 'AEROX SERIES', 'OTHERS']   # isi drop box 1 (urutan tampil)
+def stock_series_of(nama_barang):
+    """Nama Barang (kolom 'Nama Barang' di file stok) → series. Selain 5 series utama = OTHERS (XSR, LEXI, FREE GO, MT 15, MIO, R15, X MAX, dst)."""
+    n_ = str(nama_barang or '').upper()
+    if n_.startswith('NMAX'): return 'NMAX SERIES'
+    if 'FILANO' in n_ or 'FILLANO' in n_: return 'FILLANO SERIES'
+    if 'FAZZIO' in n_: return 'FAZZIO SERIES'
+    if re.search(r'\bGEAR\b', n_): return 'GEAR SERIES'
+    if 'AEROX' in n_: return 'AEROX SERIES'
+    return 'OTHERS'
+
+def _stok_blank(v_):
+    return v_ is None or (isinstance(v_, float) and math.isnan(v_)) or str(v_).strip() in ('', 'nan', 'NaT', 'None')
+
+@st.cache_data(show_spinner=False)
+def load_stok_detail(fpath, mtime):
+    """Baca file 'STOK DETAIL [ SEPEDA MOTOR ]' (.xls / .xlsx) → (DataFrame stok per unit, teks periode). `mtime` hanya kunci cache (file diunggah ulang = terbaca ulang).
+    Kolom file: No · Kode Barang · Nama Barang · Warna (kode) · [nama warna] · No SJ · Tgl SJ · No Rangka · No Mesin · Thn · Usia · Lokasi.
+    Dealer diambil dari kolom Lokasi; baris judul '00000 - SHOWROOM' / 'C-PAMRE - PAMERAN ...' menjadi POSISI unit."""
+    raw, last_err = None, None
+    for eng_ in (None, 'xlrd', 'openpyxl'):
+        try:
+            raw = pd.read_excel(fpath, header=None, engine=eng_) if eng_ else pd.read_excel(fpath, header=None); break
+        except Exception as e_: last_err = e_
+    if raw is None: raise ValueError(f'File stok tidak bisa dibaca: {last_err}')
+    raw = raw.astype(object).where(raw.notna(), None)
+    hdr_i = None
+    for i_ in range(min(len(raw), 40)):
+        cells_ = [str(c_).strip().upper() for c_ in raw.iloc[i_].tolist() if not _stok_blank(c_)]
+        if 'NO' in cells_ and 'KODE BARANG' in cells_ and 'NAMA BARANG' in cells_: hdr_i = i_; break
+    if hdr_i is None: raise ValueError('Baris judul kolom (No · Kode Barang · Nama Barang · Warna …) tidak ditemukan — pastikan ini file Stok Detail.')
+    hdr_ = [str(c_).strip().upper() if not _stok_blank(c_) else '' for c_ in raw.iloc[hdr_i].tolist()]
+    col_ = {h_: j_ for j_, h_ in enumerate(hdr_) if h_ and h_ not in ('',)}
+    for need_ in ('NAMA BARANG', 'WARNA', 'USIA'):
+        if need_ not in col_: raise ValueError(f'Kolom "{need_.title()}" tidak ada di file stok.')
+    j_wk = col_['WARNA']; j_wn = j_wk + 1 if (j_wk + 1 < raw.shape[1] and not hdr_[j_wk + 1]) else j_wk   # kolom sesudah "Warna" (header kosong) = nama warna
+    g_ = lambda r_, name_: (r_[col_[name_]] if name_ in col_ else None)
+    periode_ = ''
+    for i_ in range(hdr_i):
+        if str(raw.iat[i_, 0]).strip().upper() == 'PERIODE': periode_ = ' '.join(str(c_) for c_ in raw.iloc[i_, 2:6].tolist() if not _stok_blank(c_) and str(c_).strip() != ':').strip()
+    rows_, dealer_h, pos_ = [], '', ''
+    for i_ in range(hdr_i + 1, len(raw)):
+        r_ = raw.iloc[i_].tolist(); c0_ = r_[0]
+        if _stok_blank(c0_): continue
+        try: float(str(c0_).replace(',', '.')); is_num_ = True
+        except Exception: is_num_ = False
+        if not is_num_:   # baris judul kelompok: nama dealer, atau "kode - posisi stok"
+            t_ = str(c0_).strip()
+            if ' - ' in t_: pos_ = t_.split(' - ', 1)[1].strip()
+            else: dealer_h, pos_ = t_, ''
+            continue
+        nama_ = str(g_(r_, 'NAMA BARANG') or '').strip()
+        if not nama_: continue
+        dealer_ = str(g_(r_, 'LOKASI') or '').strip() or dealer_h
+        usia_ = pd.to_numeric(g_(r_, 'USIA'), errors='coerce')
+        warna_ = str(r_[j_wn] if not _stok_blank(r_[j_wn]) else (r_[j_wk] or '')).strip().upper()
+        rows_.append({'DEALER': dealer_.upper(), 'POSISI': pos_, 'SERIES': stock_series_of(nama_), 'MODEL': nama_, 'WARNA': warna_,
+                      'NO RANGKA': str(g_(r_, 'NO RANGKA') or '').strip(), 'NO MESIN': str(g_(r_, 'NO MESIN') or '').strip(),
+                      'TAHUN': str(g_(r_, 'THN') or '').strip().replace('.0', ''), 'UMUR': (None if pd.isna(usia_) else int(usia_))})
+    df_ = pd.DataFrame(rows_, columns=['DEALER', 'POSISI', 'SERIES', 'MODEL', 'WARNA', 'NO RANGKA', 'NO MESIN', 'TAHUN', 'UMUR'])
+    df_['UMUR'] = pd.to_numeric(df_['UMUR'], errors='coerce')
+    return df_, periode_
+
+_STOK_WARNA_HEX = {'HITAM': '#1F2937', 'PUTIH': '#F8FAFC', 'BIRU': '#2563EB', 'MERAH': '#DC2626', 'HIJAU': '#16A34A', 'ABU-ABU': '#9CA3AF', 'ABU-ABU TUA': '#4B5563',
+                   'PERAK': '#CBD5E1', 'PERAK MUDA': '#E2E8F0', 'UNGU': '#7C3AED', 'UNGU MUDA': '#C4B5FD', 'ORANGE': '#F97316', 'COKLAT': '#92400E', 'HIJAU MUDA': '#86EFAC',
+                   'ABU PINK': '#F9A8D4', 'BIRU PUTIH': '#93C5FD', 'BIRU ORANGE': '#38BDF8', 'PUTIH MERAH': '#FCA5A5', 'HITAM MERAH': '#7F1D1D', 'PUTIH KUNING': '#FDE68A'}
+def _stok_warna_hex(nm_):
+    n_ = str(nm_).upper().strip()
+    if n_ in _STOK_WARNA_HEX: return _STOK_WARNA_HEX[n_]
+    return _STOK_WARNA_HEX.get(n_.split()[0] if n_ else '', '#94A3B8')   # warna baru yang belum terdaftar → abu-abu kebiruan (tambahkan di kamus di atas bila perlu)
+
+def stok_pie_html(cnt_, sel_, judul_):
+    """Diagram pie kontribusi warna (jumlah unit per warna untuk type terpilih, semua dealer). Warna terpilih 'ditarik' keluar. SVG murni, tanpa library tambahan."""
+    cnt_ = cnt_[cnt_ > 0].sort_values(ascending=False); tot_ = int(cnt_.sum())
+    if tot_ <= 0: return ''
+    cx_, cy_, r_, ang_, svg_, leg_ = 100.0, 100.0, 76.0, -math.pi / 2, [], []
+    for nm_, v_ in cnt_.items():
+        v_ = int(v_); fr_ = v_ / tot_; hx_ = _stok_warna_hex(nm_); is_sel_ = (nm_ == sel_)
+        a2_ = ang_ + fr_ * 2 * math.pi; mid_ = (ang_ + a2_) / 2
+        ox_, oy_ = (math.cos(mid_) * 8, math.sin(mid_) * 8) if (is_sel_ and len(cnt_) > 1) else (0.0, 0.0)
+        stk_ = 'stroke="#4318FF" stroke-width="2.2"' if is_sel_ else 'stroke="#8FA8F0" stroke-width="0.8"'
+        if fr_ >= 0.9999: svg_.append(f'<circle cx="{cx_ + ox_:.1f}" cy="{cy_ + oy_:.1f}" r="{r_}" fill="{hx_}" {stk_}/>')
+        else:
+            x1_, y1_ = cx_ + ox_ + r_ * math.cos(ang_), cy_ + oy_ + r_ * math.sin(ang_); x2_, y2_ = cx_ + ox_ + r_ * math.cos(a2_), cy_ + oy_ + r_ * math.sin(a2_)
+            svg_.append(f'<path d="M{cx_ + ox_:.1f},{cy_ + oy_:.1f} L{x1_:.1f},{y1_:.1f} A{r_:.0f},{r_:.0f} 0 {1 if fr_ > 0.5 else 0} 1 {x2_:.1f},{y2_:.1f} Z" fill="{hx_}" {stk_}/>')
+        if fr_ >= 0.07:
+            rr_, gg_, bb_ = int(hx_[1:3], 16), int(hx_[3:5], 16), int(hx_[5:7], 16); tc_ = '#FFFFFF' if (0.299 * rr_ + 0.587 * gg_ + 0.114 * bb_) < 150 else '#1E3A8A'
+            svg_.append(f'<text x="{cx_ + ox_ + r_ * 0.6 * math.cos(mid_):.1f}" y="{cy_ + oy_ + r_ * 0.6 * math.sin(mid_) + 3.5:.1f}" text-anchor="middle" font-size="11" font-weight="800" fill="{tc_}">{fr_ * 100:.0f}%</text>')
+        trs_ = ' style="background-color:#EAF0FF;font-weight:800;"' if is_sel_ else ''
+        leg_.append(f'<tr{trs_}><td style="text-align:left;"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:{hx_};border:1px solid #8FA8F0;vertical-align:middle;margin-right:6px;"></span>{_html.escape(str(nm_))}</td><td style="text-align:center;">{v_}</td><td style="text-align:center;">{fr_ * 100:.1f}%</td></tr>')
+        ang_ = a2_
+    return (f'<div class="compact-table-wrap"><div class="cap-title-banner" style="font-size:13px;padding:6px 12px;">🎨 KONTRIBUSI WARNA</div>'
+            f'<div style="padding:6px 10px 8px 10px;text-align:center;"><div style="font-size:12px;font-weight:700;color:#1E3A8A;">{_html.escape(str(judul_))} · {tot_} unit</div>'
+            f'<svg viewBox="0 0 200 200" style="width:100%;max-width:210px;height:auto;">{"".join(svg_)}</svg>'
+            f'<table class="compact-tbl stk-tbl" style="margin-top:2px;"><thead><tr><th style="text-align:left;">WARNA</th><th style="text-align:center;">UNIT</th><th style="text-align:center;">%</th></tr></thead><tbody>{"".join(leg_)}</tbody></table></div></div>')
+
+def stok_umur_cell(u_):
+    """Sel UMUR (hari) berwarna: ≤30 hijau · 31–60 oranye · >60 merah. Nilai 101 di laporan = batas atas ('>100 hari')."""
+    if u_ is None or pd.isna(u_): return '<span style="color:#64748B;">-</span>'
+    u_ = int(u_); col_ = '#0F8A4B' if u_ <= 30 else ('#D68A00' if u_ <= 60 else '#D6203A')
+    return f'<span style="color:{col_};font-weight:800;">{"&gt;100" if u_ >= 101 else u_}</span>'
+
 def get_saved_database_paths():
     return sorted(_real_files(DB_Multi_DIR))
 
@@ -2216,6 +2353,7 @@ TARGET_LAIN_FILE = _ABS('jember_targets_saved.json')
 def dealer_sip_ok(n_x):
     u_x = str(n_x).strip().upper(); return u_x.startswith('SIP') or u_x.startswith('SENTRAL YAMAHA')
 KPI_TAB, UPLOAD_TAB, MASTER_TAB = '📊 DASHBOARD KPI', '📁 UPLOAD FILE', '🎯 MASTER TARGET'
+STOCK_TAB = '📦 STOCK CONDITION'   # menu baru tepat di bawah DASHBOARD DEALER (akses umum): cari stok unit per Series › Type › Warna
 MD_TAB, MD_SUB_JUAL, MD_SUB_TYPE = '🏢 DASHBOARD MD', '💰 PENJUALAN', '📊 PENJUALAN BY TYPE'   # menu baru: DASHBOARD MD › sub menu Penjualan
 MD_TARGET_FILE = _ABS('md_targets_saved.json')   # T. MD input manual per dealer: {NAMA DEALER (normal): target}
 # ---- Hak akses menu: kode kosong = Dashboard Dealer · Dashboard KPI · Cek Data · Upload File | kode benar (BAMBURUNCING) = + Dashboard MD + Master Target + Analisa ----
@@ -2225,7 +2363,7 @@ def _resolve_kode_spv():   # satu-satunya kode akses (SPV / admin); bisa diganti
     return str(v_ or os.environ.get('BSG_KODE_AKSES_SPV') or 'BAMBURUNCING').strip()
 _kode_now = (st.session_state.get('kode_akses_input') or '').strip()   # nilai kolom Kode Akses dari run sebelumnya (kolomnya sendiri ada di bawah)
 IS_ADMIN = bool(_kode_now) and hmac.compare_digest(_kode_now.encode('utf-8'), _resolve_kode_spv().encode('utf-8'))   # kode benar = semua menu + Analisa
-NAV_DASH = [DEALER_TAB, KPI_TAB] + ([MD_TAB] if IS_ADMIN else [])   # DASHBOARD KPI terbuka untuk akses umum · DASHBOARD MD, MASTER TARGET & Analisa hanya dengan kode akses (BAMBURUNCING)
+NAV_DASH = [DEALER_TAB, STOCK_TAB, KPI_TAB] + ([MD_TAB] if IS_ADMIN else [])   # DASHBOARD KPI terbuka untuk akses umum · DASHBOARD MD, MASTER TARGET & Analisa hanya dengan kode akses (BAMBURUNCING)
 NAV_DATA = [CEK_TAB, UPLOAD_TAB] + ([MASTER_TAB] if IS_ADMIN else [])
 if st.session_state.get('active_menu_tab') not in NAV_DASH + NAV_DATA:
     st.session_state['active_menu_tab'] = DEALER_TAB   # default saat aplikasi dibuka / menu tidak lagi boleh diakses
@@ -2663,6 +2801,11 @@ if menu_pilihan == UPLOAD_TAB:
             if st.session_state.get('apify_grev_msg'): st.info(st.session_state['apify_grev_msg'])
             _ap_upd = [f"{n_}: {v_.get('R. G REV', 0)} review · {v_.get('G REV UPDATE')}" for n_, v_ in _ap_urls.items() if v_.get('G REV UPDATE')]
             if _ap_upd: st.caption(f'{len(_ap_urls)} dealer berURL · Penarikan terakhir — ' + '  |  '.join(_ap_upd))
+        _stk_cols = st.columns(len(up_defs) + 1)   # baris kedua Grup 1: Stok Unit (untuk menu STOCK CONDITION)
+        with _stk_cols[0]:
+            _stk_uf = st.file_uploader('Stok Unit', type=['xls', 'xlsx'], key='stok_up', help='File Stok Detail [ SEPEDA MOTOR ] (.xls / .xlsx) — sumber menu STOCK CONDITION.')
+            if _stk_uf: save_raw_file(_stk_uf, 'stok'); st.success(f'✅ Stok Unit diperbarui: **{_stk_uf.name}**'); bsg_toast_once(f'up_stok_{_stk_uf.name}_{_stk_uf.size}', f'Stok Unit diperbarui: {_stk_uf.name}'); meta_info = load_json(RAW_META_FILE)
+            _status_line('stok', 'Stok Unit')
 
     # ---------- Grup 2: Data Operasional Dealer ----------
     with st.container(border=True):
@@ -5350,6 +5493,50 @@ elif menu_pilihan == MD_TAB:
             if _ty_unm: st.caption('⚠️ Type di file Faktur yang belum masuk series mana pun (tampil di baris LAINNYA): ' + ', '.join(_ty_unm[:12]) + (' …' if len(_ty_unm) > 12 else '') + '. Beri tahu saya bila ada yang perlu dimasukkan ke series tertentu.')
             if not _ty_grp: st.caption('ℹ️ Kelompok type (AT LPM / AT CLASSY) tidak tersedia di Data Lookup, sehingga tabel AT LPM dan AT CLASSY kosong.')
             st.caption('LM = STU bulan lalu pada rentang tanggal yang sama · STU = penjualan bulan ini · ACV % = STU ÷ LM · GRAND TOTAL = jumlah 4 kota (Jember, Bondowoso, Situbondo, Banyuwangi) · AT LPM / AT CLASSY mengikuti kelompok type di Data Lookup · series dikenali dari nama type pada file Faktur.')
+
+elif menu_pilihan == STOCK_TAB:
+    st.markdown('<div class="main-title">STOCK CONDITION</div><div class="sub-title">Cari unit yang tersedia di dealer beserta umur stoknya (hari)</div>', unsafe_allow_html=True)
+    _stk_path = get_saved_file_path('stok')
+    if not _stk_path:
+        st.info('ℹ️ File Stok belum diunggah. Admin MD mengunggahnya di menu 📁 UPLOAD FILE › Data Penjualan & Master › Stok Unit.')
+    else:
+        try: _stk_df, _stk_per = load_stok_detail(_stk_path, os.path.getmtime(_stk_path))
+        except Exception as _e_stk: _stk_df, _stk_per = None, ''; st.error(f'⚠️ File stok tidak bisa dibaca: {_e_stk}')
+        if _stk_df is not None:
+            _stk_meta = load_json(RAW_META_FILE).get('stok', {})
+            st.caption(f"📌 Data stok per {_stk_per or '-'} · file {_stk_meta.get('original_name', os.path.basename(_stk_path))} · diunggah {_stk_meta.get('updated_at', '-')} · total {len(_stk_df):,} unit di {_stk_df['DEALER'].nunique()} dealer")
+            _sc1, _sc2, _sc3 = st.columns(3)
+            _stk_ser = _sc1.selectbox('Series', STOCK_SERIES, index=None, placeholder='Pilih series', key='stk_series')
+            _stk_mdl_opts = sorted(_stk_df.loc[_stk_df['SERIES'] == _stk_ser, 'MODEL'].unique().tolist()) if _stk_ser else []
+            _stk_mdl = _sc2.selectbox('Type / Model', _stk_mdl_opts, index=None, placeholder='Pilih type' if _stk_ser else 'Pilih series dulu', disabled=not _stk_ser, key=f'stk_model_{_stk_ser}')   # key ikut series → pilihan type & warna otomatis ter-reset saat series diganti
+            _stk_col_cnt = _stk_df.loc[(_stk_df['SERIES'] == _stk_ser) & (_stk_df['MODEL'] == _stk_mdl), 'WARNA'].value_counts().sort_index() if _stk_mdl else pd.Series(dtype=int)
+            _stk_wrn = _sc3.selectbox('Warna', _stk_col_cnt.index.tolist(), index=None, format_func=lambda w_: f'{w_} ({int(_stk_col_cnt[w_])} unit)', placeholder='Pilih warna' if _stk_mdl else 'Pilih type dulu', disabled=not _stk_mdl, key=f'stk_color_{_stk_ser}_{_stk_mdl}')
+            if _stk_ser and _stk_ser != 'OTHERS' and not _stk_mdl_opts: st.info(f'Tidak ada stok {_stk_ser} pada file ini.')
+            if _stk_ser and _stk_mdl and _stk_wrn:
+                _stk_hit = _stk_df[(_stk_df['SERIES'] == _stk_ser) & (_stk_df['MODEL'] == _stk_mdl) & (_stk_df['WARNA'] == _stk_wrn)].copy()
+                _stk_hit = _stk_hit.sort_values(['DEALER', 'UMUR'], ascending=[True, False], na_position='last').reset_index(drop=True)
+                _stk_um = _stk_hit['UMUR'].dropna()
+                _stk_um_txt = lambda v_: ('>100' if v_ >= 101 else f'{int(v_)}')
+                st.markdown(f"**{_stk_mdl} · {_stk_wrn}** — **{len(_stk_hit)} unit** tersedia di **{_stk_hit['DEALER'].nunique()} dealer**" + (f" · umur tertua **{_stk_um_txt(_stk_um.max())} hari** · rata-rata **{_stk_um.mean():.0f} hari**" if len(_stk_um) else ''))
+                _stk_grp = _stk_hit.groupby(['DEALER', 'TAHUN'], dropna=False, sort=False).agg(JUMLAH=('UMUR', 'size'), UMUR=('UMUR', 'max')).reset_index()   # 1 baris per Dealer + Tahun: jumlah unit & umur TERTUA
+                _stk_grp = _stk_grp.sort_values(['DEALER', 'UMUR', 'TAHUN'], ascending=[True, False, True], na_position='last').reset_index(drop=True)
+                _stk_rows = ''.join(
+                    f"<tr><td style='text-align:left;'>{_html.escape(r_['DEALER'])}</td><td style='text-align:center;'>{_html.escape(r_['TAHUN'] or '-')}</td>"
+                    f"<td style='text-align:center;font-weight:800;'>{int(r_['JUMLAH'])}</td><td style='text-align:center;'>{stok_umur_cell(r_['UMUR'])}</td></tr>"
+                    for _, r_ in _stk_grp.iterrows())
+                _stk_rows += (f"<tr style='background-color:#EAF0FF;'><td colspan='2' style='text-align:left;font-weight:800;'>TOTAL ({_stk_hit['DEALER'].nunique()} dealer)</td>"
+                              f"<td style='text-align:center;font-weight:800;'>{len(_stk_hit)}</td><td style='text-align:center;'>{stok_umur_cell(_stk_um.max() if len(_stk_um) else None)}</td></tr>")   # baris TOTAL: jumlah semua unit & umur tertua
+                _stk_cl, _stk_cr = st.columns([3, 2], gap='medium')   # kiri: tabel stok per dealer · kanan: pie kontribusi warna
+                with _stk_cl:
+                    st.markdown('<style>table.compact-tbl.stk-tbl th{padding:3px 6px !important;font-size:11.5px !important;} table.compact-tbl.stk-tbl td{padding:2px 6px !important;font-size:12px !important;line-height:1.25 !important;}</style>'
+                                f'<div class="compact-table-wrap"><div class="cap-title-banner" style="font-size:13px;padding:6px 12px;">📦 STOK {_html.escape(_stk_mdl)} · {_html.escape(_stk_wrn)}</div>'
+                                f'<table class="compact-tbl stk-tbl"><thead><tr><th style="text-align:left;">DEALER</th><th style="text-align:center;">TAHUN</th><th style="text-align:center;">JUMLAH</th><th style="text-align:center;">UMUR (HARI)</th></tr></thead>'
+                                f'<tbody>{_stk_rows}</tbody></table></div>', unsafe_allow_html=True)
+                    st.caption('JUMLAH = total unit pada dealer dan tahun yang sama · UMUR = umur unit TERTUA di kelompok itu (kolom Usia laporan Stok Detail) · hijau ≤ 30 hari · oranye 31–60 hari · merah > 60 hari · baris TOTAL = seluruh unit & umur tertua · ">100" = laporan hanya mencatat sampai 101 hari · "-" = laporan tidak mencantumkan usia.')
+                with _stk_cr:
+                    st.markdown(stok_pie_html(_stk_col_cnt, _stk_wrn, _stk_mdl), unsafe_allow_html=True)   # semua warna type terpilih (semua dealer); warna yang dipilih disorot
+            else:
+                st.info('👆 Pilih **Series → Type → Warna** untuk melihat unit tersebut ada di dealer mana saja dan sudah berapa hari di dealer.')
 
 elif menu_pilihan == DEALER_TAB:
     BSG_ONE_ROW = True   # DASHBOARD DEALER: bisa difilter Dealer / Koor-Counter / Salesman
