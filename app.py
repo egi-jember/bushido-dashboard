@@ -765,7 +765,7 @@ _PN_CSS = """
 .L-charts .pn-charts{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
 .narrow .pn-grid{grid-template-columns:minmax(0,1fr) !important}
 .narrow .pn-charts{grid-template-columns:minmax(0,1fr) !important}
-.cap-only{display:none}.cap .cap-only{display:block}
+.cap-only{display:none}.cap .cap-only{display:block}.cap .nocap{display:none !important}
 .cap *{animation:none !important;transition:none !important}
 .pn-banner{background:linear-gradient(90deg, #4318FF 0%, #3B6BFF 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:14px;letter-spacing:.3px}
 .tb{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
@@ -827,6 +827,23 @@ window.pnCap=async function(mode,sel){
     setTimeout(function(){st.textContent='';},5000);},'image/png');}
   else{dl();st.style.color='#12A150';st.textContent='✅ '+FN+(sel?'_STU_SPK_ACC':'')+'.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
  }catch(e){st.style.color='#DC2626';st.textContent='Gagal membuat gambar: '+e.message;}
+};
+window.pnCapCard=async function(mode,btn){
+ var card=btn.closest('.card'),st=card.querySelector('.rv-st');st.style.color='#F97316';st.textContent='Memproses gambar HD...';
+ try{
+  if(typeof html2canvas==='undefined')throw new Error('html2canvas belum termuat (cek koneksi internet)');
+  var hold=document.getElementById('hold');hold.innerHTML='';
+  var w=Math.max(1000,Math.round(card.getBoundingClientRect().width));hold.style.width=(w+28)+'px';
+  var c=card.cloneNode(true);c.style.zoom='';c.style.width=w+'px';c.classList.add('cap');
+  c.querySelectorAll('.nocap').forEach(function(x){x.remove();});
+  hold.appendChild(c);await new Promise(function(r){setTimeout(r,120);});
+  var canvas=await html2canvas(hold,h2cO(hold));hold.innerHTML='';hold.style.width='';
+  function dl(){var a=document.createElement('a');a.href=canvas.toDataURL('image/jpeg',0.95);a.download=FN+'_Ulasan.jpg';a.click();}
+  if(mode==='copy'){canvas.toBlob(async function(blob){try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    st.style.color='#12A150';st.textContent='✅ Tabel Ulasan disalin (HD). Siap Ctrl+V';}catch(e){dl();st.style.color='#12A150';st.textContent='📥 Browser membatasi clipboard, gambar diunduh sebagai JPG.';}
+    setTimeout(function(){st.textContent='';},5000);},'image/png');}
+  else{dl();st.style.color='#12A150';st.textContent='✅ '+FN+'_Ulasan.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
+ }catch(e){var h=document.getElementById('hold');h.innerHTML='';h.style.width='';st.style.color='#DC2626';st.textContent='Gagal membuat gambar: '+e.message;}
 };
 window.pnCapData=async function(){var hold=document.getElementById('hold');hold.innerHTML='';var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
   hold.appendChild(c);redrawCharts(c);fitTables(c);fitCards(c);c.querySelectorAll('.card').forEach(function(x){x.style.zoom='';});stretch(c);await svgFix(c);await new Promise(function(r){setTimeout(r,150);});var canvas=await html2canvas(hold,h2cO(hold));hold.innerHTML='';return canvas.toDataURL('image/jpeg',0.95);};
@@ -2732,6 +2749,37 @@ HIDDEN_KOOR = load_hidden_koor(path_employee)
 def is_hidden_koor(name_val):
     a_ = alnum_str(clean_str(name_val))
     return bool(a_) and (a_ in HIDDEN_KOOR or 'SHOPMANAGER' in a_)
+
+_EMP_JOIN_CACHE = {}
+def load_employee_join(fpath):
+    """Master Employee: kolom C = Nama, kolom K = Tgl Mulai (start join team). Return {nama alfanumerik: datetime}."""
+    if not fpath or not os.path.exists(fpath): return {}
+    try: key = (fpath, os.path.getmtime(fpath))
+    except Exception: key = (fpath, 0)
+    if key in _EMP_JOIN_CACHE: return _EMP_JOIN_CACHE[key]
+    out = {}
+    try:
+        df_e = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+        if df_e is not None and df_e.shape[1] >= 11:
+            for i in range(len(df_e)):
+                nm = alnum_str(clean_str(df_e.iloc[i, 2])); v_ = df_e.iloc[i, 10]
+                if not nm or nm in out or pd.isna(v_): continue
+                if isinstance(v_, (datetime.datetime, datetime.date, pd.Timestamp)): dt_ = pd.Timestamp(v_)
+                else: dt_ = pd.to_datetime(str(v_).strip(), dayfirst=True, errors='coerce')   # teks dd/mm/yyyy; judul 'Tgl Mulai' → NaT
+                if pd.notna(dt_): out[nm] = dt_.to_pydatetime()
+    except Exception: pass
+    _EMP_JOIN_CACHE.clear(); _EMP_JOIN_CACHE[key] = out
+    return out
+def get_join_date_txt(name_val):
+    """Tanggal start join team (dd/mm/yyyy) dari file Employee kolom K; '-' bila nama tidak ditemukan."""
+    a_ = alnum_str(clean_str(name_val))
+    if not a_: return '-'
+    m_ = load_employee_join(path_employee)
+    d_ = m_.get(a_)
+    if d_ is None and len(a_) >= 8:   # nama di tabel bisa terpotong / sedikit berbeda → cocokkan hanya jika tepat satu kandidat
+        c_ = [v_ for k_, v_ in m_.items() if a_ in k_ or k_ in a_]
+        if len(c_) == 1: d_ = c_[0]
+    return d_.strftime('%d/%m/%Y') if d_ is not None else '-'
 
 def get_fixed_counter_target(name_val):
     s = clean_str(name_val)
@@ -5740,56 +5788,87 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 df_pr_jb_i = pd.DataFrame(rows_pr_jb)
                 df_pr_jb_f = pd.concat([df_pr_jb_i, pd.DataFrame([tot_pr_jb])], ignore_index=True)
                 def _jb_review_card():
-                    """Matriks ulasan per Salesman (atau Koordinator / Counter): STU Ratio (closing skill) - DB Quality (kualitas database) - Result STU vs Target - kesimpulan + baris TOTAL.
-                    STU Ratio: 0-4 rendah (merah) | 4-8 sedang (oranye) | 8 ke atas tinggi (hijau). DB Quality: 0-10 rendah (merah) | 11-20 sedang (oranye) | 21 ke atas tinggi (hijau)."""
+                    """Matriks ulasan per Salesman (atau Koordinator / Counter): NAMA - ACHIEVEMENT IDEAL - STU RATIO - DB RATIO - DB VOLUME - TREATMENT (+ baris TOTAL).
+                    ACHIEVEMENT IDEAL = STU vs target ideal hari ini (target x ideal%): hijau >= 85% | oranye 60-85% | merah < 60%. Achievement TINGGI = >= 85%.
+                    STU RATIO: 0-4 rendah (merah) | 4-8 sedang (oranye) | 8+ tinggi (hijau). DB RATIO (DB Quality = HOT / DB): 0-10 merah | 11-20 oranye | 21+ hijau.
+                    AVG DB DAILY = rata-rata DB per orang per hari aktif vs DB ideal (Salesman 3 DB/hari, Counter 5 DB/hari). DB TINGGI = >= 100% ideal.
+                    TREATMENT mengikuti matriks Achievement x DB Volume (Condition -> Treatment)."""
                     ent_ = 'Salesman' if _dd_lvl == 'sales' else ('Salesman / Counter' if _nk_tg else 'Koordinator / Counter')
+                    nm_hdr_ = 'NAMA SALESMAN' if _dd_lvl == 'sales' else ('NAMA SALESMAN / COUNTER' if _nk_tg else 'NAMA KOOR / COUNTER')
                     tg_map_ = {str(r_[kol_nm_jb]).strip().upper(): (safe_int(r_['STU']), safe_int(r_['TARGET'])) for _, r_ in df_jb.iterrows()}
                     tg_map_.update(_nk_tg)
                     idl_ = float(target_persen_harian) if target_persen_harian else 100.0
                     GRN_, ORG_, RED_, GRY_ = '#12A150', '#F97316', '#DC2626', '#94A3B8'
+                    IDEAL_DB_SM, IDEAL_DB_CTR = 3, 5   # DB ideal per hari: Salesman 3 | Counter 5
                     lv_stu = lambda v_: 0 if v_ < 4.0 else (1 if v_ < 8.0 else 2)          # 0 rendah | 1 sedang | 2 tinggi
                     lv_dbq = lambda v_: 0 if round(v_) <= 10 else (1 if round(v_) <= 20 else 2)
+                    lv_vol = lambda r_: 0 if r_ < 0.70 else (1 if r_ < 1.0 else 2)         # DB Volume vs ideal: merah < 70% | oranye 70-99% | hijau >= 100%
                     col_lv = lambda l_: (RED_, ORG_, GRN_)[l_]
-                    def lv_res(stu_n_, tg_n_):   # Result STU vs target IDEAL hari ini (target x ideal%): hijau >= 85% ideal (mendekati / di atas) | oranye 60-85% | merah < 60%; -1 = target kosong
+                    # Matriks TREATMENT: (achievement tinggi?, DB tinggi?) -> (treatment, warna kotak, warna teks, kondisi)
+                    TRT_ = {(True, False): ('MAINTENANCE + MOTIVATION', '#FFFF00', '#1F2937', 'Achievement tinggi, DB rendah (kualitas DB tinggi, STU ratio tinggi)'),
+                            (True, True): ('MAINTENANCE + CLOSING SKILL UPGRADING', '#00B050', '#FFFFFF', 'Achievement tinggi, DB tinggi (kualitas DB tinggi, STU ratio rendah)'),
+                            (False, False): ('PUSH DATABASE OR MOVE TO AGENT + REPLACE', '#FF0000', '#FFFFFF', 'Achievement rendah, DB rendah (kualitas DB rendah, STU ratio tinggi)'),
+                            (False, True): ('MOTIVATION + COMMUNICATION SKILL', '#7030A0', '#FFFFFF', 'Achievement rendah, DB tinggi (kualitas DB rendah, STU ratio rendah)')}
+                    def lv_res(stu_n_, tg_n_):   # Result STU vs target IDEAL hari ini (target x ideal%): hijau >= 85% | oranye 60-85% | merah < 60%; -1 = target kosong
                         if tg_n_ <= 0: return -1, 0.0
                         iu_ = tg_n_ * idl_ / 100.0; r_ = (stu_n_ / iu_) if iu_ > 0 else 9.9
                         return (2 if r_ >= 0.85 else (1 if r_ >= 0.60 else 0)), r_
                     dot_ = lambda c_, v_: f'<span class="rv-d" style="background:{c_}"></span><span class="rv-val">{v_}</span>'
                     _fmt_idl = lambda x_: ('%.1f' % x_).rstrip('0').rstrip('.')   # angka ideal 1 desimal (tanpa .0)
-                    def _eval(dbq_, stup_, db_n_, stu_n_, tg_n_):
-                        lr_, rr_ = lv_res(stu_n_, tg_n_); c_r = GRY_ if lr_ < 0 else col_lv(lr_); v_r = (f'{int(stu_n_):,} / {_fmt_idl(tg_n_ * idl_ / 100.0)}' + (f' ({rr_ * 100.0:.0f}%)' if tg_n_ * idl_ > 0 else '')) if tg_n_ > 0 else '-'   # RESULT (STU) vs IDEAL HARI INI = target x ideal% hari ini (bukan target sebulan penuh)
-                        if db_n_ <= 0: return GRY_, GRY_, '-', '-', c_r, v_r, GRY_, 'Belum ada database', 'Belum ada database pada periode ini'
-                        ls_, ld_ = lv_stu(stup_), lv_dbq(dbq_)
-                        if ls_ == 2:   # closing skill tinggi -> lihat Result STU vs Target
-                            if lr_ < 0: col_, txt_, full_ = ORG_, 'CEK TARGET', 'Closing skill tinggi, target STU belum diisi → CEK TARGET'
-                            elif lr_ == 2: col_, txt_, full_ = GRN_, 'OK, KEEP MAINTENANCE', 'Closing skill tinggi, result STU mendekati / di atas ideal hari ini → OK, KEEP MAINTENANCE'
-                            else: col_, txt_, full_ = (ORG_ if lr_ == 1 else RED_), 'KURANG EFFORT KERJA', 'Closing skill tinggi tetapi result STU ' + ('masih di bawah' if lr_ == 1 else 'jauh di bawah') + ' ideal hari ini → KURANG EFFORT KERJA'
-                        elif ld_ == 2: col_, txt_, full_ = RED_, 'QUALITY UP CLOSING SKILL', 'Closing skill ' + ('sedang' if ls_ == 1 else 'rendah') + ', DB Quality tinggi → QUALITY UP CLOSING SKILL'
-                        else: col_, txt_, full_ = RED_, 'QUALITY UP COMMUNICATION SKILL', 'Closing skill ' + ('sedang' if ls_ == 1 else 'rendah') + ', DB Quality ' + ('sedang' if ld_ == 1 else 'rendah') + ' → QUALITY UP COMMUNICATION SKILL'
-                        return col_lv(ls_), col_lv(ld_), f'{stup_:.1f}%', f'{dbq_:.1f}%', c_r, v_r, col_, txt_, full_
-                    def _row(nm_, dbq_, stup_, db_n_, stu_n_, tg_n_, total=False):
-                        c_s, c_d, v_s, v_d, c_r, v_r, col_, txt_, full_ = _eval(dbq_, stup_, db_n_, stu_n_, tg_n_)
-                        tip_ = f'<b>{_esc(nm_)}</b><br>STU Ratio {v_s} · DB Quality {v_d} · STU {int(stu_n_):,}' + (f' vs ideal hari ini {tg_n_ * idl_ / 100.0:.1f} (target sebulan {int(tg_n_):,})' if tg_n_ > 0 else ' · target belum diisi') + f'<br><b style="color:{col_}">{_esc(full_)}</b>'
-                        return f'<div class="rv-g rv-i{" rv-tot" if total else ""}" data-tip="{_esc(tip_)}"><div class="rv-n{" rv-nt" if total else ""}">{_esc(nm_)}</div><div class="rv-c">{dot_(c_s, v_s)}</div><div class="rv-c">{dot_(c_d, v_d)}</div><div class="rv-c">{dot_(c_r, v_r)}</div><div class="rv-x" style="color:{col_}">{_esc(txt_)}</div></div>'
-                    its_ = []
+                    def _db_ideal(nm_, mp_n_):
+                        """(DB ideal per hari, jumlah orang): Salesman 3/hari, Counter 5/hari; baris Koordinator = 3 x jumlah MP, baris Counter = 5."""
+                        u_ = str(nm_).strip().upper()
+                        if _dd_lvl == 'sales' or u_ in _nk_tg:
+                            return (IDEAL_DB_CTR if is_counter_row_name(clean_str(nm_), _jb_db, _jb_sp) else IDEAL_DB_SM), 1
+                        if u_.startswith('COUNTER'): return IDEAL_DB_CTR, 1
+                        return IDEAL_DB_SM, max(1, int(mp_n_))
+                    def _eval(dbq_, stup_, db_n_, stu_n_, tg_n_, avg_db_, per_day_):
+                        lr_, rr_ = lv_res(stu_n_, tg_n_); c_r = GRY_ if lr_ < 0 else col_lv(lr_)
+                        v_r = f'{int(stu_n_):,} | {int(math.ceil(tg_n_ * idl_ / 100.0 - 1e-9)):,}' if tg_n_ > 0 else '-'   # STU IDEAL = STU hari ini | STU ideal (target x ideal% hari ini, dibulatkan ke atas)
+                        vr_ = (avg_db_ / per_day_) if per_day_ > 0 else 0.0; lvv_ = lv_vol(vr_)
+                        c_v = col_lv(lvv_); v_v = f'{avg_db_:.2f}'   # tampil angka saja; warna mengikuti % terhadap ideal (3 salesman / 5 counter)
+                        if db_n_ > 0: c_s, c_d, v_s, v_d = col_lv(lv_stu(stup_)), col_lv(lv_dbq(dbq_)), f'{stup_:.1f}%', f'{dbq_:.1f}%'
+                        else: c_s, c_d, v_s, v_d = GRY_, GRY_, '-', '-'
+                        if lr_ < 0: txt_, bg_, fg_, cond_ = 'CEK TARGET', ORG_, '#FFFFFF', 'Target STU belum diisi, achievement belum bisa dinilai'
+                        else: txt_, bg_, fg_, cond_ = TRT_[(lr_ == 2, lvv_ == 2)]
+                        return c_s, c_d, v_s, v_d, c_r, v_r, c_v, v_v, txt_, bg_, fg_, cond_
+                    def _row(nm_, dbq_, stup_, db_n_, stu_n_, tg_n_, units_, per_day_, total=False):
+                        c_s, c_d, v_s, v_d, c_r, v_r, c_v, v_v, txt_, bg_, fg_, cond_ = _eval(dbq_, stup_, db_n_, stu_n_, tg_n_, (db_n_ / (units_ * hari_aktif)) if units_ > 0 else 0.0, per_day_)
+                        _av_ = (db_n_ / (units_ * hari_aktif)) if units_ > 0 else 0.0
+                        jn_ = '' if total else get_join_date_txt(nm_)
+                        tip_ = (f'<b>{_esc(nm_)}</b><br>STU hari ini | STU ideal {v_r}' + (f' (ideal tepatnya {tg_n_ * idl_ / 100.0:.1f}, target sebulan {int(tg_n_):,})' if tg_n_ > 0 else ' (target belum diisi)')
+                                + f'<br>STU Ratio {v_s} · DB Ratio {v_d}<br>AVG DB Daily {v_v} (DB {int(db_n_):,} ÷ {int(units_):,} orang ÷ {hari_aktif} hari aktif) · ideal {_fmt_idl(per_day_)} DB/hari = {(_av_ / per_day_ * 100.0) if per_day_ > 0 else 0.0:.0f}%'
+                                + ('' if total else f'<br>Start {jn_}<br><b style="color:{bg_ if bg_ != "#FFFF00" else "#B45309"}">{_esc(txt_)}</b> — {_esc(cond_)}'))
+                        return (f'<div class="rv-g rv-i{" rv-tot" if total else ""}" data-tip="{_esc(tip_)}"><div class="rv-n{" rv-nt" if total else ""}">{_esc(nm_)}</div>'
+                                f'<div class="rv-c">{dot_(c_r, v_r)}</div><div class="rv-c">{dot_(c_s, v_s)}</div><div class="rv-c">{dot_(c_d, v_d)}</div><div class="rv-c">{dot_(c_v, v_v)}</div>'
+                                f'<div class="rv-x">' + ('' if total else f'<span class="rv-t" style="background:{bg_};color:{fg_}">{_esc(txt_)}</span>') + '</div>'
+                                + ('<div class="rv-c"></div>' if total else f'<div class="rv-c"><span class="rv-val">{_esc(jn_)}</span></div>') + '</div>')
+                    its_ = []; sum_db_, sum_idl_db_, sum_un_ = 0, 0.0, 0
                     for r_ in rows_pr_jb:
                         if is_hidden_koor(str(r_[kol_pr_jb])): continue   # Shop Manager tidak ditampilkan di tabel Ulasan
+                        if int(r_['DATABASE']) <= 0: continue   # hanya nama yang mengisi database yang ditampilkan di listing Ulasan
                         stu_n_, tg_n_ = tg_map_.get(str(r_[kol_pr_jb]).strip().upper(), (0, 0))
-                        its_.append((r_['_stu_pct'], _row(str(r_[kol_pr_jb]), r_['_dbq'], r_['_stu_pct'], r_['DATABASE'], stu_n_, tg_n_)))
+                        pd_, un_ = _db_ideal(r_[kol_pr_jb], r_['MP'])
+                        sum_db_ += int(r_['DATABASE']); sum_idl_db_ += pd_ * un_; sum_un_ += un_
+                        its_.append((r_['_stu_pct'], _row(str(r_[kol_pr_jb]), r_['_dbq'], r_['_stu_pct'], r_['DATABASE'], stu_n_, tg_n_, un_, pd_)))
                     its_.sort(key=lambda t_: -t_[0])
-                    tot_row_ = _row(_dd_tot, tot_pr_jb['_dbq'], tot_pr_jb['_stu_pct'], tot_pr_jb['DATABASE'], int(df_jb['STU'].sum()), int(_tg_tot_jb), total=True)   # TOTAL DB Quality & STU Ratio
-                    css_ = _RANK_CSS + ('.rv-g{display:grid;grid-template-columns:24% 12% 12% 17% 1fr;align-items:center;gap:10px}.rv-i{height:34px;border-bottom:1px dashed #D5DDF5;padding:0 4px}'
-                                        '.rv-h{height:30px;border-bottom:2px solid #C7D3F7;margin-bottom:2px;font-size:11.5px;font-weight:900;color:#0B2A5B;letter-spacing:.4px;padding:0 4px}'
-                                        '.rv-n{background:#2563EB;color:#fff;font-size:12.5px;font-weight:800;border-radius:7px;padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+                    tot_row_ = _row(_dd_tot, tot_pr_jb['_dbq'], tot_pr_jb['_stu_pct'], sum_db_, int(df_jb['STU'].sum()), int(_tg_tot_jb), sum_un_, (sum_idl_db_ / sum_un_) if sum_un_ > 0 else float(IDEAL_DB_SM), total=True)   # TOTAL: AVG DB Daily = rata-rata per orang dari baris yang tampil, ideal = rata-rata tertimbang
+                    css_ = _RANK_CSS + ('.rv-g{display:grid;grid-template-columns:19% 10% 8% 9% 9% 1fr 9%;align-items:center;gap:8px}.rv-i{height:34px;border-bottom:1px dashed #D5DDF5;padding:0 4px}'
+                                        '.rv-h{height:30px;border-bottom:2px solid #C7D3F7;margin-bottom:2px;font-size:11.5px;font-weight:900;color:#0B2A5B;letter-spacing:.4px;padding:0 4px;line-height:1.1}'
+                                        '.rv-n{background:#2563EB;color:#fff;font-size:11.5px;font-weight:800;border-radius:7px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
                                         '.rv-nt{background:#1E1B8F}.rv-tot{height:40px;border-top:2px solid #C7D3F7;border-bottom:none;background:#F3F6FF;border-radius:0 0 8px 8px;margin-top:4px}'
                                         '.rv-c{display:flex;align-items:center;white-space:nowrap}.rv-d{flex:none;width:14px;height:14px;border-radius:50%;margin-right:7px;box-shadow:0 0 0 2px rgba(0,0,0,.06)}.rv-val{font-size:13px;font-weight:800;color:#1E3A8A}'
-                                        '.rv-x{font-size:12.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rv-l{font-size:11.5px;color:#64748B;margin:3px 0 8px;line-height:1.4}.rv-l .rv-d{width:9px;height:9px;margin:0 4px 0 8px;vertical-align:baseline;box-shadow:none}')
-                    leg_ = (f'<div class="rv-l"><b>STU Ratio</b><span class="rv-d" style="background:{RED_}"></span>0-4 <span class="rv-d" style="background:{ORG_}"></span>4-8 <span class="rv-d" style="background:{GRN_}"></span>8+ &nbsp;·&nbsp; '
+                                        '.rv-x{min-width:0}.rv-t{display:inline-block;max-width:100%;box-sizing:border-box;font-size:10px;font-weight:800;border-radius:7px;padding:5px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,.08)}'
+                                        '.rv-hd{display:flex;align-items:center;justify-content:space-between;gap:10px}.rv-act{display:flex;align-items:center;gap:8px}.rv-act .btn{padding:4px 10px;font-size:12px}.rv-st{font-size:12px;font-weight:600}'
+                                        '.rv-l{font-size:11.5px;color:#64748B;margin:3px 0 8px;line-height:1.4}.rv-l .rv-d{width:9px;height:9px;margin:0 4px 0 8px;vertical-align:baseline;box-shadow:none}')
+                    leg_ = (f'<div class="rv-l"><b>STU Ideal</b> (STU hari ini | ideal dibulatkan ke atas · warna: STU vs target × ideal%)<span class="rv-d" style="background:{RED_}"></span>&lt;60% <span class="rv-d" style="background:{ORG_}"></span>60-85% <span class="rv-d" style="background:{GRN_}"></span>85%+ &nbsp;·&nbsp; '
+                            f'<b>STU Ratio</b><span class="rv-d" style="background:{RED_}"></span>0-4 <span class="rv-d" style="background:{ORG_}"></span>4-8 <span class="rv-d" style="background:{GRN_}"></span>8+ &nbsp;·&nbsp; '
                             f'<b>DB Quality</b><span class="rv-d" style="background:{RED_}"></span>0-10 <span class="rv-d" style="background:{ORG_}"></span>11-20 <span class="rv-d" style="background:{GRN_}"></span>21+ &nbsp;·&nbsp; '
-                            f'<b>Result vs Ideal hari ini</b> (target × ideal%)<span class="rv-d" style="background:{RED_}"></span>&lt;60% <span class="rv-d" style="background:{ORG_}"></span>60-85% <span class="rv-d" style="background:{GRN_}"></span>85%+</div>')
-                    hdr_ = '<div class="rv-g rv-h"><div>NAMA</div><div>STU RATIO</div><div>DB QUALITY</div><div>RESULT vs IDEAL HARI INI</div><div>KESIMPULAN</div></div>'
-                    inner_ = f'<div class="card"><div class="ttl-r"><div class="ttl">Ulasan per {ent_}</div></div>{leg_}{hdr_}' + ''.join(h_ for _, h_ in its_) + tot_row_ + '</div>'
-                    return (inner_, css_, 118 + 36 * len(its_) + 44) if its_ else None
+                            f'<b>AVG DB Daily</b> (ideal Salesman 3/hari · Counter 5/hari)<span class="rv-d" style="background:{RED_}"></span>&lt;70% <span class="rv-d" style="background:{ORG_}"></span>70-99% <span class="rv-d" style="background:{GRN_}"></span>100%+</div>')
+                    hdr_ = f'<div class="rv-g rv-h"><div>{nm_hdr_}</div><div>STU IDEAL</div><div>STU RATIO</div><div>DB QUALITY</div><div>AVG DB DAILY</div><div>TREATMENT</div><div>START</div></div>'
+                    btn_ = '<div class="nocap rv-act"><button class="btn" onclick="pnCapCard(\'copy\',this)">📸 Copy (HD)</button><button class="btn" onclick="pnCapCard(\'jpg\',this)">📥 JPG</button><span class="rv-st"></span></div>'   # tombol milik tabel Ulasan sendiri (tidak ikut tertangkap Copy panel)
+                    inner_ = f'<div class="card"><div class="rv-hd"><div class="ttl-r"><div class="ttl">Ulasan per {ent_}</div></div>{btn_}</div>{leg_}{hdr_}' + ''.join(h_ for _, h_ in its_) + tot_row_ + '</div>'
+                    return (inner_, css_, 146 + 36 * len(its_) + 44) if its_ else None
                 def _jb_kota_bottom():
                     """3 grafik batang MDS per 4 kota: DB Quality, Approval Ratio (ACC%), STU Ratio (STU%)."""
                     if _dd_lvl != 'dealer':   # Dashboard Dealer: DB Q, Approval Ratio, Open SPK & STU Ratio per Koordinator / Counter (atau Salesman) dari dealer terpilih
