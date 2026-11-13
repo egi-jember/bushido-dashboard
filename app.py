@@ -1,10 +1,14 @@
-import hmac, hashlib
+import hmac, hashlib, time
 import json, os, glob, datetime, re, base64, random, math, calendar as pycal, urllib.request, urllib.error, urllib.parse
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title='Dashboard Dealer', page_icon='🐺', layout='wide')
+_T0 = time.perf_counter(); _TICKS = []
+def _tick(label_):
+    """Catat waktu tahap pemuatan (ditampilkan untuk admin di sidebar → 'Waktu muat')."""
+    _TICKS.append((label_, time.perf_counter() - _T0))
 st.markdown("""<style>
 [data-testid="stSidebar"] { background-color: #3B4EFF !important; background-image: linear-gradient(180deg, #4318FF 0%, #3B6BFF 100%) !important; border-right: 2px solid #3B18FF !important; min-width: 245px !important; max-width: 265px !important; }
 [data-testid="stSidebar"] > div:first-child { padding: 1.2rem 1.1rem 0 1.1rem !important; }
@@ -333,6 +337,7 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 .sp-sum{margin:0 0 10px 0}
 .sp-row{display:flex;align-items:center;gap:8px;margin:0 0 7px 0}
 .sp-n{flex:0 0 92px;font-size:12.5px;font-weight:700;color:#1E3A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-g{flex:0 0 auto;min-width:36px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap}
 .sp-b{flex:1;min-width:0}.sp-b .sp{height:26px;font-size:11.5px;border-radius:8px}.sp-b .sp .j{font-size:10.5px;line-height:14px}
 .sp-p{flex:0 0 54px;text-align:right;font-size:13.5px;font-weight:800}
 .rk-note{font-size:11px;font-weight:600;color:#3B5BC8;background:#EAF0FF;border-radius:6px;padding:4px 7px;margin:0 0 6px 0;line-height:1.3}
@@ -380,7 +385,9 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
             a_, b_ = r.get('a', 0), r.get('b', 0); p_ = (a_ / b_ * 100.0) if b_ else None
             c = ('#64748B' if p_ is None else (BSG_GRN if p_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and p_ >= 0.85 * ideal) else BSG_RED)))
             tip = r.get('tip') or f"<b>{_esc(r['name'])}</b>"
-            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div><div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
+            gap_h = ''
+            if r.get('gap') is not None: gap_h = '<div class="sp-g" style="color:' + (BSG_GRN if r['gap'] >= 0 else BSG_RED) + '">' + format(int(r['gap']), '+,') + '</div>'
+            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div>{gap_h}<div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
         hdr = _hdr(title, '')
         if total is not None:
             hdr = f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div><div style="height:6px"></div>'
@@ -857,7 +864,7 @@ def _pn_bottom_html(bottom, cols=None):
         if isinstance(b, dict):
             g = [c for c in b.get('group', []) if c]
             if not g: continue
-            n = max(1, len(g)) if BSG_ONE_ROW else int(b.get('cols', 2)); rws = -(-len(g) // n)
+            n = max(1, len(g)) if (BSG_ONE_ROW and not b.get('fixed')) else int(b.get('cols', 2)); rws = -(-len(g) // n)
             htm.append(f'<div class="pn-sub" style="grid-template-columns:repeat({n},minmax(0,1fr))">' + ''.join(c[0] for c in g) + '</div>')
             csl += [c[1] for c in g]; hs.append(rws * max(c[2] for c in g) + (rws - 1) * 12)
         else: htm.append(b[0]); csl.append(b[1]); hs.append(b[2])
@@ -957,7 +964,7 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
         _gord_ = sorted(_gall_, key=lambda n_: -((_gall_[n_][1] / _gall_[n_][0] * 100.0) if _gall_[n_][0] > 0 else -1.0))
         def _grow(n_):
             t_, r_ = _gall_[n_]
-            if t_ > 0: return {'name': n_, 'val': r_ / t_ * 100.0, 'a': int(r_), 'b': int(t_), 'label': f'{r_ / t_ * 100.0:.0f}%', 'tip': f'<b>{_esc(n_)}</b><br>Google Review <b>{int(r_):,}</b> / Target {int(t_):,}<br>Pencapaian <b>{r_ / t_ * 100.0:.1f}%</b>'}
+            if t_ > 0: return {'name': n_, 'val': r_ / t_ * 100.0, 'a': int(r_), 'b': int(t_), 'label': f'{r_ / t_ * 100.0:.0f}%', 'gap': int(r_) - int(t_), 'tip': f'<b>{_esc(n_)}</b><br>Google Review <b>{int(r_):,}</b> / Target {int(t_):,}<br>Gap <b>{int(r_) - int(t_):+,}</b><br>Pencapaian <b>{r_ / t_ * 100.0:.1f}%</b>'}
             return {'name': n_, 'val': 0.0, 'a': int(r_), 'b': 0, 'label': 'n/a', 'tip': f'<b>{_esc(n_)}</b><br>Google Review {int(r_):,} · belum ada target'}
         g_rows = [_grow(n_) for n_ in _gord_]
         if g_rows and any(x_['b'] > 0 for x_ in g_rows):
@@ -1015,7 +1022,7 @@ def bsg_import_archive(upfile, max_bytes=1_500_000_000):
                 if not isinstance(v, dict): continue
                 if v.get('saved_path'): v['saved_path'] = os.path.join(dest, 'saved_raw_files', os.path.basename(str(v['saved_path']).replace('\\', '/')))
                 if isinstance(v.get('saved_paths'), list):
-                    sub = 'database_files' if k == 'database_multi' else ('rating_files' if k == 'rating_multi' else '')
+                    sub = 'database_files' if k == 'database_multi' else ('database_lm_files' if k == 'database_lm_multi' else ('rating_files' if k == 'rating_multi' else ''))
                     v['saved_paths'] = [os.path.join(dest, 'saved_raw_files', sub, os.path.basename(str(p).replace('\\', '/'))) for p in v['saved_paths']]
             with open(mp, 'w') as fp: json.dump(meta, fp)
         except Exception: pass
@@ -1520,7 +1527,9 @@ _ABS = (lambda f_: os.path.join(ARCHIVE_DIR, f_)) if ARCHIVE_DIR else (lambda f_
 KPI_RESIGNED_FILE = _ABS('koor_resigned.json')
 TARGET_DEALER_FILE, TARGET_KOOR_FILE, KPI_SAVED_FILE, AI_CONFIG_FILE, UPLOAD_DIR = _ABS('dealer_targets_saved.json'), _ABS('koor_targets_saved.json'), _ABS('kpi_targets_saved.json'), 'ai_config.json', _ABS('saved_raw_files')
 DB_Multi_DIR, RATING_Multi_DIR, RAW_META_FILE = os.path.join(UPLOAD_DIR, 'database_files'), os.path.join(UPLOAD_DIR, 'rating_files'), os.path.join(UPLOAD_DIR, 'metadata.json')
+DB_LM_DIR = os.path.join(UPLOAD_DIR, 'database_lm_files')   # Database BULAN LALU (diperlakukan sama dengan Database bulan ini, hanya folder & metadata terpisah)
 os.makedirs(DB_Multi_DIR, exist_ok=True)
+os.makedirs(DB_LM_DIR, exist_ok=True)
 os.makedirs(RATING_Multi_DIR, exist_ok=True)
 
 # ====================================================================================================
@@ -1621,6 +1630,9 @@ def _gh_ready():
 @st.cache_resource(show_spinner=False)
 def _gh_dirty(): return set()   # file lokal yang gagal terkirim → jangan ditimpa oleh isi cloud
 
+@st.cache_resource(show_spinner=False)
+def _gh_sync_state(): return {'t': 0.0}   # waktu sinkron-turun terakhir (dibagi semua sesi di server yang sama)
+
 def _gh_blob_sha(data): return hashlib.sha1(b'blob %d\0' % len(data) + data).hexdigest()
 
 def _gh_remote_files():
@@ -1673,7 +1685,10 @@ def gcs_sync_down(force=False):
     if ARCHIVE_MODE or (st.session_state.get('gcs_down_done') and not force): return
     kind = _cloud_kind()
     if kind == 'github':
-        try: st.session_state['gcs_msg'] = f'☁️ GitHub tersinkron ({_gh_down()} file diperbarui)'
+        _stt = _gh_sync_state()
+        if not force and (time.time() - _stt['t']) < 600:   # sesi lain baru saja sinkron → lewati; tombol 'Muat ulang dari cloud' tetap memaksa
+            st.session_state['gcs_msg'] = '☁️ GitHub tersinkron (sinkron terakhir < 10 menit lalu)'; st.session_state['gcs_down_done'] = True; return
+        try: st.session_state['gcs_msg'] = f'☁️ GitHub tersinkron ({_gh_down()} file diperbarui)'; _stt['t'] = time.time()
         except Exception as e_: st.session_state['gcs_msg'] = f'☁️ GitHub gagal dibaca: {str(e_)[:60]}'
         st.session_state['gcs_down_done'] = True
     elif kind == 'gcs': _gcs_down(force)
@@ -1690,6 +1705,7 @@ def gcs_sync_up():
     else: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif'
 
 gcs_sync_down()   # ONLINE: ambil data mentah terbaru dari cloud sebelum file dibaca
+_tick('sinkron cloud')
 
 DEFAULT_KPI_DEALER = {
     'SIP PANJI':   {'T. STU': 85, 'T. MAXI': 35, 'T. CLASSY': 7,  'T. MP': 24, 'T. INC': 85, 'T. ACC%': 50.0, 'T. MYDR': 0, 'T. G REV': 0},
@@ -1709,7 +1725,7 @@ FIXED_COUNTER_TARGETS_NS = {alnum_str(k): v for k, v in FIXED_COUNTER_TARGETS.it
 def normalize_dealer_name(val):
     s = clean_str(val)
     if not s or s in ['NAN', 'NONE'] or s in daftar_dealer: return s
-    if any(k in s for k in ['A YANI', 'A. YANI', 'AYANI', 'A.YANI']): return 'SIP A. YANI'
+    if any(k in s for k in ['A YANI', 'A. YANI', 'AYANI', 'A.YANI', 'AHMAD YANI']): return 'SIP A. YANI'
     for k, v in [('BESUKI', 'SIP BESUKI'), ('PANJI', 'SIP PANJI'), ('SRONO', 'SIP SRONO'), ('SIAGA', 'SIP SIAGA'), ('SOBO', 'SIP SOBO'), ('GIRI', 'SIP GIRI')]:
         if k in s: return v
     return s
@@ -1750,6 +1766,11 @@ MAX_PLAN_WORDS = 40   # Action Plan + How To digabung dalam satu kolom
 def format_paragraphs_html(text, max_words=MAX_NARRATIVE_WORDS):
     clean_txt = limit_words(text, max_words)
     return f'<p class="nar-p">{clean_txt}</p>' if clean_txt else ''
+
+def format_full_html(text):
+    """Seperti format_paragraphs_html tetapi TANPA batas kata; baris baru menjadi paragraf terpisah (dipakai baris Market Overview)."""
+    parts_ = [_html.escape(' '.join(re.sub(r'<[^>]+>', '', l_).split())) for l_ in str(text or '').split('\n')]
+    return ''.join(f'<p class="nar-p">{l_}</p>' for l_ in parts_ if l_)
 
 def calc_rational_7d_addition(curr_stu, monthly_targ, curr_day, next_day, pct_curr_dec, pct_next_dec, active_mp=1, avg3=None, workdays=None):
     sisa_hr, hr_jalan, delta_pct = max(1, next_day - curr_day), max(1, curr_day), max(0.12, pct_next_dec - pct_curr_dec)
@@ -1908,7 +1929,7 @@ DEALER_LOKASI = {
     'SIP SIAGA':   ('Genteng',         'Banyuwangi'),
     'SIP SRONO':   ('Srono',           'Banyuwangi'),
     'SIP SOBO':    ('Sobo',            'Banyuwangi'),
-    'SIP A YANI':  ('Banyuwangi Kota', 'Banyuwangi'),
+    'SIP A. YANI': ('Banyuwangi Kota', 'Banyuwangi'),
     'SIP GIRI':    ('Giri',            'Banyuwangi'),
 }
 LOKAL_INTEL_FILE = _ABS('lokal_intel_saved.json')
@@ -1917,8 +1938,10 @@ def _lokasi_dealer(nama):
     """(kecamatan, kabupaten) dealer, atau None bila nama bukan salah satu dealer terdaftar (mis. TOTAL)."""
     n = ' '.join(str(nama).upper().split())
     if n in DEALER_LOKASI: return DEALER_LOKASI[n]
+    n_ = re.sub(r'[^A-Z0-9]', '', n)   # toleran titik/spasi: 'SIP A YANI' == 'SIP A. YANI'
     for k_, v_ in DEALER_LOKASI.items():
-        if k_ in n: return v_
+        kk_ = re.sub(r'[^A-Z0-9]', '', k_)
+        if k_ in n or (n_ and kk_ in n_): return v_
     return None
 
 LOKAL_ALL_KEY = '__SEMUA_DEALER__'
@@ -1937,9 +1960,31 @@ def lokal_intel_all_set(text):
 
 _DLR_HDR = re.compile(r'^[#*\s>-]*DEALER\s*:\s*(.+?)[*\s]*$', re.I | re.M)
 
+def _dlr_known_hdr():
+    """Pola header 'DEALER: SIP XXX' berdasarkan nama dealer terdaftar. TIDAK bergantung pada baris baru,
+    sehingga tetap terbaca walau hasil paste menyatu 1 baris (mis. 'DEALER: SIP BESUKIRing 1: ...')."""
+    alts_ = []
+    for k_ in sorted(DEALER_LOKASI, key=len, reverse=True):
+        alts_.append(r'[\s.]*'.join(re.escape(w_) for w_ in re.split(r'[\s.]+', k_.strip()) if w_))
+    return re.compile(r'DEALER\s*:\s*[*_`#\s]*(' + '|'.join(alts_) + r')', re.I)
+
+def _dlr_canon(raw):
+    a_ = re.sub(r'[^A-Z0-9]', '', str(raw).upper())
+    for k_ in DEALER_LOKASI:
+        if re.sub(r'[^A-Z0-9]', '', k_) == a_: return k_
+    return _norm_dealer(raw)
+
 def lokal_intel_split(text):
     """Pecah laporan Deep Research (header 'DEALER: NAMA') menjadi {NAMA DEALER: isi bagian}."""
-    out, ms = {}, list(_DLR_HDR.finditer(text or ''))
+    text = text or ''
+    out, ms = {}, list(_dlr_known_hdr().finditer(text))
+    if ms:
+        for i_, m_ in enumerate(ms):
+            end_ = ms[i_ + 1].start() if i_ + 1 < len(ms) else len(text)
+            out[_dlr_canon(m_.group(1))] = text[m_.end():end_].strip()
+        return out
+    for i_, m_ in enumerate(list(_DLR_HDR.finditer(text))):   # cadangan: format baris-per-baris untuk nama dealer di luar daftar
+        ms.append(m_)
     for i_, m_ in enumerate(ms):
         end_ = ms[i_ + 1].start() if i_ + 1 < len(ms) else len(text)
         out[_norm_dealer(m_.group(1))] = text[m_.end():end_].strip()
@@ -1947,13 +1992,391 @@ def lokal_intel_split(text):
 
 def lokal_intel_get(dealer):
     """Intel lokal untuk 1 dealer: ambil bagiannya dari laporan SEMUA dealer; cadangan: data per-dealer lama."""
-    d_ = _norm_dealer(dealer); allv = lokal_intel_all_get()
+    d_ = _norm_dealer(dealer); da_ = re.sub(r'[^A-Z0-9]', '', d_); allv = lokal_intel_all_get()
     if allv.get('text'):
         for k_, v_ in lokal_intel_split(allv['text']).items():
-            if v_ and (k_ == d_ or k_ in d_ or d_ in k_):
+            ka_ = re.sub(r'[^A-Z0-9]', '', k_)
+            if v_ and ka_ and (ka_ == da_ or ka_ in da_ or da_ in ka_):
                 return {'text': v_, 'ts': allv.get('ts', ''), 'src': 'semua'}
     old = load_json(LOKAL_INTEL_FILE).get(' '.join(str(dealer).upper().split()), {}) or {}
     return old
+
+
+_KONTEN_KEYS = [('profil', r'Profil\s*pembeli'), ('model', r'Model\s*(?:Yamaha\s*)?populer'), ('format', r'Format\s*(?:konten\s*)?viral'),
+                ('fyp', r'FYP\s*(?:medsos|media\s*sosial)'), ('hook', r'Hook\s*(?:lokal|3\s*detik)'), ('cari', r'(?:Keyword\s*(?:&|dan)?\s*tagar|Tren\s*pencarian)'),
+                ('live', r'Strategi\s*live'), ('kalender', r'Kalender\s*(?:konten\s*)?7\s*hari'), ('ide', r'Ide\s*(?:konten(?:\s*dealer)?|tiru[-\s]*modifikasi)')]
+_FYP_SPLIT = re.compile('(?:' + '|'.join(rx_ for _, rx_ in _KONTEN_KEYS) + r')\s*:?', re.I)
+
+def _intel_rapikan(t_):
+    """Bersihkan teks hasil Deep Research: buang URL & tag, pisahkan poin ke baris baru, pipa jadi koma."""
+    t_ = re.sub(r'https?://\S+', '', str(t_ or ''))
+    t_ = re.sub(r'\b(?:FAKTA)(?=\s*(?:Waktu|Peluang|Market|FYP|Ide))', ' ', t_)
+    t_ = re.sub(r'(FAKTA|PERKIRAAN)\s*\[([^\]]+)\]', lambda m_: f"\n• {m_.group(1).capitalize()} {m_.group(2).strip()}: ", t_)
+    t_ = re.sub(r'\[([^\]]+)\]', lambda m_: f"\n• {m_.group(1).strip().capitalize()}: ", t_)
+    t_ = re.sub(r'\s*(Market\s*overview|Peluang|Waktu\s*terbaik)[ \t]*:[ \t]*', lambda m_: f"\n{m_.group(1).strip().capitalize()}: ", t_, flags=re.I)
+    t_ = re.sub(r'[ \t]*\|[ \t]*', ', ', t_); t_ = re.sub(r'(?m)^[ \t]*#{1,6}[ \t]+', '', re.sub(r'[*`]+', '', t_))
+    t_ = re.sub(r',(?:\s*,)+', ',', t_)
+    t_ = re.sub(r'([a-z0-9\)])\.(?=[A-Z])', r'\1. ', t_)
+    lines_ = [' '.join(l_.split()).strip(' ,') for l_ in t_.split('\n')]
+    return '\n'.join(l_ for l_ in lines_ if l_)
+
+def lokal_intel_konten(intel_text):
+    """Pecah bagian konten pada intel dealer -> {profil, model, format, fyp, hook, cari, live, kalender, ide} (sudah dirapikan); None bila tidak ada satu pun."""
+    t_ = re.sub(r'https?://\S+', '', str(intel_text or ''))
+    pos_ = []
+    for k_, rx_ in _KONTEN_KEYS:
+        m_ = re.search(rx_ + r'\s*:?', t_, re.I)
+        if m_: pos_.append((m_.start(), m_.end(), k_))
+    if not pos_: return None
+    pos_.sort(); out_ = {}
+    def cl_(k_, x_):
+        x_ = re.sub(r'(?m)^[ \t]*#{1,6}[ \t]+', '', re.sub(r'[*`]+|(?<![A-Za-z0-9])_+|_+(?![A-Za-z0-9])', '', str(x_)))   # buang markdown, tagar #xxx tetap utuh
+        if k_ == 'kalender': x_ = re.sub(r'\s*(?=Hari\s*(?:ke-?\s*)?[1-7]\b)', '\n', x_)      # satu baris per hari
+        elif k_ == 'hook': x_ = re.sub(r'\s+(?=\d{1,2}[.)]\s)', '\n', x_)                      # satu baris per hook bernomor
+        x_ = re.sub(r'[ \t]*\|[ \t]*', ' | ' if k_ == 'kalender' else ', ', x_)
+        return '\n'.join(' '.join(l_.split()).strip(' ,') for l_ in x_.split('\n') if l_.strip())
+    for i_, (st_, en_, k_) in enumerate(pos_):
+        out_[k_] = cl_(k_, t_[en_:(pos_[i_ + 1][0] if i_ + 1 < len(pos_) else len(t_))])
+    return out_ if any(out_.values()) else None
+
+def lokal_intel_konten_narasi(dealer, intel_text):
+    """(Kondisi, Action Plan) baris 'Konten & Live' dari intel, tanpa AI dan tanpa batas kata."""
+    lok_ = _lokasi_dealer(dealer); k_ = lokal_intel_konten(intel_text)
+    kec_ = lok_[0] if lok_ else 'dealer'
+    cond_, plan_ = [], []
+    if k_:
+        for lb_, key_ in [('Profil pembeli', 'profil'), ('Model Yamaha populer', 'model'), ('Format konten viral', 'format'), ('FYP audio & tagar', 'fyp'), ('Keyword, tagar & pencarian lokal', 'cari')]:
+            if k_.get(key_): cond_.append(f"{lb_}: {k_[key_]}")
+        for lb_, key_ in [('Hook 3 detik lokal', 'hook'), ('Kalender konten 7 hari', 'kalender'), ('Ide konten dealer', 'ide'), ('Strategi live', 'live')]:
+            if k_.get(key_): plan_.append(f"{lb_}:\n{k_[key_]}" if key_ in ('hook', 'kalender') else f"{lb_}: {k_[key_]}")
+    plan_.append(f"Standar eksekusi: video spill harga/walkaround 15-30 detik dengan DP dan cicilan tampil di layar, pakai audio viral & logat lokal. Live TikTok/IG pukul 12.00-13.30 atau 19.30-21.30 dengan interaksi cepat; Facebook Live untuk rincian kredit, syarat berkas, lokasi. Pasang tulisan \"Tanya Simulasi Kredit Area {kec_} Langsung Dijawab\", lalu pindahkan komentator ke WhatsApp dan catat sebagai DB.")
+    return '\n'.join(cond_), '\n'.join(plan_)
+
+def lokal_intel_narasi(dealer, intel_text):
+    """(Market Overview, Action Plan) Ring 1 langsung dari teks intel (tanpa AI) — merangkum seluruh temuan Deep Research, TANPA batas kata."""
+    lok_ = _lokasi_dealer(dealer); t_ = str(intel_text or '')
+    if not lok_ or not t_.strip(): return None
+    mf_ = _FYP_SPLIT.search(t_)
+    body_ = t_[:mf_.start()] if mf_ else t_      # bagian Profil/FYP/Tren/Live/Ide dipakai di baris Konten & Live, bukan di sini
+    mr_ = re.search(r'Ring\s*1\s*:\s*(.+?)(?=Market|Peluang|Waktu\s*terbaik|FAKTA|PERKIRAAN|\n|$)', body_, re.I)
+    ring_ = [x_.strip(' .*') for x_ in (mr_.group(1).split(',') if mr_ else []) if x_.strip(' .*')]
+    ring_ = [x_ for x_ in ring_ if len(x_) <= 30]
+    if lok_[0] not in ring_: ring_.insert(0, lok_[0])
+    if mr_: body_ = body_[:mr_.start()] + body_[mr_.end():]
+    ov_ = _intel_rapikan(body_)
+    if not ov_.strip(' \n'): ov_ = 'Deep Research belum menemukan peluang spesifik di Ring 1 (TIDAK DITEMUKAN).'
+    cond_ = f"Ring 1 {lok_[0]} mencakup: {', '.join(ring_)}.\n{ov_}"
+    mw_ = re.search(r'Waktu\s*terbaik\s*:?(.*)$', body_, re.I | re.S)
+    scan_ = (mw_.group(1) if mw_ else body_).upper()
+    found_ = sorted([(scan_.find(k_.upper()), k_) for k_ in ring_ if scan_.find(k_.upper()) >= 0])
+    kec_ = [k_ for _, k_ in found_][:3] or ring_[:2]
+    plan_ = (f"Fokuskan mobile test ride dan canvassing ke kecamatan {', '.join(kec_)} sesuai jadwal peluang pada Market Overview (panen/pencairan/event). "
+             f"Catat setiap prospek sebagai DB, follow-up HOT maksimal H+1, dan ajukan SPK di hari yang sama.")
+    return cond_, plan_
+
+
+# ---------------------------------------------------------------- SUB MENU DASHBOARD DEALER: MARKET OVERVIEW & DIGITAL CONTENT ----
+_GEM_MODEL_CACHE = {}
+_GEM_MODEL_FALLBACK = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
+
+def _gem_models(clean_key):
+    """Daftar model Flash yang BENAR-BENAR tersedia untuk key ini (ListModels), terbaru dulu. Cadangan: daftar tetap bila ListModels gagal."""
+    ck_ = hashlib.sha256(clean_key.encode()).hexdigest()[:16]; hit_ = _GEM_MODEL_CACHE.get(ck_)
+    if hit_ and time.time() - hit_[0] < 3600: return hit_[1]
+    found_ = []
+    try:
+        req_ = urllib.request.Request('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', headers={'x-goog-api-key': clean_key})
+        with urllib.request.urlopen(req_, timeout=20) as r_:
+            for m_ in json.loads(r_.read().decode('utf-8')).get('models', []):
+                nm_ = str(m_.get('name', '')).replace('models/', '')
+                if 'generateContent' not in (m_.get('supportedGenerationMethods') or []): continue
+                if 'flash' not in nm_ or any(x_ in nm_ for x_ in ('image', 'tts', 'live', 'embed', 'audio', 'robotics', 'computer', 'lite', 'preview-0', 'exp')): continue
+                v_ = re.search(r'gemini-(\d+(?:\.\d+)?)', nm_)
+                found_.append((float(v_.group(1)) if v_ else 0.0, nm_))
+    except Exception: pass
+    names_ = [n_ for _, n_ in sorted(found_, key=lambda x_: (-x_[0], len(x_[1])))][:4]
+    names_ += [n_ for n_ in _GEM_MODEL_FALLBACK if n_ not in names_]
+    out_ = [('v1beta', n_) for n_ in names_[:6]]
+    _GEM_MODEL_CACHE[ck_] = (time.time(), out_)
+    return out_
+
+def _gem_clean_key(k):
+    """Bersihkan API key hasil copy-paste: buang spasi/enter, tanda kutip, awalan 'key=' atau 'Bearer '."""
+    k = str(k or '').strip().strip('"\'`').strip()
+    k = re.sub(r'^(?:key\s*[=:]\s*|bearer\s+|GEMINI_API_KEY\s*=\s*)', '', k, flags=re.I).strip().strip('"\'`').strip()
+    return ''.join(k.split())
+
+def _gem_auth_variants(clean_key):
+    """Key AI Studio selalu dikirim sebagai API key (header x-goog-api-key / ?key=). Bearer OAuth hanya cadangan terakhir."""
+    q_ = urllib.parse.quote(clean_key)
+    return [({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, ""),
+            ({'Content-Type': 'application/json'}, f"?key={q_}"),
+            ({'Content-Type': 'application/json', 'Authorization': f'Bearer {clean_key}'}, "")]
+
+def call_gemini_text(api_key, prompt):
+    """Panggil Gemini untuk teks bebas (narasi markdown). Memakai urutan model & autentikasi yang sama dengan call_gemini_ai_table."""
+    clean_key = _gem_clean_key(api_key)
+    if not clean_key:
+        raise RuntimeError('API Key Gemini belum diisi. Isi di menu Analisa (🤖 Pengaturan / Generate API Key) lalu klik Terapkan & Simpan, atau set GEMINI_API_KEY di .streamlit/secrets.toml.')
+    auth_variants = _gem_auth_variants(clean_key)
+    errs_ = []
+    for api_ver, model_name in _gem_models(clean_key):
+        for hdrs, q_str in auth_variants:
+            url = f"https://generativelanguage.googleapis.com/{api_ver}/models/{model_name}:generateContent{q_str}"
+            try:
+                req = urllib.request.Request(url, data=json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.5}}).encode('utf-8'), headers=hdrs)
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    return json.loads(resp.read().decode('utf-8'))['candidates'][0]['content']['parts'][0]['text'].strip()
+            except urllib.error.HTTPError as he:
+                body_ = ''
+                try: body_ = he.read().decode('utf-8')
+                except Exception: pass
+                m_ = re.search(r'"message"\s*:\s*"([^"]+)"', body_)
+                errs_.append(f"HTTP {he.code} {model_name}: {(m_.group(1) if m_ else he.reason)[:200]}"); continue
+            except Exception as e:
+                errs_.append(f"{model_name}: {e}"); continue
+    pri_ = [e_ for e_ in errs_ if 'HTTP 401' not in e_] or errs_   # error Bearer cadangan (401) tidak dijadikan alasan utama
+    first_ = (pri_[0] if pri_ else 'Gagal menghubungi Gemini API.') + f" [key terbaca: {clean_key[:4]}…{clean_key[-3:]}, {len(clean_key)} karakter]"
+    hint_ = ''
+    if all(('HTTP 401' in e_ or 'HTTP 403' in e_ or ('HTTP 400' in e_ and 'key' in e_.lower())) for e_ in errs_) and errs_: hint_ = ' → API Key ditolak Google. Pastikan key dibuat di aistudio.google.com/app/apikey dan disalin utuh tanpa tanda kutip.'
+    elif any('HTTP 404' in e_ for e_ in errs_): hint_ = ' → Model Gemini tidak tersedia untuk akun ini; perbarui daftar _GEM_MODEL_FALLBACK di app.py dengan nama model terbaru dari ai.google.dev/gemini-api/docs/models.'
+    elif any('urlopen error' in e_ or 'timed out' in e_ for e_ in errs_): hint_ = ' → koneksi internet ke Google bermasalah.'
+    raise RuntimeError(first_ + hint_)
+
+_MKT_GRP = [('panen', '🌾 Panen & Komoditas'), ('cair', '💰 Pencairan Dana & Bansos'), ('event', '🎪 Event & Keramaian'), ('ekon', '🏭 Aktivitas Ekonomi'), ('risiko', '⚠️ Risiko & Tekanan Daya Beli'), ('lain', '📌 Temuan Lain')]
+
+def _mkt_group(tag):
+    t_ = str(tag).lower()
+    for g_, ks_ in [('risiko', ('risiko', 'negatif', 'gagal', 'banjir', 'kering', 'phk', 'anjlok', 'tekan')),
+                    ('panen', ('panen', 'tani', 'komoditas', 'tembakau', 'padi', 'jagung', 'tebu', 'kopi', 'cabai', 'bawang')),
+                    ('cair', ('cair', 'bansos', 'gaji', 'thr', 'pkh', 'dana', 'kredit', 'bonus')),
+                    ('event', ('event', 'expo', 'festival', 'pasar', 'pameran', 'hajatan', 'wisata', 'keramaian', 'pilkades')),
+                    ('ekon', ('pabrik', 'pelabuhan', 'proyek', 'infrastruktur', 'dagang', 'ekonomi', 'umkm'))]:
+        if any(k_ in t_ for k_ in ks_): return g_
+    return 'lain'
+
+def lokal_market_struct(dealer, intel_text):
+    """Struktur Market Overview dealer: kecamatan Ring 1, temuan per kategori, waktu terbaik, catatan lain."""
+    lok_ = _lokasi_dealer(dealer); t_ = str(intel_text or '')
+    mf_ = _FYP_SPLIT.search(t_); body_ = t_[:mf_.start()] if mf_ else t_
+    mr_ = re.search(r'Ring\s*1\s*:\s*(.+?)(?=Market|Peluang|Waktu\s*terbaik|FAKTA|PERKIRAAN|\n|$)', body_, re.I)
+    ring_ = [x_.strip(' .*') for x_ in (mr_.group(1).split(',') if mr_ else []) if x_.strip(' .*') and len(x_.strip(' .*')) <= 30]
+    if lok_ and lok_[0] not in ring_: ring_.insert(0, lok_[0])
+    if mr_: body_ = body_[:mr_.start()] + body_[mr_.end():]
+    items_, best_, other_ = [], '', []
+    for ln_ in _intel_rapikan(body_).split('\n'):
+        m_ = re.match(r'•\s*([^:]{1,40}):\s*(.*)$', ln_)
+        if m_: items_.append((m_.group(1).strip(), m_.group(2).strip())); continue
+        m_ = re.match(r'(?i)(waktu\s*terbaik|market\s*overview|peluang)\s*:\s*(.*)$', ln_)
+        if m_:
+            if m_.group(1).lower().startswith('waktu'): best_ = m_.group(2).strip()
+            elif m_.group(2).strip(): other_.append(m_.group(2).strip())
+        elif ln_.strip(): other_.append(ln_.strip())
+    return {'ring': ring_, 'items': items_, 'best': best_, 'other': other_, 'lok': lok_}
+
+def _sent_split(t_):
+    return [x_.strip() for x_ in re.split(r'(?<=[a-z0-9\)])\.\s+(?=[A-Z])', str(t_ or '')) if x_.strip()]
+
+def _list_split(t_):
+    t_ = str(t_ or '').strip()
+    if '\n' in t_: parts_ = t_.split('\n')
+    elif re.search(r'(?:^|\s)1[.)]\s', t_): parts_ = re.split(r'\s*(?:^|(?<=\s))\d{1,2}[.)]\s+', t_)
+    elif ';' in t_: parts_ = t_.split(';')
+    else: parts_ = [t_]
+    return [re.sub(r'^\d{1,2}[.)]\s*', '', x_).strip(' ;') for x_ in parts_ if x_.strip(' ;')]
+
+_DC_CSS = """<style>
+.mk-head{background:linear-gradient(135deg,#EAF0FF,#F6F9FF);border:1.5px solid #8FA8F0;border-radius:12px;padding:14px 18px;margin:4px 0 12px 0;}
+.mk-head .t{font-size:22px;font-weight:800;color:#1E1B8F;margin-bottom:4px;} .mk-head .s{font-size:13.5px;color:#334E9B;line-height:1.55;}
+.mk-chip{display:inline-block;background:#FFFFFF;border:1px solid #8FA8F0;color:#1E3A8A;border-radius:14px;padding:2px 10px;margin:3px 4px 0 0;font-size:12.5px;font-weight:700;}
+.mk-card{background:#FFFFFF;border:1px solid #C9D6F7;border-left:5px solid #4318FF;border-radius:10px;padding:10px 16px;margin:0 0 10px 0;}
+.mk-card h4{margin:0 0 6px 0;font-size:16px;color:#1E1B8F;} .mk-card p,.mk-card li{color:#1E3A8A;font-size:14.5px;line-height:1.65;margin:0 0 4px 0;} .mk-card ul,.mk-card ol{margin:0;padding-left:20px;}
+.mk-note{background:#FFF8E1;border:1px solid #F2D98B;border-radius:8px;padding:8px 12px;font-size:13px;color:#7A5B00;margin-bottom:10px;}
+.mk-tbl{width:100%;border-collapse:collapse;font-size:13.5px;} .mk-tbl th{background:#EAF0FF;color:#1E1B8F;text-align:left;padding:7px 9px;border:1px solid #C9D6F7;} .mk-tbl td{padding:7px 9px;border:1px solid #C9D6F7;color:#1E3A8A;vertical-align:top;line-height:1.5;}
+</style>"""
+
+def _mk_card(title, body_html): return f'<div class="mk-card"><h4>{title}</h4>{body_html}</div>' if body_html else ''
+def _mk_ul(lst, ordered=False):
+    tag_ = 'ol' if ordered else 'ul'
+    return f'<{tag_}>' + ''.join(f'<li>{_html.escape(x_)}</li>' for x_ in lst) + f'</{tag_}>' if lst else ''
+_MK_BLN = r'(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)'
+_MK_TGL = re.compile(r'(?:\d{1,2}(?:\s*(?:[–—\-&,]|dan|s\.?d\.?)\s*\d{1,2})*\s+' + _MK_BLN + r'(?:\s+\d{4})?|' + _MK_BLN + r'\s+\d{4})', re.I)   # tanggal harus punya angka hari atau tahun (bulan saja tidak diwarnai)
+def _mk_red_dates(t_):
+    """Escape teks lalu bungkus tanggal (mis. '13–27 November 2026', 'November 2026') jadi merah + bold."""
+    t_ = str(t_ or ''); out_, pos_ = '', 0
+    for m_ in _MK_TGL.finditer(t_):
+        out_ += _html.escape(t_[pos_:m_.start()]) + f'<span style="color:#D32F2F;font-weight:800;">{_html.escape(m_.group(0))}</span>'; pos_ = m_.end()
+    return out_ + _html.escape(t_[pos_:])
+def _mk_ul_dates(lst): return '<ul>' + ''.join(f'<li>{_mk_red_dates(x_)}</li>' for x_ in lst) + '</ul>' if lst else ''
+_LIVE_SPLIT = re.compile(r'(?<=[.!?"”])\s+(?=[A-Z][\w/&\- ]{0,30}(?:\s*\([^)]*\))?\s*:)')
+def _mk_lines(t_):
+    """Setiap poin di baris baru tepat di bawahnya (tanpa jarak paragraf)."""
+    t_ = str(t_ or '').strip()
+    if not t_: return ''
+    pts_ = _list_split(t_) if ('\n' in t_ or re.search(r'(?:^|\s)1[.)]\s', t_)) else [x_.strip() for x_ in _LIVE_SPLIT.split(t_) if x_.strip()]
+    return '<p>' + '<br>'.join(_html.escape(x_) for x_ in pts_) + '</p>'
+def _mk_p_dates(t_): return f'<p>{_mk_red_dates(t_)}</p>' if str(t_ or '').strip() else ''
+def _mk_p(t_): return f'<p>{_html.escape(str(t_))}</p>' if str(t_ or '').strip() else ''
+
+def _intel_age_note(ts_):
+    try:
+        age_ = (_wib_now().replace(tzinfo=None) - datetime.datetime.strptime(ts_, '%Y-%m-%d %H:%M')).days
+        return f"Deep Research tersimpan {ts_} WIB" + (f" — sudah {age_} hari, sebaiknya jalankan ulang." if age_ >= 7 else " — masih berlaku (maks 7 hari).")
+    except Exception: return f"Deep Research tersimpan {ts_}" if ts_ else ''
+
+def render_market_overview(dealer):
+    lok_ = _lokasi_dealer(dealer); intel_ = lokal_intel_get(dealer); ts_ = intel_.get('ts', '') or lokal_intel_all_get().get('ts', '')
+    st.markdown(_DC_CSS, unsafe_allow_html=True)
+    if not intel_.get('text'):
+        st.info(f'ℹ️ Belum ada hasil Deep Research untuk {dealer}. Jalankan prompt Deep Research (tab 🧠 ANALISA PROBLEM & PERBAIKAN › panel Intel Lokal Ring 1), tempel hasilnya, lalu simpan.'); return
+    m_ = lokal_market_struct(dealer, intel_['text'])
+    kat_ = [n_ for g_, n_ in _MKT_GRP if any(_mkt_group(t_) == g_ for t_, _ in m_['items'])]
+    intro_ = f"Ring 1 {dealer} berpusat di Kecamatan {lok_[0]}, Kabupaten {lok_[1]}" + (f" dan mencakup {len(m_['ring'])} kecamatan: {', '.join(m_['ring'])}." if m_['ring'] else '.')
+    if m_['items']: intro_ += f" Deep Research mencatat {len(m_['items'])} temuan yang memengaruhi perputaran uang warga, yaitu " + ', '.join(n_.split(' ', 1)[1] for n_ in kat_) + '.'
+    if m_['best']: intro_ += ' Rangkuman waktu terbaik untuk menggenjot penjualan ada di bagian bawah.'
+    chips_ = ''.join(f'<span class="mk-chip">📍 {_html.escape(r_)}</span>' for r_ in m_['ring'])
+    st.markdown(f'<div class="mk-head"><div class="t">🌾 Market Overview — {_html.escape(dealer)}</div><div class="s">{_html.escape(intro_)}</div><div>{chips_}</div></div>', unsafe_allow_html=True)
+    st.caption('🕒 ' + _intel_age_note(ts_))
+    cards_ = ''
+    for g_, nm_ in _MKT_GRP:
+        its_ = [f"{t_}: {x_}" if g_ == 'lain' else x_ for t_, x_ in m_['items'] if _mkt_group(t_) == g_]
+        cards_ += _mk_card(nm_, _mk_ul(its_))
+    if m_['other']: cards_ += _mk_card('📝 Catatan Peluang', ''.join(_mk_p_dates(x_) for x_ in m_['other']))
+    if m_['best']: cards_ += _mk_card('📅 Waktu Terbaik Menjual', _mk_ul_dates(_sent_split(m_['best'])))
+    nar_ = lokal_intel_narasi(dealer, intel_['text'])
+    if nar_: cards_ += _mk_card('🎯 Rekomendasi Aksi', _mk_p(nar_[1]))
+    st.markdown(cards_ or '<div class="mk-note">Deep Research belum menemukan peluang spesifik di Ring 1 (TIDAK DITEMUKAN). Lakukan survei ringan ke kecamatan Ring 1.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="mk-note">ℹ️ Seluruh isi bersumber dari hasil Deep Research. Verifikasi lapangan sebelum dipakai sebagai dasar target.</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------------- TREND TIKTOK (Creative Center via Apify) ----
+APIFY_CONFIG_FILE = _ABS('apify_config.json')
+TIKTOK_TREND_FILE = _ABS('tiktok_trend_saved.json')
+TIKTOK_VIDEO_TAG = ('11013', 'Lifestyle & Leisure')   # kategori Top Videos (pilihan TikTok: 11002 Beauty & Care, 11003 Fashion, 11010 Food & Beverage, 11013 Lifestyle & Leisure, 11015 Technology & Finance)
+APIFY_ACTOR = 'data_xplorer~tiktok-trends'   # Apify actor: TikTok Creative Center (Trending Hashtags & Top Videos), negara Indonesia
+
+def _apify_ssl_ctx():
+    """Konteks SSL untuk Apify: pakai bundel sertifikat certifi (mengatasi CERTIFICATE_VERIFY_FAILED di Windows/Mac/Python tanpa CA).
+    Bila jaringan kantor memakai proxy ber-sertifikat sendiri, set SSL_CERT_FILE ke file CA kantor, atau (pilihan terakhir) APIFY_SSL_VERIFY = false di secrets/environment."""
+    import ssl
+    try: flag_ = st.secrets.get('APIFY_SSL_VERIFY', None)
+    except Exception: flag_ = None
+    flag_ = str(flag_ if flag_ is not None else os.environ.get('APIFY_SSL_VERIFY', 'true')).strip().lower()
+    if flag_ in ('false', '0', 'no', 'off'): return ssl._create_unverified_context()
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception: return ssl.create_default_context()
+
+def resolve_apify_token(): return apify_token()   # satu token Apify dipakai bersama (Trend TikTok & Google Review)
+
+def _apify_run(token_, body_, timeout_=150):
+    req_ = urllib.request.Request(f'https://api.apify.com/v2/acts/{APIFY_ACTOR}/run-sync-get-dataset-items', data=json.dumps(body_).encode('utf-8'),
+                                  headers={'Authorization': f'Bearer {token_}', 'Content-Type': 'application/json'})
+    try:
+        with urllib.request.urlopen(req_, timeout=timeout_, context=_apify_ssl_ctx()) as r_: return json.loads(r_.read().decode('utf-8'))
+    except urllib.error.HTTPError as he_:
+        try: msg_ = json.loads(he_.read().decode('utf-8')).get('error', {}).get('message', '')
+        except Exception: msg_ = ''
+        raise RuntimeError(f'Apify HTTP {he_.code}: {msg_ or he_.reason}')
+
+def tiktok_trend_fetch(token_):
+    """Ambil Trending Hashtags & Top Videos Indonesia (7 hari terakhir) dari TikTok Creative Center lewat Apify, simpan sebagai cache."""
+    tags_ = _apify_run(token_, {'trendType': 'hashtags', 'countryCode': 'ID', 'hashtagPeriod': '7', 'industryId': '', 'maxItems': 20})
+    vids_ = _apify_run(token_, {'trendType': 'videos', 'videoCountry': 'ID', 'videoPeriod': '7', 'videoContentTag': TIKTOK_VIDEO_TAG[0], 'videoOrderBy': '2', 'maxItems': 10})
+    def _g(d_, k_, df_=None): return d_.get(k_, df_) if isinstance(d_, dict) else df_
+    out_ = {'ts': _wib_now().strftime('%Y-%m-%d %H:%M'),
+            'tags': [{'tag': _g(x_, 'Hashtag', ''), 'posts': _g(x_, 'Posts'), 'views': _g(x_, 'Video Views'), 'dir': _g(x_, 'Trend Direction', ''), 'ind': ', '.join(_g(x_, 'Industries', []) or [])}
+                     for x_ in (tags_ if isinstance(tags_, list) else []) if _g(x_, 'Hashtag')],
+            'vcat': TIKTOK_VIDEO_TAG[1], 'vids': []}
+    for x_ in (vids_ if isinstance(vids_, list) else []):
+        mt_ = {m_.get('metric'): m_.get('value') for m_ in (_g(x_, 'Metrics', []) or []) if isinstance(m_, dict)}
+        if _g(x_, 'Title'): out_['vids'].append({'title': _g(x_, 'Title', ''), 'author': _g(x_, 'Author Handle') or _g(x_, 'Author', ''), 'views': _g(x_, 'Views'), 'eng': mt_.get('Engagement Rate'), 'url': _g(x_, 'Video TikTok URL', '')})
+    if not out_['tags'] and not out_['vids']: raise RuntimeError('Apify tidak mengembalikan data (hasil kosong).')
+    d_ = load_json(TIKTOK_TREND_FILE); d_['ID'] = out_; save_json(d_, TIKTOK_TREND_FILE)
+    return out_
+
+def tiktok_trend_get(): return load_json(TIKTOK_TREND_FILE).get('ID') or {}
+
+def _fmt_id_num(n_):
+    try: n_ = float(n_)
+    except Exception: return '-'
+    if n_ >= 1e9: return f'{n_ / 1e9:.1f} M'.replace('.', ',')
+    if n_ >= 1e6: return f'{n_ / 1e6:.1f} jt'.replace('.', ',')
+    if n_ >= 1e3: return f'{n_ / 1e3:.1f} rb'.replace('.', ',')
+    return f'{int(n_)}'
+
+def tiktok_trend_card_html(tt_):
+    """Isi kartu Audio & Tagar FYP dari data Creative Center (Apify)."""
+    if not tt_: return ''
+    arrow_ = {'up': '🔺', 'down': '🔻', 'stable': '▬'}
+    h_ = f'<p><b>📡 Sumber: TikTok Creative Center (Trend Intelligence) Indonesia, 7 hari terakhir — diambil {_html.escape(tt_.get("ts", ""))} WIB</b></p>'
+    if tt_.get('tags'):
+        li_ = ''.join(f'<li><b>{_html.escape(x_["tag"] if str(x_["tag"]).startswith("#") else "#" + str(x_["tag"]))}</b> — {_fmt_id_num(x_.get("posts"))} post, {_fmt_id_num(x_.get("views"))} views {arrow_.get(str(x_.get("dir", "")).lower(), "")}'
+                      + (f' <span style="opacity:.75;">({_html.escape(x_["ind"])})</span>' if x_.get('ind') else '') + '</li>' for x_ in tt_['tags'][:15])
+        h_ += f'<p style="margin-top:6px;"><b>🏷️ Hashtag Trending</b></p><ol>{li_}</ol>'
+    if tt_.get('vids'):
+        li_ = ''.join(f'<li>{_html.escape(str(x_["title"])[:140])} — <i>{_html.escape(str(x_.get("author", "")))}</i>, {_fmt_id_num(x_.get("views"))} views'
+                      + (f', engagement {float(x_["eng"]) * 100:.1f}%'.replace('.', ',') if isinstance(x_.get('eng'), (int, float)) else '') + '</li>' for x_ in tt_['vids'][:8])
+        h_ += f'<p style="margin-top:6px;"><b>🎬 Video Teratas — kategori {_html.escape(tt_.get("vcat") or "Semua kategori")} (urut engagement)</b></p><ol>{li_}</ol>'
+    h_ += '<p style="opacity:.8;font-size:13px;">ℹ️ Daftar lagu/audio trending sudah tidak ditampilkan TikTok di Creative Center (sejak redesign 2026), jadi bagian audio belum bisa diisi otomatis; gunakan hashtag & video di atas sebagai acuan format dan audio.</p>'
+    return h_
+
+def _tt_ts_fmt(ts_):
+    try: return datetime.datetime.strptime(ts_, '%Y-%m-%d %H:%M').strftime('%d/%m/%Y %H:%M')
+    except Exception: return str(ts_)
+
+def tiktok_trend_pull_ui():
+    """Tombol ambil Trend TikTok (Apify) — dipasang di menu UPLOAD FILE, di bawah tombol Google Review."""
+    if st.button('🔄 Ambil Trend TikTok (Apify)', key='btn_tt_apify', type='primary', use_container_width=True):
+        with st.spinner('📡 Mengambil data TikTok Creative Center via Apify (±30-60 detik)...'):
+            try: tiktok_trend_fetch(apify_token()); st.session_state['tt_msg'] = ''
+            except Exception as e_:
+                st.session_state['tt_msg'] = f'⚠️ Trend TikTok gagal: {e_}' + (' — sertifikat SSL komputer/jaringan tidak dikenali. Jalankan `pip install --upgrade certifi`, atau set SSL_CERT_FILE ke sertifikat CA jaringan Anda.' if 'CERTIFICATE_VERIFY_FAILED' in str(e_) else '')
+        st.rerun()
+    _tt = tiktok_trend_get()
+    if st.session_state.get('tt_msg'): st.warning(st.session_state['tt_msg'])
+    elif _tt.get('ts'): st.caption(f"✅ SELESAI UPDATE {_tt_ts_fmt(_tt['ts'])}")
+
+def tiktok_trend_note():
+    """Catatan di menu Digital Content: data TikTok diambil dari menu UPLOAD FILE."""
+    _tt = tiktok_trend_get()
+    st.caption(f"🕒 Trend TikTok (Creative Center) diambil {_tt_ts_fmt(_tt['ts'])} WIB · ambil data terbaru lewat tombol di menu 📁 UPLOAD FILE." if _tt.get('ts') else "ℹ️ Trend TikTok (Audio & Tagar FYP) belum diambil — klik **Ambil Trend TikTok (Apify)** di menu 📁 UPLOAD FILE.")
+
+def render_digital_content(dealer):
+    lok_ = _lokasi_dealer(dealer); intel_ = lokal_intel_get(dealer); ts_ = intel_.get('ts', '') or lokal_intel_all_get().get('ts', '')
+    st.markdown(_DC_CSS, unsafe_allow_html=True)
+    k_ = lokal_intel_konten(intel_.get('text', '')) if intel_.get('text') else None
+    if not k_:
+        st.info(f'ℹ️ Belum ada hasil Deep Research konten digital untuk {dealer}. Salin prompt Deep Research terbaru (tab 🧠 ANALISA PROBLEM & PERBAIKAN › panel Intel Lokal Ring 1), jalankan di Gemini, tempel hasilnya, lalu simpan.'); return
+    kec_ = lok_[0]
+    st.markdown(f'<div class="mk-head"><div class="t">🎬 Digital Content — {_html.escape(dealer)}</div><div class="s">Panduan konten video pendek (TikTok, Reels, Shorts) dan live jualan untuk warga Ring 1 Kecamatan {_html.escape(kec_)}, Kab. {_html.escape(lok_[1])}: siapa calon pembelinya, motor apa yang sedang dicari, format dan audio yang sedang naik, hook lokal, tagar, sampai kalender 7 hari siap eksekusi.</div></div>', unsafe_allow_html=True)
+    st.caption('🕒 ' + _intel_age_note(ts_))
+    tiktok_trend_note()
+    cards_ = ''
+    cards_ += _mk_card('👥 Calon Pembeli di Sekitar Dealer', _mk_ul(_list_split(k_.get('profil'))) if '\n' in str(k_.get('profil', '')) else _mk_p(k_.get('profil', '')))
+    cards_ += _mk_card('🏍️ Motor Yamaha yang Sedang Dicari', _mk_ul(_list_split(k_.get('model'))) if (';' in str(k_.get('model', '')) or '\n' in str(k_.get('model', ''))) else _mk_p(k_.get('model', '')))
+    cards_ += _mk_card('🔥 Format Video yang Sedang Naik', _mk_ul(_list_split(k_.get('format'))) if (';' in str(k_.get('format', '')) or '\n' in str(k_.get('format', ''))) else _mk_p(k_.get('format', '')))
+    _fyp_txt = str(k_.get('fyp', '') or '').strip(); _tt_html = tiktok_trend_card_html(tiktok_trend_get())
+    if _tt_html: cards_ += _mk_card('🎵 Audio & Tagar FYP', _tt_html + (_mk_p(_fyp_txt) if _fyp_txt and not _fyp_txt.upper().startswith('TIDAK DITEMUKAN') else ''))
+    else: cards_ += _mk_card('🎵 Audio & Tagar FYP', _mk_p(_fyp_txt))
+    cards_ += _mk_card('🪝 Hook 3 Detik Bernuansa Lokal', _mk_ul(_list_split(k_.get('hook')), ordered=True))
+    cards_ += _mk_card('🔎 Keyword & Tagar Berkinerja Tinggi', _mk_p(k_.get('cari', '')))
+    st.markdown(cards_, unsafe_allow_html=True)
+    if k_.get('kalender'):
+        rows_ = ''
+        for ln_ in [x_ for x_ in str(k_['kalender']).split('\n') if x_.strip()]:
+            parts_ = [x_.strip() for x_ in ln_.split(' | ')]
+            m_ = re.match(r'^(Hari\s*(?:ke-?\s*)?\d)\s*[:.\-]*\s*(.*)$', parts_[0], re.I)
+            if m_: parts_ = [m_.group(1)] + ([m_.group(2)] if m_.group(2) else []) + parts_[1:]
+            parts_ = (parts_[:3] + [' | '.join(parts_[3:])] if len(parts_) > 4 else parts_) + [''] * (4 - len(parts_))
+            rows_ += '<tr>' + ''.join(f'<td>{_html.escape(c_)}</td>' for c_ in parts_[:4]) + '</tr>'
+        st.markdown('<div class="mk-card"><h4>📅 Kalender Konten 7 Hari</h4><table class="mk-tbl"><tr><th>Hari</th><th>Ide Visual</th><th>Konsep Audio</th><th>Ajakan Bertindak (CTA)</th></tr>' + rows_ + '</table></div>', unsafe_allow_html=True)
+    tail_ = _mk_card('📡 Strategi Live Streaming', _mk_lines(k_.get('live', ''))) + _mk_card('✅ Standar Eksekusi Konten & Live',
+        _mk_ul(['Video spill harga atau walkaround 15-30 detik, DP dan cicilan tampil di layar.', 'Pakai audio yang sedang naik dan logat setempat agar terasa akrab.',
+                'Live TikTok/IG pukul 12.00-13.30 atau 19.30-21.30 dengan interaksi cepat; Facebook Live untuk rincian kredit, syarat berkas, dan lokasi dealer.',
+                f'Tulisan layar: "Tanya Simulasi Kredit Area {kec_} Langsung Dijawab"; pindahkan komentator ke WhatsApp dan catat sebagai DB.']))
+    if k_.get('ide'): tail_ = _mk_card('💡 Ide Konten Dealer', _mk_p(k_['ide'])) + tail_
+    st.markdown(tail_, unsafe_allow_html=True)
 
 
 def build_deep_research_prompt_all(tgl, bln_thn):
@@ -1971,18 +2394,34 @@ CARI informasi terbaru (3 bulan terakhir + jadwal ke depan) untuk SETIAP dealer 
 3. Event & keramaian: pasar rakyat, festival, hajatan massal, pilkades, pameran, hari besar, wisata musiman.
 4. Aktivitas ekonomi besar: pabrik, pelabuhan, proyek infrastruktur, sentra dagang.
 5. Kejadian negatif yang menekan daya beli: gagal panen, banjir, kekeringan, PHK, harga komoditas anjlok.
+6. PROFIL CALON PEMBELI di Ring 1: segmen dominan (mahasiswa/anak muda, keluarga, pekerja harian, petani/pedagang); sensitivitas harga (DP ringan, cicilan, tenor, syarat kredit seperti KTP daerah/rumah kontrak); 3-5 pertanyaan yang paling sering muncul (BBM per liter, bagasi, Y-Connect, warna tanpa inden).
+7. MODEL YAMAHA PALING POPULER (3 bulan terakhir) di Jawa Timur/wilayah dealer: tipe yang paling banyak dicari, dibicarakan, dan diminati (mis. NMAX Turbo, Aerox, Fazzio, Filano, Grand Filano, Gear 125, Mio M3, R15, WR155) beserta ALASAN kenapa ramai dibahas (fitur, harga, promo, isu, ulasan).
+8. FORMAT & KONSEP KONTEN OTOMOTIF VIRAL: 5-7 format video pendek otomotif roda dua yang paling sering masuk FYP di Indonesia SAAT INI di TikTok, Instagram Reels, Facebook Reels, dan YouTube Shorts (mis. POV berkendara, sketsa komedi tipe pengendara, review jujur konsumsi BBM, modifikasi tipis-tipis, edukasi perawatan mesin, info promo/simulasi kredit, spill harga, walkaround 15-30 detik) disertai AUDIO/lagu/sound yang sedang viral (gunakan TikTok Creative Center wilayah Indonesia, 7 hari terakhir, bila dapat diakses).
+9. HOOK 3 DETIK & SUDUT PANDANG LOKAL: 10 kalimat hook pembuka (3 detik pertama) yang memancing penasaran dan relevan dengan gaya hidup/kondisi jalan di Ring 1 dealer: nama jalur, arah perjalanan, pasar, kampus, pabrik, wisata, atau kebiasaan warga yang BENAR-BENAR ADA di wilayah itu (mis. jalur kota Genteng, arah Glenmore/Kalibaru untuk dealer di Genteng), serta logat/bahasa daerah setempat. DILARANG mengarang nama lokasi.
+10. KEYWORD & TAGAR berkinerja tinggi: kata kunci pencarian media sosial (autocomplete TikTok/YouTube/Google, mis. "harga NMAX [kota]", "kredit motor Yamaha [kota]") dan kombinasi tagar (tagar nasional otomotif + tagar lokal kecamatan/kabupaten) yang efektif untuk jangkauan; tambahkan tipe motor yang paling dicari/dikeluhkan di grup jual-beli/forum PUBLIK setempat.
+11. STRATEGI LIVE STREAMING: perbedaan penonton per platform (TikTok/IG Live cepat & santai; Facebook Live fokus simulasi kredit, berkas, lokasi), jam santai warga setempat (acuan 12.00-13.30 dan 19.30-21.30), dan hook tulisan layar.
+12. KALENDER KONTEN 7 HARI siap eksekusi untuk akun promosi dealer di wilayah itu: tiap hari memuat ide visual, konsep audio (dari hasil nomor 8), dan Call to Action yang memancing komentar warga lokal.
 
 ATURAN:
 - Tulis HANYA hal yang ada sumbernya. Setiap temuan wajib memuat NAMA KECAMATAN spesifik, tanggal/periode, serta nama dan URL sumber.
-- Jika tidak ada info untuk suatu poin, tulis "TIDAK DITEMUKAN". Jangan menebak atau mengarang.
+- Jika tidak ada info atau sumbernya tidak bisa diakses publik (mis. grup Facebook tertutup), tulis "TIDAK DITEMUKAN". Jangan menebak atau mengarang audio, hashtag, harga, atau angka.
 - Bedakan FAKTA (ada sumber) dan PERKIRAAN (beri label PERKIRAAN).
-- Bahasa Indonesia, ringkas, maksimal 120 kata per dealer, tanpa kalimat pembuka.
+- Bahasa Indonesia, maksimal 600 kata per dealer (bagian Hook lokal dan Kalender 7 hari boleh ringkas, satu baris per hook/hari), tanpa kalimat pembuka. Setiap label di FORMAT KELUARAN WAJIB diawali di BARIS BARU (jangan digabung dalam satu baris).
 
-FORMAT KELUARAN (WAJIB, satu blok per dealer, urut sesuai daftar, nama dealer ditulis PERSIS seperti di daftar):
+FORMAT KELUARAN (WAJIB, satu blok per dealer, urut sesuai daftar, nama dealer ditulis PERSIS seperti di daftar; tiap label di baris baru):
 DEALER: <NAMA DEALER>
 Ring 1: (daftar kecamatan)
+Market overview: (ringkasan 4-6 kalimat kondisi perputaran uang Ring 1: panen/komoditas, pencairan dana, event, aktivitas ekonomi, risiko; sebut kecamatan, periode, sumber URL)
 Peluang: (poin 1-5 yang ditemukan: kecamatan | komoditas/event | periode | sumber URL)
-Waktu terbaik: (3 peluang terbesar untuk sales motor beserta kecamatan dan tanggalnya)"""
+Waktu terbaik: (3 peluang terbesar untuk sales motor beserta kecamatan dan tanggalnya)
+Profil pembeli: (segmen, sensitivitas DP/cicilan/tenor/syarat kredit, 3-5 pertanyaan yang sering muncul)
+Model populer: (3-5 tipe Yamaha paling dicari 3 bulan terakhir + alasan ramai dibahas, sumber URL)
+Format viral: (5-7 format video pendek otomotif yang sedang FYP + platform)
+FYP medsos: (audio/lagu/sound viral + hashtag yang sedang naik + periode + sumber URL; TIDAK DITEMUKAN bila tidak ada)
+Hook lokal: (10 hook 3 detik, dinomori 1-10, satu baris per hook, sebut jalur/lokasi/kebiasaan lokal yang nyata)
+Keyword & tagar: (kata kunci pencarian + kombinasi tagar nasional & lokal + tipe motor yang paling dicari/dikeluhkan di grup lokal publik)
+Strategi live: (platform, jam terbaik, gaya interaksi per platform, hook tulisan layar)
+Kalender 7 hari: (Hari 1 sampai Hari 7, satu baris per hari: ide visual | konsep audio | Call to Action)"""
 
 
 def load_json(f):
@@ -2041,28 +2480,31 @@ def _real_files(dir_x):
     """Daftar file data di folder; abaikan file kunci/sementara Excel (~$nama.xlsx) dan file tersembunyi."""
     return [p_ for p_ in glob.glob(os.path.join(dir_x, '*.*')) if not os.path.basename(p_).startswith(('~$', '.'))]
 
-def save_database_files(up_files):
+def save_database_files(up_files, target_dir=None, meta_key='database_multi'):
+    """Simpan file Database. Default = Database bulan ini; target_dir=DB_LM_DIR & meta_key='database_lm_multi' = Database bulan lalu (perlakuan sama)."""
+    target_dir = target_dir or DB_Multi_DIR
+    os.makedirs(target_dir, exist_ok=True)
     meta = load_json(RAW_META_FILE)
     now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
-    file_times = meta.get('database_multi', {}).get('file_times', {})
+    file_times = meta.get(meta_key, {}).get('file_times', {})
     updated_dealers = []
     for uf in up_files:
         new_dlr = normalize_dealer_name(os.path.splitext(uf.name)[0])
-        for old_p in _real_files(DB_Multi_DIR):
+        for old_p in _real_files(target_dir):
             old_bname = os.path.basename(old_p)
             old_dlr = normalize_dealer_name(os.path.splitext(old_bname)[0])
             if (new_dlr in daftar_dealer and old_dlr == new_dlr) or (old_bname.upper() == uf.name.upper()):
                 try:
                     os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
                 except Exception: pass
-        p = os.path.join(DB_Multi_DIR, uf.name)
+        p = os.path.join(target_dir, uf.name)
         with open(p, 'wb') as f: f.write(uf.getbuffer())
         file_times[uf.name] = now_str
         updated_dealers.append(f"{uf.name} ({new_dlr})")
-    all_saved_paths = sorted(_real_files(DB_Multi_DIR))
+    all_saved_paths = sorted(_real_files(target_dir))
     all_names = [os.path.basename(p) for p in all_saved_paths]
     file_times = {k: file_times.get(k, now_str) for k in all_names}
-    meta['database_multi'] = {'file_names': all_names, 'saved_paths': all_saved_paths, 'file_times': file_times, 'count': len(all_names), 'updated_at': now_str}
+    meta[meta_key] = {'file_names': all_names, 'saved_paths': all_saved_paths, 'file_times': file_times, 'count': len(all_names), 'updated_at': now_str}
     save_json(meta, RAW_META_FILE)
     gcs_sync_up()
     return updated_dealers, len(all_names)
@@ -2179,6 +2621,9 @@ def stok_umur_cell(u_):
 def get_saved_database_paths():
     return sorted(_real_files(DB_Multi_DIR))
 
+def get_saved_database_lm_paths():
+    return sorted(_real_files(DB_LM_DIR))
+
 def save_rating_files(up_files):
     meta = load_json(RAW_META_FILE)
     now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
@@ -2217,11 +2662,19 @@ def get_azura_logo_path():
         if m.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')): return m
     return None
 
+@st.cache_data(show_spinner=False, max_entries=2)
+def _logo_b64_cached(path, mt):
+    with open(path, 'rb') as f_: return base64.b64encode(f_.read()).decode('utf-8')
+def _logo_b64(path):
+    try: mt_ = os.path.getmtime(path)
+    except Exception: mt_ = 0.0
+    return _logo_b64_cached(path, mt_)
+
 def render_sidebar_azura_logo():
     logo_p = get_azura_logo_path()
     if logo_p and os.path.exists(logo_p):
         try:
-            with open(logo_p, 'rb') as img_f: b64_str = base64.b64encode(img_f.read()).decode('utf-8')
+            b64_str = _logo_b64(logo_p)
             mime = 'image/png' if logo_p.lower().endswith('.png') else 'image/jpeg'
             st.sidebar.markdown(f'<div class="azura-logo-box"><img src="data:{mime};base64,{b64_str}" class="azura-logo-img" alt="AZURA"></div>', unsafe_allow_html=True)
             return
@@ -2229,16 +2682,16 @@ def render_sidebar_azura_logo():
     st.sidebar.markdown('<div class="azura-logo-box"><div class="azura-fallback-badge"><div style="font-size:22px; line-height:1;">🐺</div><div style="font-size:10px; font-weight:900; letter-spacing:1px; color:#0891B2; margin-top:2px;">AZURA</div></div></div>', unsafe_allow_html=True)
 
 def call_gemini_ai_table(api_key, raw_context_str):
-    clean_key = api_key.strip()
+    clean_key = _gem_clean_key(api_key)
     prompt = f"""Anda adalah Senior Sales Manager & Data Analyst Dealer Motor Yamaha.
 Berikut adalah DATA MENTAH LENGKAP dari Tabel 1 s.d 5, Data Alasan Reject SPK, serta TARGET RASIONAL 7 HARI KE DEPAN:
 {raw_context_str}
 
 TUGAS ANDA:
-Lakukan analisa silang yang tajam (temukan akar masalah/bottleneck tersembunyi dari data di atas) dan susun Action Plan taktis terukur dalam format JSON murni dengan 18 key berikut.
+Lakukan analisa silang yang tajam (temukan akar masalah/bottleneck tersembunyi dari data di atas) dan susun Action Plan taktis terukur dalam format JSON murni dengan 20 key berikut.
 
 ATURAN WAJIB (SANGAT KETAT):
-1. MAKSIMAL 35 KATA UNTUK SETIAP KEY cond_* dan plan_*! Buat kalimat yang super padat, to-the-point, langsung ke akar masalah dan angka sasaran (1 paragraf pendek saja per key). KHUSUS key berawalan plan_ : maksimal 40 kata (sudah mencakup target DAN cara mencapainya).
+1. MAKSIMAL 35 KATA UNTUK SETIAP KEY cond_* dan plan_* (KECUALI cond_lokal, plan_lokal, cond_konten, plan_konten yang diatur pada aturan 10 dan 11)! Buat kalimat yang super padat, to-the-point, langsung ke akar masalah dan angka sasaran (1 paragraf pendek saja per key). KHUSUS key berawalan plan_ : maksimal 40 kata (sudah mencakup target DAN cara mencapainya).
 2. GUNAKAN PERSIS ANGKA TARGET yang sudah disediakan di dalam konteks data. Target tersebut sudah disesuaikan dengan forecast AVG 3 (pace 3 hari kerja terakhir) sehingga achievable: JANGAN menaikkannya dan JANGAN membuat target muluk. Setiap key plan_* WAJIB memuat target DAN HOW TO konkret (siapa melakukan apa, kapan, berapa DB/SPK per hari).
 3. JANGAN gunakan tag HTML apa pun (teks polos murni).
 4. Gunakan kata 'dealer' (bukan cabang) dan istilah 'zona kritis'.
@@ -2247,7 +2700,8 @@ ATURAN WAJIB (SANGAT KETAT):
 7. Untuk Leasing: bedah masalah bottleneck konversi SPK ke Faktur Kredit (BAF/ADIRA/SOF), risiko SPK Terbuka, serta sebutkan alasan penolakan (Reject) tertinggi beserta solusinya.
 8. Key plan_* = SATU narasi utuh yang menyatukan TARGET dan HOW TO (tanpa penomoran, tanpa daftar, tanpa kata 'Target:'/'How to:'). Mulai dari target angka rasional, lalu sambung dengan 'dengan cara/lewat/melalui' langkah operasional yang LANGSUNG menjawab target itu: SIAPA melakukan APA, KAPAN, BERAPA angkanya, di KECAMATAN/LOKASI mana, lewat sumber DB apa. Target dan caranya harus nyambung satu alur kalimat. Pakai nama salesman/koordinator/type/leasing/alasan reject yang ada di data. DILARANG saran generik tanpa angka.
 9. KAITKAN HOW TO DENGAN AKTIVITAS LOKAL: bila bagian 'INTEL LOKAL RING 1' memuat panen/pencairan/event, plan_* (kecuali plan_leasing) WAJIB menyebut aksi di kecamatan tertentu beserta alasannya dari intel itu. Contoh gaya: 'Untuk capai +5 SPK, Koordinator Budi lakukan mobile test ride di Kecamatan X karena sedang panen tembakau, target 4 DB/hari.' Gunakan HANYA fakta yang tertulis di intel; DILARANG mengarang panen/event/kecamatan. Jika intel KOSONG atau TIDAK DITEMUKAN, jangan menyebut kejadian lokal, pakai cara berbasis data dealer.
-10. Key cond_lokal = ringkasan peluang perputaran uang ring 1 HANYA dari intel (sebut kecamatan, periode/sumber, akhiri '(verifikasi lapangan)'); jika intel kosong tulis intel belum ada dan sarankan survei ringan. Key plan_lokal = target + cara memanfaatkan peluang itu (kecamatan, waktu, sasaran DB/HOT, siapa yang turun) dalam satu narasi maks 40 kata.
+10. Key cond_lokal = MARKET OVERVIEW Ring 1: rangkuman LENGKAP seluruh temuan Deep Research pada bagian INTEL LOKAL RING 1 (panen/komoditas, pencairan dana, event, aktivitas ekonomi, risiko, waktu terbaik; sebut kecamatan, periode, sumber), BOLEH PANJANG 80-150 kata dan boleh beberapa paragraf dipisah baris baru, akhiri '(verifikasi lapangan)'. Abaikan bagian FYP di sini. Jika intel kosong tulis intel belum ada dan sarankan survei ringan. Key plan_lokal = target + cara memanfaatkan peluang itu (kecamatan, waktu, sasaran DB/HOT, siapa yang turun) maks 80 kata.
+11. KONTEN & LIVE: cond_konten (maks 160 kata, boleh beberapa baris) = rangkuman LENGKAP bagian intel 'Profil pembeli', 'Model populer', 'Format viral', 'FYP medsos', dan 'Keyword & tagar' (segmen, tipe Yamaha paling diminati + alasannya, sensitivitas DP/cicilan, pertanyaan sering, format/audio/tagar viral, kata pencarian). plan_konten (maks 230 kata, boleh beberapa baris) = rencana konten & live yang menyatu dengan data penjualan: 3 hook 3 detik terbaik dari 'Hook lokal', kalender 7 hari ringkas (Hari 1-7: visual | audio | CTA) dari intel, keyword & tagar yang dipakai, jadwal live (12.00-13.30 atau 19.30-21.30; TikTok/IG interaksi cepat & santai, Facebook rincian kredit/berkas/lokasi), hook layar 'Tanya Simulasi Kredit Area [kecamatan] Langsung Dijawab', siapa yang syuting/live, dan target DB/HOT dari konten (kaitkan dengan DB/HOT/STU% Media Sosial pada data). Gunakan HANYA fakta pada intel; DILARANG mengarang audio/tren/harga/hashtag/lokasi. Bagian yang TIDAK DITEMUKAN tulis 'belum ada data' dan sarankan riset (TikTok Creative Center, autocomplete, grup Facebook lokal). Jika intel kosong, nyatakan belum ada intel.
 
 Format JSON:
 {{
@@ -2267,21 +2721,13 @@ Format JSON:
   "plan_md": "Maks 40 kata, target + cara menyatu: target rasional STU & follow-up HOT untuk sub Event terlemah",
   "cond_sosmed": "Maks 35 kata: analisa prospect dari Media Sosial (DB, HOT/DB Q, STU/STU%) vs standar 30% dan 10%.",
   "plan_sosmed": "Maks 40 kata: target rasional STU + cara (waktu respon, pindah ke WhatsApp, test ride) dalam satu narasi.",
-  "cond_lokal": "Maks 35 kata: peluang perputaran uang ring 1 HANYA dari INTEL LOKAL RING 1 pada data (panen/pencairan/event). Jika kosong, nyatakan belum ada intel.",
-  "plan_lokal": "Maks 40 kata, target + cara menyatu: aksi pemanfaatan peluang lokal (kecamatan sasaran, waktu, target DB/HOT)"
+  "cond_lokal": "Market Overview 80-150 kata: rangkuman lengkap temuan Deep Research Ring 1 HANYA dari INTEL LOKAL RING 1 (panen/pencairan/event/risiko, kecamatan, periode). Jika kosong, nyatakan belum ada intel.",
+  "plan_lokal": "Maks 80 kata, target + cara menyatu: aksi pemanfaatan peluang lokal (kecamatan sasaran, waktu, target DB/HOT)",
+  "cond_konten": "Maks 160 kata: rangkuman profil pembeli, model populer, format viral, FYP audio, keyword & tagar Ring 1 dari INTEL LOKAL RING 1.",
+  "plan_konten": "Maks 230 kata: 3 hook lokal terbaik, kalender konten 7 hari ringkas, keyword & tagar, jadwal & gaya live, siapa yang eksekusi, target DB/HOT."
 }}"""
-    if clean_key.startswith('AIza'):
-        auth_variants = [
-            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, f"?key={urllib.parse.quote(clean_key)}"),
-            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, "")
-        ]
-    else:
-        auth_variants = [
-            ({'Content-Type': 'application/json', 'Authorization': f'Bearer {clean_key}'}, ""),
-            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, ""),
-            ({'Content-Type': 'application/json', 'x-goog-api-key': clean_key}, f"?key={urllib.parse.quote(clean_key)}")
-        ]
-    candidate_models = [('v1beta', 'gemini-2.5-flash'), ('v1beta', 'gemini-2.0-flash'), ('v1beta', 'gemini-1.5-flash'), ('v1', 'gemini-2.5-flash'), ('v1', 'gemini-2.0-flash'), ('v1', 'gemini-1.5-flash')]
+    auth_variants = _gem_auth_variants(clean_key)
+    candidate_models = _gem_models(clean_key)
     last_err = None
     for api_ver, model_name in candidate_models:
         for hdrs, q_str in auth_variants:
@@ -2308,10 +2754,24 @@ Format JSON:
 
 KPI_URL_COL = 'URL GOOGLE'   # hanya tabel Dealer: link Google Maps dealer (teks, bisa diisi lewat Excel)
 
-def apify_token():   # token Apify: st.secrets['APIFY_TOKEN'] atau environment APIFY_TOKEN (JANGAN ditulis di kode)
-    try: t_ = st.secrets.get('APIFY_TOKEN', None)
-    except Exception: t_ = None
-    return str(t_ or os.environ.get('APIFY_TOKEN') or '').strip()
+def apify_token():   # SATU token Apify untuk semua fitur (Trend TikTok & Google Review): input di aplikasi › st.secrets['APIFY_TOKEN'] › environment APIFY_TOKEN (JANGAN ditulis di kode)
+    if st.session_state.get('apify_token_input'): return str(st.session_state['apify_token_input']).strip()
+    cfg_ = str(load_json(APIFY_CONFIG_FILE).get('apify_token', '') or '').strip()
+    if cfg_: return cfg_
+    try:
+        for k_sec in ['APIFY_TOKEN', 'APIFY_API_TOKEN', 'apify_token']:
+            v_ = st.secrets.get(k_sec, None)
+            if v_ and str(v_).strip(): return str(v_).strip()
+    except Exception: pass
+    return str(os.environ.get('APIFY_TOKEN') or '').strip()
+
+def apify_token_settings(kp_):
+    """Kotak isian token Apify (dipakai di Digital Content & Upload File; token yang sama untuk semua actor Apify)."""
+    tok_ = apify_token()
+    with st.expander('⚙️ Token Apify (dipakai bersama: Trend TikTok & Google Review)' + ('' if tok_ else ' — belum diisi'), expanded=not tok_):
+        v_ = st.text_input('Apify API Token', type='password', key=f'apify_token_field_{kp_}', placeholder='apify_api_...', help='Apify Console › Settings › Integrations. Bisa juga lewat secrets APIFY_TOKEN.')
+        if st.button('💾 Simpan Token', key=f'btn_save_apify_{kp_}') and v_.strip():
+            save_json({'apify_token': v_.strip()}, APIFY_CONFIG_FILE); st.session_state['apify_token_input'] = v_.strip(); st.rerun()
 
 def apify_google_reviews(url_g, token_g, timeout_s=170):
     """Jumlah review Google (angka yang tampil di Google Maps SAAT INI) + rating untuk 1 URL dealer, lewat actor Apify Google Maps Scraper (compass/crawler-google-places)."""
@@ -2321,7 +2781,7 @@ def apify_google_reviews(url_g, token_g, timeout_s=170):
     ep_ = f'https://api.apify.com/v2/acts/{actor_}/run-sync-get-dataset-items?token={urllib.parse.quote(token_g)}&timeout={int(timeout_s)}'
     req_ = urllib.request.Request(ep_, data=json.dumps(body_).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
     try:
-        with urllib.request.urlopen(req_, timeout=timeout_s + 30) as r_: items_ = json.loads(r_.read().decode('utf-8') or '[]')
+        with urllib.request.urlopen(req_, timeout=timeout_s + 30, context=_apify_ssl_ctx()) as r_: items_ = json.loads(r_.read().decode('utf-8') or '[]')
     except urllib.error.HTTPError as he_: raise ValueError(f'Apify HTTP {he_.code} (cek token / saldo / URL)')
     if not isinstance(items_, list) or not items_ or not isinstance(items_[0], dict): raise ValueError('Apify tidak mengembalikan data tempat (cek URL Google Maps)')
     it_ = items_[0]
@@ -2344,7 +2804,7 @@ def apify_pull_grev():
         except Exception as _ex: _errs.append(f'{_dn}: {str(_ex)[:90]}')
     _pb.progress(1.0, text='Selesai')
     _all_a['dealer'] = _sd_a; save_json(_all_a, KPI_SAVED_FILE)
-    st.session_state['apify_grev_msg'] = (f'✅ {_okn} dealer diperbarui.' if _okn else '') + ((' ⚠️ Gagal: ' + ' | '.join(_errs)) if _errs else '')
+    st.session_state['apify_grev_msg'] = (('⚠️ ' + str(len(_errs)) + ' dealer gagal: ' + ' | '.join(_errs)) if _errs else '')   # sukses → cukup baris 'SELESAI UPDATE …'
 
 
 DEALER_TAB = '🧑‍💼 DASHBOARD DEALER'
@@ -2457,8 +2917,27 @@ def assign_leasing_faktur(df):
     if best_c is None: best_c = next((df.columns[cu.index(c)] for c in ['LEASING', 'NAMA LEASING', 'FINCOY', 'FINANCE COMPANY', 'NAMA FINCOY', 'KREDITUR', 'PEMBIAYAAN', 'VIA'] if c in cu), None)
     if best_c is None: best_c = next((df.columns[i] for i, c in enumerate(cu) if any(k in c for k in ['LEASING', 'FINCOY', 'FINANCE', 'PEMBIAYAAN', 'KREDIT'])), None)
     s_t = df[best_c].iloc[:, 0] if (best_c is not None and isinstance(df[best_c], pd.DataFrame)) else (df[best_c] if best_c is not None else None)
-    df['Leasing_Faktur_Clean'] = s_t.apply(normalize_leasing_val) if s_t is not None else ''
+    df['Leasing_Faktur_Clean'] = _memo_apply(s_t, normalize_leasing_val) if s_t is not None else ''
     return df
+
+@st.cache_data(show_spinner=False, max_entries=3)
+def _faktur_base(fpath, mtime):
+    """Faktur mentah + tanggal + leasing (tidak bergantung Data Lookup) — dihitung sekali per versi file."""
+    d_ = _xl_read(fpath, header=8)
+    if 'Tanggal' not in d_.columns and 'Tgl Pengajuan' not in d_.columns: d_ = _xl_read(fpath, header=0)
+    return assign_leasing_faktur(parse_date_cols(d_))
+
+@st.cache_data(show_spinner=False, max_entries=3)
+def _nota_base(fpath, mtime):
+    """Nota mentah + tanggal — dihitung sekali per versi file."""
+    d_t = _xl_read(fpath, header=5)
+    return parse_date_cols(_xl_read(fpath, header=0) if not any(k in d_t.columns for k in ['Nama Dealer', 'Dealer', 'Tanggal']) else d_t)
+
+@st.cache_data(show_spinner=False, max_entries=2)
+def _spk_raw(fpath, mtime):
+    if fpath.lower().endswith('.csv'): return pd.read_csv(fpath, header=None)
+    with pd.ExcelFile(fpath) as xf_:
+        return pd.read_excel(xf_, sheet_name=next((s for s in xf_.sheet_names if s.strip().upper() == 'SPK'), 0), header=None)
 
 def detect_type_col(df, map_d, map_ns):
     if df is None or df.empty: return None
@@ -2468,7 +2947,7 @@ def detect_type_col(df, map_d, map_ns):
         ku, kns, best_c, best_sc = set(map_d.keys()), set(map_ns.keys()), None, 0
         for i, cn in enumerate(df.columns):
             if cu[i] in ign or 'DATA TYPE' in cu[i]: continue
-            s = df.iloc[:, i].dropna().astype(str)
+            s = df.iloc[:, i].dropna().astype(str).drop_duplicates()   # cukup nilai unik (hasil sama, jauh lebih cepat)
             if s.empty: continue
             sc = max(len(set(s.str.split().str.join(' ').str.upper().unique()).intersection(ku)), len(set(s.str.split().str.join('').str.upper().unique()).intersection(kns)))
             if sc > best_sc: best_sc, best_c = sc, cn
@@ -2503,19 +2982,59 @@ def assign_type_from_lookup(df, map_d, map_ns, unmapped=None, col_idx=None):
     res = None
     if col_idx is not None and df.shape[1] > col_idx:   # kolom yang diminta (Database kolom L) lebih dulu
         tmp_un = set()
-        r_ = _col(df.columns[col_idx]).apply(_mk_fn(tmp_un))
+        r_ = _memo_apply(_col(df.columns[col_idx]), _mk_fn(tmp_un))
         if (r_ != 'LAIN-LAIN').any():
             res = r_
             if unmapped is not None: unmapped.update(tmp_un)
     if res is None:
         tc = detect_type_col(df, map_d, map_ns)
-        res = _col(tc).apply(_mk_fn(unmapped)) if tc is not None else pd.Series('LAIN-LAIN', index=df.index)
+        res = _memo_apply(_col(tc), _mk_fn(unmapped)) if tc is not None else pd.Series('LAIN-LAIN', index=df.index)
     df['Type_Clean'] = res
     return df
 
 def get_file_mtime(fpath):
     try: return os.path.getmtime(fpath) if fpath and os.path.exists(fpath) else 0.0
     except Exception: return 0.0
+
+# ---- PERFORMA: baca Excel/CSV sekali saja (kunci cache = path + waktu ubah file + argumen) ----
+# Mesin baca opsional lebih cepat: set secrets / env  BSG_XL_ENGINE=calamine  (butuh: pip install python-calamine). Default = bawaan pandas (perilaku sama seperti sebelumnya).
+_XL_ENGINE = os.environ.get('BSG_XL_ENGINE', '')
+try: _XL_ENGINE = str(st.secrets.get('BSG_XL_ENGINE', '') or _XL_ENGINE)
+except Exception: pass
+def _xl_read(fpath, **kw):
+    """Baca TANPA cache (dipakai di dalam fungsi ber-cache lain agar data tidak tersimpan dobel)."""
+    if fpath.lower().endswith(('.csv', '.txt')):
+        kw.pop('sheet_name', None)
+        return pd.read_csv(fpath, **kw)
+    if _XL_ENGINE and 'engine' not in kw:
+        try: return pd.read_excel(fpath, engine=_XL_ENGINE, **kw)
+        except Exception: pass   # mesin cepat gagal → pakai mesin bawaan pandas
+    return pd.read_excel(fpath, **kw)
+@st.cache_data(show_spinner=False, max_entries=32)
+def _xl_cached(fpath, mtime, kw_items): return _xl_read(fpath, **dict(kw_items))
+def xl(fpath, **kw):
+    """Pengganti pd.read_excel / pd.read_csv yang ter-cache. sheet_name=None → dict semua sheet."""
+    return _xl_cached(fpath, get_file_mtime(fpath), tuple(sorted(kw.items())))
+xl_any = xl   # CSV atau Excel menurut ekstensi
+
+@st.cache_resource(show_spinner=False, max_entries=4)
+def _clean_matrix(fpath, mtime, sheet, _df):
+    """Matriks teks bersih (clean_str) seluruh sel satu sheet — dihitung sekali per versi file, hanya-baca."""
+    return [[clean_str(v_) for v_ in row_] for row_ in _df.astype(object).values.tolist()]
+
+def _memo_apply(ser, fn):
+    """Series.apply(fn) yang hanya menghitung SEKALI per nilai unik (hasil identik, jauh lebih cepat untuk kolom berulang)."""
+    cache, na_res = {}, fn(None)
+    def _f(v):
+        try:
+            if v is None or v != v: return na_res
+        except Exception: return fn(v)
+        k_ = (v.__class__, v)
+        try: return cache[k_]
+        except KeyError:
+            r_ = cache[k_] = fn(v); return r_
+        except TypeError: return fn(v)
+    return ser.map(_f)
 
 @st.cache_data(show_spinner=False)
 def read_single_db_file_cached(fpath, mtime):
@@ -2715,10 +3234,9 @@ def load_employee_targets(fpath):
     t_exact, t_ns = dict(FIXED_COUNTER_TARGETS), dict(FIXED_COUNTER_TARGETS_NS)
     if not fpath or not os.path.exists(fpath): return t_exact, t_ns
     try:
-        df_e = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+        df_e = xl_any(fpath, header=None)
         if df_e is not None and df_e.shape[1] >= 6:
-            for i in range(len(df_e)):
-                nm, pos = clean_str(df_e.iloc[i, 2]), clean_str(df_e.iloc[i, 5])
+            for nm, pos in zip((clean_str(v_) for v_ in df_e.iloc[:, 2].tolist()), (clean_str(v_) for v_ in df_e.iloc[:, 5].tolist())):
                 if not nm or nm in ['NAMA', 'NAN', 'NONE'] or nm in FIXED_COUNTER_TARGETS or alnum_str(nm) in FIXED_COUNTER_TARGETS_NS: continue
                 tv = 5 if 'PLATINUM' in pos else (3 if 'GOLD' in pos else (2 if 'TRAINING' in pos else None))
                 if tv is not None: t_exact[nm], t_ns[alnum_str(nm)] = tv, tv
@@ -2794,13 +3312,19 @@ if menu_pilihan == UPLOAD_TAB:
         with _up_cols[-1]:   # Google Review hari ini (Apify) — di samping kanan Data Lookup
             st.markdown('<div style="font-size:14px;margin-bottom:6px;">Google Review hari ini</div>', unsafe_allow_html=True)
             _ap_urls = {str(n_): v_ for n_, v_ in (load_json(KPI_SAVED_FILE).get('dealer', {}) or {}).items() if str((v_ or {}).get(KPI_URL_COL, '') or '').strip().lower().startswith('http')}
-            if not apify_token(): st.warning('Token Apify belum diisi. Tambahkan `APIFY_TOKEN` di st.secrets (atau environment APIFY_TOKEN).')
+            _tok_ok = bool(apify_token())
+            if not _tok_ok: st.warning('Token Apify belum diisi — isi pada kotak ⚙️ Token Apify di bawah (satu token untuk Google Review & Trend TikTok).')
             elif not _ap_urls: st.info('Belum ada dealer dengan URL GOOGLE (isi di MASTER TARGET › KPI Dealer).')
             elif st.button('🔄 Tarik Google Review hari ini (Apify)', key='btn_apify_grev', type='primary', use_container_width=True):
                 apify_pull_grev(); st.rerun()
-            if st.session_state.get('apify_grev_msg'): st.info(st.session_state['apify_grev_msg'])
-            _ap_upd = [f"{n_}: {v_.get('R. G REV', 0)} review · {v_.get('G REV UPDATE')}" for n_, v_ in _ap_urls.items() if v_.get('G REV UPDATE')]
-            if _ap_upd: st.caption(f'{len(_ap_urls)} dealer berURL · Penarikan terakhir — ' + '  |  '.join(_ap_upd))
+            _ap_last = []
+            for _v_ in _ap_urls.values():
+                try: _ap_last.append(datetime.datetime.strptime(str((_v_ or {}).get('G REV UPDATE', '')), '%d/%m/%Y %H:%M'))
+                except Exception: pass
+            if st.session_state.get('apify_grev_msg'): st.warning(st.session_state['apify_grev_msg'])
+            elif _ap_last: st.caption(f"✅ SELESAI UPDATE {max(_ap_last).strftime('%d/%m/%Y %H:%M')}")
+            if _tok_ok: tiktok_trend_pull_ui()   # Ambil Trend TikTok (Apify) — tepat di bawah tombol Google Review
+            apify_token_settings('up')
         _stk_cols = st.columns(len(up_defs) + 1)   # baris kedua Grup 1: Stok Unit (untuk menu STOCK CONDITION)
         with _stk_cols[0]:
             _stk_uf = st.file_uploader('Stok Unit', type=['xls', 'xlsx'], key='stok_up', help='File Stok Detail [ SEPEDA MOTOR ] (.xls / .xlsx) — sumber menu STOCK CONDITION.')
@@ -2829,6 +3353,25 @@ if menu_pilihan == UPLOAD_TAB:
                         except Exception: pass
                     meta_info.pop('database_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
             else: st.warning("⚠️ Belum ada file Database.")
+            # ---- Database BULAN LALU (di bawah Database bulan ini; perlakuan sama: parsial / banyak file, nama file = dealer) ----
+            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+            db_lm_ups = st.file_uploader('Database Bulan Lalu — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_lm_up', help='Dipakai sebagai pembanding (vs bulan lalu) di menu Penjualan per Type. Nama file sama dengan Database bulan ini (mis. SIP PANJI.xlsx).')
+            if db_lm_ups:
+                upd_lm_list, total_lm_active = save_database_files(db_lm_ups, DB_LM_DIR, 'database_lm_multi')
+                st.success(f"✅ **Update Parsial Database Bulan Lalu Berhasil!** File diperbarui: `{', '.join(upd_lm_list)}`. File dealer lainnya tetap aman (Total **{total_lm_active} File Database Bulan Lalu** aktif).")
+                bsg_toast_once('up_dblm_' + '|'.join(f'{u.name}{u.size}' for u in db_lm_ups), f'Database bulan lalu diperbarui ({len(db_lm_ups)} file)')
+            saved_db_lm_now = get_saved_database_lm_paths()
+            if saved_db_lm_now:
+                lm_ftimes = load_json(RAW_META_FILE).get('database_lm_multi', {}).get('file_times', {})
+                lm_badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({lm_ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_db_lm_now]
+                st.info(f"📌 **Database Bulan Lalu Aktif ({len(saved_db_lm_now)} File):** " + " | ".join(lm_badge_items))
+                if IS_ADMIN and st.button('🗑️ Reset Semua DB Bulan Lalu', key='btn_rst_all_db_lm', help='Hapus seluruh file database bulan lalu jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
+                    for old_p in saved_db_lm_now:
+                        try:
+                            os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
+                        except Exception: pass
+                    meta_info.pop('database_lm_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
+            else: st.warning("⚠️ Belum ada file Database Bulan Lalu.")
         with col_rt:
             rt_ups = st.file_uploader('Rating Dealer — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='rating_up')
             if rt_ups:
@@ -2881,10 +3424,9 @@ def load_hidden_koor(fpath):
     out = set()
     if not fpath or not os.path.exists(fpath): return out
     try:
-        df_e = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+        df_e = xl_any(fpath, header=None)
         if df_e is not None and df_e.shape[1] >= 6:
-            for i in range(len(df_e)):
-                nm, pos = alnum_str(clean_str(df_e.iloc[i, 2])), alnum_str(clean_str(df_e.iloc[i, 5]))
+            for nm, pos in zip((alnum_str(clean_str(v_)) for v_ in df_e.iloc[:, 2].tolist()), (alnum_str(clean_str(v_)) for v_ in df_e.iloc[:, 5].tolist())):
                 if nm and 'SHOPMANAGER' in pos: out.add(nm)
     except Exception: pass
     return out
@@ -2902,10 +3444,9 @@ def load_employee_join(fpath):
     if key in _EMP_JOIN_CACHE: return _EMP_JOIN_CACHE[key]
     out = {}
     try:
-        df_e = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
+        df_e = xl_any(fpath, header=None)
         if df_e is not None and df_e.shape[1] >= 11:
-            for i in range(len(df_e)):
-                nm = alnum_str(clean_str(df_e.iloc[i, 2])); v_ = df_e.iloc[i, 10]
+            for nm, v_ in zip((alnum_str(clean_str(x_)) for x_ in df_e.iloc[:, 2].tolist()), df_e.iloc[:, 10].tolist()):
                 if not nm or nm in out or pd.isna(v_): continue
                 if isinstance(v_, (datetime.datetime, datetime.date, pd.Timestamp)): dt_ = pd.Timestamp(v_)
                 else: dt_ = pd.to_datetime(str(v_).strip(), dayfirst=True, errors='coerce')   # teks dd/mm/yyyy; judul 'Tgl Mulai' → NaT
@@ -2967,15 +3508,21 @@ mapping_salesman_koor, mapping_salesman_dealer, mapping_dealer_spk, mapping_type
 mapping_salesman_koor_dlr = {}   # (nama salesman tanpa spasi/tanda baca, DEALER) -> koordinator: dipakai SETELAH dealer ditentukan dari kode dealer / Point Code
 if path_lookup:
     try:
-        xl_lk = pd.ExcelFile(path_lookup)
-        sh_lk = next((s for s in xl_lk.sheet_names if 'LOOKUP' in s.strip().upper()), xl_lk.sheet_names[0])
-        df_lk = pd.read_excel(path_lookup, sheet_name=sh_lk, header=None)
+        _lk_sheets = xl(path_lookup, sheet_name=None, header=None)   # semua sheet dibaca SEKALI (ter-cache per waktu ubah file)
+        _lk_names = list(_lk_sheets.keys())
+        sh_lk = next((s for s in _lk_names if 'LOOKUP' in s.strip().upper()), _lk_names[0])
+        df_lk = _lk_sheets[sh_lk]
+        _LKC = _clean_matrix(path_lookup, get_file_mtime(path_lookup), sh_lk, df_lk)   # matriks teks bersih (ter-cache) untuk semua pemindaian di bawah
+        _tick('lookup dibaca')
         try:   # TARGET TETAP COUNTER: Data Lookup kolom AW (nama salesman counter) & AX (target STU) melengkapi FIXED_COUNTER_TARGETS; daftar bawaan kode tetap jadi cadangan
             if df_lk.shape[1] > 49:
                 _fx_new = {}
-                for _r_fx in range(len(df_lk)):
-                    _n_fx, _v_fx = clean_str(df_lk.iloc[_r_fx, 48]), pd.to_numeric(df_lk.iloc[_r_fx, 49], errors='coerce')
-                    if _n_fx and _n_fx not in ('NAN', 'NONE') and not _n_fx.startswith('SALES ') and pd.notna(_v_fx) and _v_fx > 0: _fx_new[_n_fx] = int(_v_fx)   # baris 'SALES PLATINUM/GOLD/TRAINING' (5/3/2) dilewati: itu target jabatan, bukan counter
+                _col_fx = df_lk.iloc[:, 49].tolist()
+                for _r_fx, _row_fx in enumerate(_LKC):
+                    _n_fx = _row_fx[48]
+                    if not _n_fx or _n_fx in ('NAN', 'NONE') or _n_fx.startswith('SALES '): continue
+                    _v_fx = pd.to_numeric(_col_fx[_r_fx], errors='coerce')
+                    if pd.notna(_v_fx) and _v_fx > 0: _fx_new[_n_fx] = int(_v_fx)   # baris 'SALES PLATINUM/GOLD/TRAINING' (5/3/2) dilewati: itu target jabatan, bukan counter
                 if _fx_new:
                     FIXED_COUNTER_TARGETS.update(_fx_new); FIXED_COUNTER_TARGETS_NS.update({alnum_str(k_): v_ for k_, v_ in _fx_new.items()})
                     mapping_emp_target, mapping_emp_target_ns = load_employee_targets(path_employee)   # hitung ulang agar nama counter baru tidak ikut target jabatan
@@ -2983,31 +3530,30 @@ if path_lookup:
         try:   # nama dealer dari Data Lookup: blok NAMA DEALER | STATUS | KOTA, kolom X (dealer Point Code) & kolom J (nama dealer SPK)
             for r_i in range(min(60, len(df_lk))):
                 for c_i in range(df_lk.shape[1] - 2):
-                    if clean_str(df_lk.iloc[r_i, c_i]) == 'NAMA DEALER' and clean_str(df_lk.iloc[r_i, c_i + 1]) == 'STATUS':
+                    if _LKC[r_i][c_i] == 'NAMA DEALER' and _LKC[r_i][c_i + 1] == 'STATUS':
                         LOOKUP_DEALERS.update(clean_str(v_) for v_ in df_lk.iloc[r_i + 1:, c_i].dropna() if clean_str(v_) not in ('', 'NAN', 'NONE'))
             for c_i in (9, 23):
                 if df_lk.shape[1] > c_i: LOOKUP_DEALERS.update(clean_str(v_) for v_ in df_lk.iloc[:, c_i].dropna() if clean_str(v_).startswith(('SIP', 'SENTRAL YAMAHA')))
         except Exception: pass
         if df_lk.shape[1] >= 2:
             skip_h = {'TYPE', 'TIPE', 'NAMA TYPE', 'NAMA TIPE', 'UNIT', 'MODEL', 'KATEGORI', 'GROUP TYPE', 'JENIS', 'ROW LABELS', 'NAN', 'NONE', ''}
-            for i in range(len(df_lk)):
-                ra, rb = clean_str(df_lk.iloc[i, 0]), clean_str(df_lk.iloc[i, 1])
+            for _row_t in _LKC:
+                ra, rb = _row_t[0], _row_t[1]
                 if ra and rb and ra not in skip_h and rb not in skip_h:
                     mapping_type_lookup[ra] = mapping_type_lookup_nospace[nospace_str(ra)] = rb
                     if rb not in daftar_kategori_type: daftar_kategori_type.append(rb)
         sc, kc, dc, hr = None, None, None, None
         for r in range(min(50, len(df_lk))):
-            for c, val in enumerate(df_lk.iloc[r]):
-                vs = clean_str(val)
+            for c, vs in enumerate(_LKC[r]):
                 if any(k in vs for k in ['NAMA SALES', 'SALESMAN', 'PRAMUNIAGA', 'PEGAWAI']): sc = c
                 elif 'KOOR' in vs: kc = c
                 elif any(k in vs for k in ['DEALER', 'NAMA DEALER', 'CABANG', 'POINT NAME', 'OUTLET']): dc = c
             if sc is not None: hr = r; break
         if sc is not None:
             for i in range(hr + 1, len(df_lk)):
-                sm = clean_str(df_lk.iloc[i, sc]) if sc is not None and sc < df_lk.shape[1] else ''
-                kr = clean_str(df_lk.iloc[i, kc]) if kc is not None and kc < df_lk.shape[1] else ''
-                dlr_lk = clean_str(df_lk.iloc[i, dc]) if dc is not None and dc < df_lk.shape[1] else ''
+                sm = _LKC[i][sc] if sc is not None and sc < df_lk.shape[1] else ''
+                kr = _LKC[i][kc] if kc is not None and kc < df_lk.shape[1] else ''
+                dlr_lk = _LKC[i][dc] if dc is not None and dc < df_lk.shape[1] else ''
                 if sm and sm not in ['NAN', 'NONE']:
                     if kr and kr not in ['NAN', 'NONE']: mapping_salesman_koor[sm] = kr
                     if dlr_lk and dlr_lk not in ['NAN', 'NONE']:
@@ -3017,7 +3563,7 @@ if path_lookup:
                             if kr and kr not in ['NAN', 'NONE']: mapping_salesman_koor_dlr[(alnum_str(sm), norm_dlr)] = kr
         if df_lk.shape[1] > 9:
             for i in range(len(df_lk)):
-                ri, rj = clean_str(df_lk.iloc[i, 8]), clean_str(df_lk.iloc[i, 9])
+                ri, rj = _LKC[i][8], _LKC[i][9]
                 if ri.endswith('.0'): ri = ri[:-2].strip()
                 if rj.endswith('.0'): rj = rj[:-2].strip()
                 if ri and rj and ri not in ['NAN', 'NONE'] and rj not in ['NAN', 'NONE']:
@@ -3030,7 +3576,7 @@ if path_lookup:
                         mapping_dealer_spk[ri] = nj
         for c_idx in range(df_lk.shape[1] - 1):
             for r_idx in range(len(df_lk)):
-                v1, v2 = clean_str(df_lk.iloc[r_idx, c_idx]), clean_str(df_lk.iloc[r_idx, c_idx + 1])
+                v1, v2 = _LKC[r_idx][c_idx], _LKC[r_idx][c_idx + 1]
                 if v1.endswith('.0'): v1 = v1[:-2].strip()
                 if v2.endswith('.0'): v2 = v2[:-2].strip()
                 if not v1 or not v2 or v1 in ['NAN', 'NONE'] or v2 in ['NAN', 'NONE']: continue
@@ -3065,8 +3611,8 @@ if path_lookup:
                 if (sm_ and kr_ and sm_ not in ('NAN', 'NONE') and kr_ not in ('NAN', 'NONE', '-', 'LAIN-LAIN')
                         and 'KOOR' not in kr_ and not sm_.startswith(('SALESMAN', 'NAMA SALES'))):
                     mapping_salesman_koor.setdefault(sm_, kr_)
-        for sh_ in xl_lk.sheet_names:
-            df_sh = df_lk if sh_ == sh_lk else pd.read_excel(path_lookup, sheet_name=sh_, header=None)
+        for sh_ in _lk_names:
+            df_sh = df_lk if sh_ == sh_lk else _lk_sheets[sh_]
             for sm_, kr_, dl_ in _scan_lookup_sales(df_sh):
                 mapping_salesman_koor.setdefault(sm_, kr_)
                 _nd_ = normalize_dealer_name(dl_) if (dl_ and dl_ not in ('NAN', 'NONE')) else ''
@@ -3075,6 +3621,7 @@ if path_lookup:
 
 unmapped_types_all, sales_tanpa_koor, sales_tanpa_koor_db, sales_tanpa_koor_spk = set(), set(), set(), set()
 
+_tick('lookup + mapping')
 def apply_koor_dealer_aware(df, koor_col_name='Koor'):
     """URUTAN LOOKUP: (1) dealer sudah ditentukan dari kode dealer / Point Code, (2) baru nama salesman di-lookup ke koordinatornya PADA DEALER ITU.
     Bila lookup memuat salesman yang sama di beberapa dealer, koordinator yang dipakai adalah koordinator di dealer baris tersebut (bukan yang terakhir terbaca)."""
@@ -3133,7 +3680,7 @@ def assign_koor_and_sales(df, col_idx_override=None, tracker=None, koor_col_name
                     return 'LAIN-LAIN'
                 return kr_val
             return 'LAIN-LAIN'
-        df[koor_col_name] = df['Salesman_Clean'].apply(map_kr)
+        df[koor_col_name] = _memo_apply(df['Salesman_Clean'], map_kr)
         df = apply_koor_dealer_aware(df, koor_col_name)   # koordinator disesuaikan dengan dealer baris (dealer lebih dulu, salesman → koordinator kemudian)
     else: df['Salesman_Clean'], df[koor_col_name] = None, 'LAIN-LAIN'
     return df
@@ -3188,10 +3735,9 @@ def lookup_dealer_name(val):
 df_faktur, df_faktur_all, df_faktur_kontribusi = None, None, None   # df_faktur_kontribusi = SEMUA dealer, hanya untuk pie kontribusi di tab Penjualan
 if path_faktur:
     try:
-        df_faktur_raw = pd.read_excel(path_faktur, header=8)
-        if 'Tanggal' not in df_faktur_raw.columns and 'Tgl Pengajuan' not in df_faktur_raw.columns: df_faktur_raw = pd.read_excel(path_faktur, header=0)
+        df_faktur_raw = _faktur_base(path_faktur, get_file_mtime(path_faktur))   # baca + tanggal + leasing: ter-cache
         if 'Nama Dealer' in df_faktur_raw.columns: df_faktur_raw['Nama Dealer'] = df_faktur_raw['Nama Dealer'].map(lookup_dealer_name)
-        df_faktur_raw = add_status_kota(assign_leasing_faktur(parse_date_cols(df_faktur_raw)))
+        df_faktur_raw = add_status_kota(df_faktur_raw)
         df_faktur_kontribusi = assign_koor_and_sales(assign_type_from_lookup(df_faktur_raw.copy(), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all), tracker=None)   # semua dealer (hanya untuk kontribusi)
         _m_mds_f = df_faktur_raw['Nama Dealer'].map(is_mds_dealer).values if 'Nama Dealer' in df_faktur_raw.columns else pd.Series(True, index=df_faktur_raw.index).values
         df_faktur_all = df_faktur_kontribusi[_m_mds_f].reset_index(drop=True)   # analisa: hanya dealer berstatus MDS
@@ -3199,16 +3745,17 @@ if path_faktur:
         df_faktur = assign_koor_and_sales(assign_type_from_lookup(df_faktur, mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all), tracker=sales_tanpa_koor)
     except Exception as e: st.error(f'Error Faktur: {e}')
 
+_tick('faktur')
 df_nota = None
 if path_nota:
     try:
-        df_nt = pd.read_excel(path_nota, header=5)
-        df_nota = parse_date_cols(pd.read_excel(path_nota, header=0) if not any(k in df_nt.columns for k in ['Nama Dealer', 'Dealer', 'Tanggal']) else df_nt)
+        df_nota = _nota_base(path_nota, get_file_mtime(path_nota))   # baca + tanggal: ter-cache
         cd = 'Nama Dealer' if 'Nama Dealer' in df_nota.columns else ('Dealer' if 'Dealer' in df_nota.columns else None)
         if cd: df_nota[cd] = df_nota[cd].map(lookup_dealer_name); df_nota = df_nota[df_nota[cd].map(is_mds_dealer)].reset_index(drop=True)   # hanya dealer MDS
         df_nota = assign_koor_and_sales(assign_type_from_lookup(df_nota, mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all), tracker=sales_tanpa_koor)
     except Exception as e: st.error(f'Error Nota: {e}')
 
+_tick('nota')
 df_database = None
 DB_DEDUP_REMOVED = 0
 if paths_database:
@@ -3255,7 +3802,9 @@ try:
 except Exception: mapping_point_code = {}
 if df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns and 'Dealer_File_Asal' not in df_database.columns:
     df_database['Dealer_File_Asal'] = df_database['Nama_Dealer_Clean']   # dealer menurut nama file (untuk rekonsiliasi)
-if mapping_point_code and df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns:
+def _db_apply_pointcode(df_database):
+    """Pemecahan dealer via Point Code (kolom J Database → Data Lookup V/X) + override koordinator. Dipakai Database bulan ini & bulan lalu."""
+    if not (mapping_point_code and df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns): return df_database
     _pc_col = next((c_ for c_ in df_database.columns if str(c_).strip().upper() == 'POINT CODE'), (df_database.columns[9] if df_database.shape[1] > 9 else None))   # kolom J
     if _pc_col is not None:
         _pc_ser = df_database[_pc_col]
@@ -3282,10 +3831,35 @@ if mapping_point_code and df_database is not None and not df_database.empty and 
         _KOOR_DLR_OVR = {'BERTUS PRIBADI': 'SIP BONDOWOSO', 'EDY SUSANTO': 'SIP BONDOWOSO'}
         _m_ovr = (df_database['Nama_Dealer_Clean'] == 'SIP NANGKAAN') & df_database['Koor'].isin(list(_KOOR_DLR_OVR))
         if _m_ovr.any(): df_database.loc[_m_ovr, 'Nama_Dealer_Clean'] = df_database.loc[_m_ovr, 'Koor'].map(_KOOR_DLR_OVR)
+    return df_database
+if mapping_point_code and df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns: df_database = _db_apply_pointcode(df_database)
 df_database_unfiltered = df_database   # semua dealer (hanya untuk cek pemecahan Point Code)
 if df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns:
     df_database = df_database[df_database['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)   # analisa: hanya dealer MDS
 df_database_alldlr = df_database
+
+# ---- Database BULAN LALU: alur sama dengan Database bulan ini (baca → type lookup → buang baris ganda antar file → salesman/koordinator → dealer via Point Code → hanya dealer MDS) ----
+df_database_lm_alldlr = None
+paths_database_lm = get_saved_database_lm_paths()
+if paths_database_lm:
+    try:
+        _l_lm = []
+        for _p_lm in paths_database_lm:
+            _d_lm = assign_type_from_lookup(read_single_db_file(_p_lm), mapping_type_lookup, mapping_type_lookup_nospace, set(), col_idx=11)
+            if not _d_lm.empty:
+                _d_lm['File_Database'] = os.path.basename(_p_lm); _d_lm['_src'] = len(_l_lm); _l_lm.append(_d_lm)
+        if _l_lm:
+            _c_lm = pd.concat(_l_lm, ignore_index=True)
+            _kc_lm = {str(c_).strip().upper(): c_ for c_ in _c_lm.columns}
+            _kd_lm = [_kc_lm[k_] for k_ in ('CUSTOMER NAME', 'KTP NO.', 'PROSPECT DATE', 'POINT CODE', 'SALESMAN') if k_ in _kc_lm]
+            if len(_l_lm) > 1 and len(_kd_lm) >= 3:
+                _c_lm = _c_lm[_c_lm['_src'] == _c_lm.groupby(_kd_lm, dropna=False)['_src'].transform('max')].reset_index(drop=True)
+            _ac_lm = _c_lm.shape[1] > 28 and str(_c_lm.columns[28]).strip().upper() in ('SALESMAN', 'SALESMAN NAME', 'NAMA SALES', 'NAMA SALESMAN')
+            _x_lm = assign_koor_and_sales(_c_lm, col_idx_override=(28 if _ac_lm else None), tracker=set())
+            _x_lm = _db_apply_pointcode(_x_lm)
+            if _x_lm is not None and not _x_lm.empty and 'Nama_Dealer_Clean' in _x_lm.columns:
+                df_database_lm_alldlr = _x_lm[_x_lm['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)
+    except Exception as _e_lm: st.warning(f'Database bulan lalu gagal dibaca: {_e_lm}')
 
 def strip_sub_code(v):
     """Buang kode di depan nama sub prospect (mis. '03 - Pameran' / 'EV01: Pameran' -> 'PAMERAN')."""
@@ -3361,10 +3935,11 @@ def _tandai_stu(df_d):
 _tandai_stu(df_database)
 if df_database_alldlr is not None and df_database_alldlr is not df_database: _tandai_stu(df_database_alldlr)   # database semua dealer (Dashboard Dealer) juga perlu kolom STU
 
+_tick('database + STU')
 df_spk = None
 if path_spk:
     try:
-        df_sr = pd.read_csv(path_spk, header=None) if path_spk.lower().endswith('.csv') else pd.read_excel(path_spk, sheet_name=next((s for s in pd.ExcelFile(path_spk).sheet_names if s.strip().upper() == 'SPK'), 0), header=None)
+        df_sr = _spk_raw(path_spk, get_file_mtime(path_spk))   # ter-cache
         if df_sr is not None and not df_sr.empty:
             hi = next((r for r in range(min(25, len(df_sr))) if len([v for v in df_sr.iloc[r].values if pd.notna(v)]) >= 4 and any(k in ' '.join(clean_str(v) for v in df_sr.iloc[r].values if pd.notna(v)) for k in ['NAMA DEALER', 'NO TRANSAKSI', 'TGL', 'LEASING', 'STATUS'])), 0)
             df_spk = df_sr.iloc[hi + 1:].copy()
@@ -3443,6 +4018,7 @@ for _sm_k, _kr_v in mapping_salesman_koor.items():
             if is_dealer_name(_norm_k):
                 mapping_salesman_dealer[_sm_k] = _norm_k
 
+_tick('spk + koordinator')
 df_rating = None
 if paths_rating:
     l_rt = [assign_type_from_lookup(assign_rating_dealer_and_koor(read_single_rating_file(p), mapping_dealer_spk), mapping_type_lookup, mapping_type_lookup_nospace, unmapped_types_all) for p in paths_rating]
@@ -3453,6 +4029,7 @@ if paths_rating:
         if 'Nama_Dealer_Clean' in df_rating.columns: df_rating = df_rating[df_rating['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)   # hanya dealer MDS
 
 # ---- Aturan MDS: yang dihitung & dianalisa hanya salesman yang namanya muncul di file DATABASE ----
+_tick('rating')
 DB_SALESMAN, FILTER_SM_LOG = set(), {}
 if df_database is not None and not df_database.empty and 'Salesman_Clean' in df_database.columns:
     DB_SALESMAN = {clean_str(x_) for x_ in df_database['Salesman_Clean'].dropna().unique() if clean_str(x_) and clean_str(x_) not in ('NAN', 'NONE', 'TOTAL', 'JUMLAH', '-')}
@@ -4780,11 +5357,8 @@ def bsg_award_compute(level, d1, d2, cm=None, cy=None, lmm=None, lmy=None):
     rng = (f['hari'] >= d1) & (f['hari'] <= d2)
     cur, lm = f[m_cur & rng]['_k'].value_counts().to_dict(), f[m_lm & rng]['_k'].value_counts().to_dict()
     rec = f[m_cur | m_lm]
-    cand = set(rec['_k'].unique())
+    cand = set(rec['_k'].unique())   # banner award: entitas HANYA yang tercatat di file Faktur (tanpa Database / Nota / SPK / Rating)
     if level != 'dealer':
-        try:
-            ks_, cs_ = get_focus_entities(); cand |= set(clean_str(x_) for x_ in (ks_ if level == 'koor' else cs_))
-        except Exception: pass
         resigned = get_resigned_koor()
         cand = {e_ for e_ in cand if e_ and e_ not in ('NAN', 'NONE', 'LAIN-LAIN') and e_ not in resigned and not is_hidden_koor(e_) and (e_.startswith('COUNTER') == (level == 'counter'))}   # Shop Manager tidak ditampilkan
     else: cand = {e_ for e_ in cand if e_ and e_ not in ('NAN', 'NONE')}
@@ -4793,8 +5367,6 @@ def bsg_award_compute(level, d1, d2, cm=None, cy=None, lmm=None, lmy=None):
     else:
         for e_, g_ in rec.groupby('_k')['_d']:
             if len(g_): dlr_of[e_] = g_.value_counts().index[0]
-        for e_ in cand:
-            if e_ not in dlr_of and mapping_koor_dealer.get(e_): dlr_of[e_] = _nrm_dlr(mapping_koor_dealer[e_])
     if tabel_target_harian.get(d2, 0.0) <= 0: return None
     rows = []
     for e_ in cand:
@@ -4875,8 +5447,7 @@ def bsg_admin_running_text_editor():
 def _jb_ok(n_x): return is_mds_dealer(n_x)   # hanya dealer berstatus MDS (Data Lookup kolom AM)
 @st.cache_data(show_spinner=False)
 def _jb_read_nota(path_x, mt_x, lk_mt_x=0.0):   # lk_mt_x = waktu ubah Data Lookup (cache ikut berubah saat lookup diganti)
-    df_t = pd.read_excel(path_x, header=5)
-    df_r = parse_date_cols(pd.read_excel(path_x, header=0) if not any(k in df_t.columns for k in ['Nama Dealer', 'Dealer', 'Tanggal']) else df_t)
+    df_r = _nota_base(path_x, mt_x)
     cdn_x = 'Nama Dealer' if 'Nama Dealer' in df_r.columns else ('Dealer' if 'Dealer' in df_r.columns else None)
     if not cdn_x: return pd.DataFrame()
     df_r[cdn_x] = df_r[cdn_x].map(lookup_dealer_name)
@@ -4884,7 +5455,13 @@ def _jb_read_nota(path_x, mt_x, lk_mt_x=0.0):   # lk_mt_x = waktu ubah Data Look
     df_r = assign_koor_and_sales(assign_type_from_lookup(df_r, mapping_type_lookup, mapping_type_lookup_nospace, None), tracker=None)   # Koordinator & Type Motor dari Data Lookup
     return df_r
 
+jt_mkt = jt_dc = None   # tab Market Overview & Digital Content (khusus dealer SIP terdaftar di DEALER_LOKASI)
 jt_an_tab = None   # tab Analisa di Dashboard Dealer (diisi di dalam cabang dashboard, dipakai halaman analisa di bawah)
+_tick('siap tampil menu')
+if IS_ADMIN and _TICKS:
+    with st.sidebar.expander('⏱️ Waktu muat data (admin)'):
+        _prev_t = 0.0
+        for _lb_t, _tt_t in _TICKS: st.caption(f'{_lb_t}: +{_tt_t - _prev_t:.2f} dtk (total {_tt_t:.2f})'); _prev_t = _tt_t
 if menu_pilihan == MASTER_TAB:
     st.markdown(f'<div class="main-title">MASTER TARGET (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div><div class="sub-title">Target (T.) vs Result (R.) — Dealer, Koordinator & Counter · isi langsung di tabel atau lewat Excel (unduh template → isi → unggah)</div>', unsafe_allow_html=True)
 
@@ -5550,13 +6127,12 @@ elif menu_pilihan == DEALER_TAB:
     _sub_kota, _bm_slot = None, None   # _sub_kota: filter Sub Area / grup MDS (None = ALL) | _bm_slot: tempat Benchmark KPI (di bawah drop box)
     _dd_lvl = 'dealer'   # level baris tabel/grafik: 'dealer' (semua dealer) → 'koor' (dealer dipilih: Koordinator & Counter) → 'sales' (koor dipilih: Salesman)
     _dd_totname, _dd_tot, _dd_scope, _NM_COL = 'Total Area', 'TOTAL AREA', 'SIP & SENTRAL YAMAHA', 'NAMA DEALER'
-    if ('tgl_award_banner' not in st.session_state) or st.session_state.get('_aw_default_for') != IS_ADMIN:   # default toggle: tanpa kode = ON · dengan kode BAMBURUNCING = OFF (tetap bisa dinyalakan manual)
-        st.session_state['tgl_award_banner'], st.session_state['_aw_default_for'] = (not IS_ADMIN), IS_ADMIN
-    if st.session_state.get('tgl_award_banner', not IS_ADMIN): bsg_render_award_label()   # label AWARDING tepat di atas running text (hanya Dashboard Dealer) — bisa di-hide lewat toggle di kanan judul
+    if 'tgl_award_banner' not in st.session_state: st.session_state['tgl_award_banner'] = False   # default toggle: OFF untuk semua akses (tetap bisa dinyalakan manual)
+    if st.session_state.get('tgl_award_banner', False): bsg_render_award_label()   # label AWARDING tepat di atas running text (hanya Dashboard Dealer) — bisa di-hide lewat toggle di kanan judul
     bsg_render_running_text()
     _tt_c, _tg_c = st.columns([5, 1], vertical_alignment='center')
     with _tt_c: st.markdown(f'<div class="main-title">DASHBOARD DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
-    with _tg_c: st.toggle('🏅 Banner Awarding', key='tgl_award_banner', help='Default: ON untuk akses umum, OFF bila masuk dengan kode akses BAMBURUNCING · ON = tampilkan banner awarding · OFF = sembunyikan')
+    with _tg_c: st.toggle('🏅 Banner Awarding', key='tgl_award_banner', help='Default: OFF · ON = tampilkan banner awarding · OFF = sembunyikan')
     _job = st.session_state.get('ppt_job'); _job_on = bool(_job and _job['idx'] < len(_job['stages']))
     if _job_on:   # CREATE PPT berjalan: tampilkan status saja, sisa halaman disembunyikan (tetap dihitung di belakang layar)
         st.info(f"⏳ Menyiapkan PPT {_job['dealer']} — tahap {_job['idx'] + 1}/{len(_job['stages'])}: {_PPT_STAGE_LBL[_job['stages'][_job['idx']]]}. Mohon tunggu, jangan klik apa pun.")
@@ -5728,8 +6304,11 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
         if not rows_jb:
             st.info('ℹ️ Tidak ada data dealer SIP / SENTRAL YAMAHA pada periode ini.')
         else:
-            _jt_all = st.tabs(['💰 PENJUALAN', '👥 MAN POWER', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '📊 PENJUALAN BY TYPE'] + ['⭐ DEALER RATING'] + (['🧠 ANALISA PROBLEM & PERBAIKAN'] if IS_SPV else []))   # sub-menu Dashboard Dealer (+ CREATE PPT di samping MAN POWER)
-            jt_pj, jt_mp, jt_pr, jt_ak, jt_sl, jt_ty = _jt_all[:6]; jt_rt = _jt_all[6]; jt_an_tab = _jt_all[7] if IS_SPV else None
+            _mk_show = bool(_dd_picked and _dd_dealer != 'SEMUA DEALER' and _lokasi_dealer(_dd_dealer))   # Market Overview & Digital Content: default tersembunyi, muncul hanya bila dealer terdaftar (DEALER_LOKASI) dipilih
+            _jt_all = st.tabs(['💰 PENJUALAN', '👥 MAN POWER', '⚙️ PROSES', '🎯 AKTIFITAS', '🏦 SPK & LEASING', '📊 PENJUALAN BY TYPE'] + ['⭐ DEALER RATING'] + (['🌾 MARKET OVERVIEW', '🎬 DIGITAL CONTENT'] if _mk_show else []) + (['🧠 ANALISA PROBLEM & PERBAIKAN'] if IS_SPV else []))   # sub-menu Dashboard Dealer (+ CREATE PPT di samping MAN POWER)
+            jt_pj, jt_mp, jt_pr, jt_ak, jt_sl, jt_ty = _jt_all[:6]; jt_rt = _jt_all[6]; _ix_ = 7
+            if _mk_show: jt_mkt, jt_dc = _jt_all[_ix_], _jt_all[_ix_ + 1]; _ix_ += 2
+            jt_an_tab = _jt_all[_ix_] if IS_SPV else None
             for r_ in rows_jb: r_['_lm_val'] = (r_['STU'] / r_['STU LM'] * 100.0) if r_['STU LM'] > 0 else -1.0
             df_jb = pd.DataFrame(rows_jb); df_jb['_nt0'] = (df_jb['TARGET'] <= 0)
             df_jb = df_jb.sort_values(by=['_nt0', '_pct', 'STU'], ascending=[True, True, True]).reset_index(drop=True)   # tabel: STU/TARGET terjelek -> terbaik (tanpa target di bawah)
@@ -6693,78 +7272,105 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     return out_
                 def _jb_ty_dbq_df(up_):   # database bulan ini milik grup dealer
                     return _jb_db[_jb_db['_jbk'].isin(up_)] if (not _jb_db.empty and up_) else pd.DataFrame()
-                def _jb_ty_db_pies():
-                    """Pie Database per Type motor: Total Area + MDS 4 kota."""
+                # ---- Database BULAN LALU (periode sama, ikut pilihan Dealer / Koor / Salesman) ----
+                _jb_db_lm = df_database_lm_alldlr.copy() if (df_database_lm_alldlr is not None and not df_database_lm_alldlr.empty and {'Nama_Dealer_Clean', 'hari', 'bulan', 'tahun'}.issubset(df_database_lm_alldlr.columns)) else pd.DataFrame()
+                if not _jb_db_lm.empty:
+                    _jb_db_lm = _jb_db_lm[(_jb_db_lm['bulan'] == last_month) & (_jb_db_lm['tahun'] == last_month_year) & (_jb_db_lm['hari'] <= tanggal_akhir)]
+                    _jb_db_lm = _dd_apply(_jb_db_lm, 'Nama_Dealer_Clean')
+                    if _jb_db_lm is not None and not _jb_db_lm.empty: _jb_db_lm['_jbk'] = _dd_key(_jb_db_lm, 'Nama_Dealer_Clean')
+                    else: _jb_db_lm = pd.DataFrame()
+                _JB_TY3 = [('AT PREMIUM', 'AT PREM'), ('AT CLASSY', 'CLASSY'), ('AT LPM', 'AT LPM')]   # sama dengan grafik STU per type
+                def _ty_dbsub(d_, keys_):   # database milik dealer / koor / salesman (keys_ = set kunci huruf besar)
+                    return d_[d_['_jbk'].isin(keys_)] if (d_ is not None and not d_.empty and '_jbk' in d_.columns) else pd.DataFrame()
+                def _ty_dbcnt(d_, t_):   # (jumlah DB, jumlah HOT) untuk type t_
+                    if d_ is None or d_.empty: return 0, 0
+                    m_ = (_jb_type_grp(d_) == t_)
+                    hot_ = (d_['Data_Type_Clean'] == 'DEAL PROSPECT') if 'Data_Type_Clean' in d_.columns else pd.Series(False, index=d_.index)
+                    return int(m_.sum()), int((m_ & hot_).sum())
+                def _jb_ty_db_bars():
+                    """3 grafik (DB AT PREM | DB CLASSY | DB AT LPM): batang terbelah LM : DB per dealer / koordinator / salesman (format sama dengan STU per type). Diurut terbaik → terburuk."""
                     out_ = []
-                    for lb_, up_ in _jb_sl_grp:
-                        vc_ = _jb_type_grp(_jb_ty_dbq_df(up_)).value_counts()
-                        out_.append(bsg_chart_donut(f'Database per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'Database per Type — {lb_}', 'Total dealer terpilih' if lb_ == 'TOTAL AREA' else 'Kontribusi Koordinator / Counter', [(t_, int(vc_.get(t_, 0)), c_) for t_, c_ in _TYPE_PAL.items()], 'Database', parts=True, keep_zero=True))
-                    return {'group': [c_ for c_ in out_ if c_], 'cols': (5 if _dd_lvl == 'dealer' else max(1, min(len(out_), 6)))}
-                def _jb_ty_dbq_pies():
-                    """Grafik DB Quality per type motor = DATABASE HOT PROSPECT (Data Type DEAL PROSPECT) per type ÷ TOTAL DATABASE type tsb × 100 (2 desimal): Total Area + MDS 4 kota."""
+                    for t_, nm_t in _JB_TY3:
+                        r_lm = []
+                        for nm_ in _jb_names:
+                            u_ = {nm_.strip().upper()}
+                            s_, _h = _ty_dbcnt(_ty_dbsub(_jb_db, u_), t_); l_, _h2 = _ty_dbcnt(_ty_dbsub(_jb_db_lm, u_), t_)
+                            if l_ > 0: r_lm.append({'name': nm_, 'val': s_ / l_ * 100.0, 'a': s_, 'b': l_, 'label': f'{s_ / l_ * 100.0 - 100.0:+.1f}%', 'extra': f'{l_:,}→{s_:,}', 'tip': f"<b>{_esc(nm_)}</b><br>DB {t_}: {s_:,} vs bulan lalu {l_:,}<br>Selisih <b>{s_ - l_:+,}</b> DB<br>Kenaikan <b>{s_ / l_ * 100.0 - 100.0:+.1f}%</b>"})
+                            else: r_lm.append({'name': nm_, 'val': -1.0, 'a': s_, 'b': 0, 'label': 'n/a', 'extra': f'0→{s_:,}', 'tip': f"<b>{_esc(nm_)}</b><br>DB {t_}: {s_:,} · tidak ada pembanding bulan lalu"})
+                        tot_s, _th = _ty_dbcnt(_ty_dbsub(_jb_db, _jb_up), t_); tot_l, _th2 = _ty_dbcnt(_ty_dbsub(_jb_db_lm, _jb_up), t_); lm_p = (tot_s / tot_l * 100.0) if tot_l > 0 else 100.0
+                        out_.append(bsg_chart_rank(f'DB {nm_t}', '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(tot_s, tot_l), scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{lm_p - 100.0:+.1f}%', total_color=bsg_stat_color(lm_p, 100.0, 85.0)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 3}
+                def _jb_ty_dbq_bars():
+                    """3 grafik (DB Quality AT PREM | CLASSY | AT LPM): kiri = DB Quality bulan ini, kanan = bulan lalu (HOT PROSPECT ÷ Database type tsb); angka tengah = selisih poin / persentase vs LM."""
                     out_ = []
-                    for lb_, up_ in _jb_sl_grp:
-                        d_ = _jb_ty_dbq_df(up_)
-                        if d_.empty: continue
-                        grp_ = _jb_type_grp(d_)
-                        is_hot_ = (d_['Data_Type_Clean'] == 'DEAL PROSPECT') if 'Data_Type_Clean' in d_.columns else pd.Series(False, index=d_.index)
-                        rows_ = []
-                        for t_ in _TYPE_PAL:
-                            m_ = (grp_ == t_); n_t = int(m_.sum())
-                            if n_t == 0: continue
-                            h_t = int((m_ & is_hot_).sum()); p_ = h_t / n_t * 100.0
-                            rows_.append({'name': t_, 'val': p_, 'label': f'{p_:.2f}%', 'tip': f"<b>{t_}</b> — {_esc(lb_)}<br>DB Quality <b>{p_:.2f}%</b><br>HOT PROSPECT {h_t:,} ÷ Database {n_t:,}"})
-                        n_all = len(d_); h_all = int(is_hot_.sum()); dq_ = (h_all / n_all * 100.0) if n_all else 0.0
-                        out_.append(bsg_chart_rank(f'DB Quality per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'DB Quality per Type — {lb_}', '', rows_, ideal=30.0, parts=True, total=f'{dq_:.2f}%', total_color=bsg_stat_color(dq_, 30.0, 20.0)))
-                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                    for t_, nm_t in _JB_TY3:
+                        r_lm = []
+                        for nm_ in _jb_names:
+                            u_ = {nm_.strip().upper()}
+                            n_c, h_c = _ty_dbcnt(_ty_dbsub(_jb_db, u_), t_); n_l, h_l = _ty_dbcnt(_ty_dbsub(_jb_db_lm, u_), t_)
+                            p_c = (h_c / n_c * 100.0) if n_c else 0.0; p_l = (h_l / n_l * 100.0) if n_l else 0.0; has_l = n_l > 0
+                            r_lm.append({'name': nm_, 'val': (p_c / p_l * 100.0) if p_l > 0 else (-1.0 if not has_l else 0.0), 'a': p_c, 'b': p_l, 'a_txt': f'{p_c:.1f}%', 'b_txt': f'{p_l:.1f}%',
+                                         'label': (f'{p_c - p_l:+.1f} pt' if has_l else 'n/a'), 'extra': f'{p_l:.1f}%→{p_c:.1f}%',
+                                         'tip': f"<b>{_esc(nm_)}</b> — DB Quality {t_}<br>Bulan ini <b>{p_c:.2f}%</b> (HOT {h_c:,} ÷ DB {n_c:,})<br>Bulan lalu <b>{p_l:.2f}%</b> (HOT {h_l:,} ÷ DB {n_l:,})<br>Selisih <b>{p_c - p_l:+.1f} pt</b>"})
+                        n_c, h_c = _ty_dbcnt(_ty_dbsub(_jb_db, _jb_up), t_); n_l, h_l = _ty_dbcnt(_ty_dbsub(_jb_db_lm, _jb_up), t_)
+                        t_c = (h_c / n_c * 100.0) if n_c else 0.0; t_l = (h_l / n_l * 100.0) if n_l else 0.0
+                        out_.append(bsg_chart_rank(f'DB Quality {nm_t}', '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(t_c, t_l), split_a_txt=f'{t_c:.1f}%', split_b_txt=f'{t_l:.1f}%', scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{t_c - t_l:+.1f} pt', total_color=(BSG_GRN if t_c >= t_l else BSG_RED)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 3}
+                if df_database_lm_alldlr is None or df_database_lm_alldlr.empty: st.info('ℹ️ Database bulan lalu belum diunggah (menu 📁 UPLOAD FILE › Data Operasional Dealer › Database Bulan Lalu). Grafik DB & DB Quality per type tampil "n/a" untuk pembanding bulan lalu.')
                 def _jb_ty_spk_charts():
-                    """Grafik SPK per type motor: SPK bulan ini vs SPK bulan lalu (periode sama) — format batang terbelah VS LM sama dengan grafik STU: Total Area + MDS per kabupaten / kota."""
+                    """3 grafik (SPK AT PREM | SPK CLASSY | SPK AT LPM): batang terbelah LM : SPK per dealer / koordinator / salesman (format sama dengan STU & DB per type). Diurut terbaik → terburuk."""
+                    _gc = {nm_: _jb_sl_g({nm_.strip().upper()}) for nm_ in _jb_names}
+                    _gc = {nm_: (_jb_type_grp(c_), _jb_type_grp(l_)) for nm_, (c_, l_) in _gc.items()}
+                    _tc, _tl = _jb_sl_g(_jb_up); _tgc, _tgl = _jb_type_grp(_tc), _jb_type_grp(_tl)
                     out_ = []
-                    for lb_, up_ in _jb_sl_grp:
-                        s_c_, s_l_ = _jb_sl_g(up_)
-                        if (s_c_ is None or s_c_.empty) and (s_l_ is None or s_l_.empty): continue
-                        gc_, gl_ = _jb_type_grp(s_c_), _jb_type_grp(s_l_); rows_ = []
-                        for t_ in _TYPE_PAL:
-                            a_, b_ = int((gc_ == t_).sum()), int((gl_ == t_).sum())
-                            if a_ + b_ == 0: continue
-                            if b_ > 0: rows_.append({'name': t_, 'val': a_ / b_ * 100.0, 'a': a_, 'b': b_, 'tip': f"<b>{t_}</b> — {_esc(lb_)}<br>SPK {a_:,} vs bulan lalu {b_:,}<br>Selisih <b>{a_ - b_:+,}</b> SPK<br>Kenaikan <b>{a_ / b_ * 100.0 - 100.0:+.1f}%</b>"})
-                            else: rows_.append({'name': t_, 'val': -1.0, 'a': a_, 'b': 0, 'tip': f"<b>{t_}</b> — {_esc(lb_)}<br>SPK {a_:,} · tidak ada pembanding bulan lalu"})
-                        tot_s, tot_l = len(s_c_), len(s_l_); lm_p = (tot_s / tot_l * 100.0) if tot_l > 0 else 100.0
-                        out_.append(bsg_chart_rank(f'SPK per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'SPK per Type — {lb_}', '', rows_, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(tot_s, tot_l),
-                                                   scale_max=max([r_['val'] for r_ in rows_] + [115.0]), total=f'{lm_p - 100.0:+.1f}%', total_color=bsg_stat_color(lm_p, 100.0, 85.0)))
-                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
+                    for t_, nm_t in _JB_TY3:
+                        r_lm = []
+                        for nm_ in _jb_names:
+                            gc_, gl_ = _gc[nm_]; s_, l_ = int((gc_ == t_).sum()), int((gl_ == t_).sum())
+                            if l_ > 0: r_lm.append({'name': nm_, 'val': s_ / l_ * 100.0, 'a': s_, 'b': l_, 'label': f'{s_ / l_ * 100.0 - 100.0:+.1f}%', 'extra': f'{l_:,}→{s_:,}', 'tip': f"<b>{_esc(nm_)}</b><br>SPK {t_}: {s_:,} vs bulan lalu {l_:,}<br>Selisih <b>{s_ - l_:+,}</b> SPK<br>Kenaikan <b>{s_ / l_ * 100.0 - 100.0:+.1f}%</b>"})
+                            else: r_lm.append({'name': nm_, 'val': -1.0, 'a': s_, 'b': 0, 'label': 'n/a', 'extra': f'0→{s_:,}', 'tip': f"<b>{_esc(nm_)}</b><br>SPK {t_}: {s_:,} · tidak ada pembanding bulan lalu"})
+                        tot_s, tot_l = int((_tgc == t_).sum()), int((_tgl == t_).sum()); lm_p = (tot_s / tot_l * 100.0) if tot_l > 0 else 100.0
+                        out_.append(bsg_chart_rank(f'SPK {nm_t}', '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(tot_s, tot_l), scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{lm_p - 100.0:+.1f}%', total_color=bsg_stat_color(lm_p, 100.0, 85.0)))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 3}
                 def _jb_ty_acc_charts():
-                    """Grafik ACC% per type motor (SPK disetujui ÷ (disetujui + ditolak)) + ACC% bulan lalu (periode sama): penanda biru tua = bulan lalu, keterangan kanan = LM & gap naik ▲ / turun ▼ (poin). Total Area + MDS per kota."""
-                    def _acc_cnt(d_, g_=None, t_=None):
+                    """3 grafik (ACC% AT PREM | CLASSY | AT LPM): kiri = ACC% bulan ini, kanan = ACC% bulan lalu (periode sama), ACC% = disetujui ÷ (disetujui + ditolak) per dealer / koordinator (kapos) / salesman; angka kanan label = selisih poin vs LM (format sama dengan DB Quality per type)."""
+                    def _acc_cnt(d_, g_, t_):
                         if d_ is None or d_.empty or 'Status_SPK_Clean' not in d_.columns: return 0, 0, 0
-                        m_ = (g_ == t_) if t_ is not None else pd.Series(True, index=d_.index); st_ = d_['Status_SPK_Clean']
+                        m_ = (g_ == t_); st_ = d_['Status_SPK_Clean']
                         return int((m_ & (st_ == 'DISETUJUI')).sum()), int((m_ & (st_ == 'DITOLAK')).sum()), int((m_ & (st_ == 'TERBUKA')).sum())
-                    def _gap(p_, q_):   # (teks gap, warna, panah) — bandingkan 1 desimal seperti yang tampil
-                        if p_ is None or q_ is None: return None, '#64748B', ''
-                        g_ = round(p_, 1) - round(q_, 1)
-                        return g_, (BSG_GRN if g_ > 0 else (BSG_RED if g_ < 0 else '#64748B')), ('▲' if g_ > 0 else ('▼' if g_ < 0 else '▬'))
+                    def _pc(a_, r_): return (a_ / (a_ + r_) * 100.0) if (a_ + r_) > 0 else None
+                    _fx = lambda v_: 'n/a' if v_ is None else f'{v_:.1f}%'
+                    _gs = {}
+                    for nm_ in _jb_names:
+                        c_, l_ = _jb_sl_g({nm_.strip().upper()}); _gs[nm_] = (c_, _jb_type_grp(c_), l_, _jb_type_grp(l_))
+                    _tc, _tl = _jb_sl_g(_jb_up); _tgc, _tgl = _jb_type_grp(_tc), _jb_type_grp(_tl)
                     out_ = []
-                    for lb_, up_ in _jb_sl_grp:
-                        s_c_, s_l_ = _jb_sl_g(up_)
-                        if (s_c_ is None or s_c_.empty) and (s_l_ is None or s_l_.empty): continue
-                        gc_, gl_ = _jb_type_grp(s_c_), _jb_type_grp(s_l_); rows_ = []
-                        for t_ in _TYPE_PAL:
-                            a_, r_, o_ = _acc_cnt(s_c_, gc_, t_); a0, r0, o0 = _acc_cnt(s_l_, gl_, t_)
-                            if a_ + r_ + o_ + a0 + r0 + o0 == 0: continue
-                            p_ = (a_ / (a_ + r_) * 100.0) if (a_ + r_) > 0 else None
-                            q_ = (a0 / (a0 + r0) * 100.0) if (a0 + r0) > 0 else None
-                            g_, gc2_, ar_ = _gap(p_, q_)
-                            ex_ = (f'<span style="color:#3B5BC8">LM {q_:.1f}%</span>' if q_ is not None else '<span style="color:#94A3B8">LM n/a</span>') + (f' <span style="color:{gc2_};font-weight:900">{ar_} {g_:+.1f}</span>' if g_ is not None else '')
-                            rows_.append({'name': t_, 'val': (p_ if p_ is not None else -1.0), 'label': (f'{p_:.1f}%' if p_ is not None else 'n/a'), 'lm': q_, 'extra_html': ex_,
-                                          'tip': f"<b>{t_}</b> — {_esc(lb_)}<br>ACC% bulan ini <b>{(p_ if p_ is not None else 0.0):.2f}%</b> (Disetujui {a_:,} · Ditolak {r_:,} · Terbuka {o_:,})<br>ACC% bulan lalu <b>{(q_ if q_ is not None else 0.0):.2f}%</b> (Disetujui {a0:,} · Ditolak {r0:,})"
-                                                 + (f"<br>Gap <b>{g_:+.1f} poin</b> ({'naik' if g_ > 0 else ('turun' if g_ < 0 else 'sama')})" if g_ is not None else '')})
-                        ta_, tr_, _ = _acc_cnt(s_c_); la_, lr_, _ = _acc_cnt(s_l_)
-                        tp_ = (ta_ / (ta_ + tr_) * 100.0) if (ta_ + tr_) > 0 else 0.0; tl_ = (la_ / (la_ + lr_) * 100.0) if (la_ + lr_) > 0 else None
-                        tg_, _tc, tar_ = _gap(tp_, tl_)
-                        note_ = (f'ACC% bulan lalu {tl_:.1f}% → bulan ini {tp_:.1f}% ({tar_} {tg_:+.1f} poin, {"naik" if tg_ > 0 else ("turun" if tg_ < 0 else "sama")})' if tl_ is not None else f'ACC% bulan lalu n/a → bulan ini {tp_:.1f}%')
-                        out_.append(bsg_chart_rank(f'ACC% per Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'ACC% per Type — {lb_}', '', rows_, ideal=50.0, parts=True, total=f'{tp_:.1f}%', total_color=bsg_stat_color(tp_, 50.0, 42.5), note=note_, lm_label='ACC% bulan lalu'))
-                    return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
-                bsg_panel_table(df_ty_jb_i, df_ty_jb_f, kol_ty_jb, _NM_COL, '_tot', 'Jember_Penjualan_By_Type', jdl_jb_ty, _jb_ty_charts, (), layout='stackm', chart_cols='repeat(3,minmax(0,1fr))', bottom_fn=lambda: [_jb_ty_db_pies(), _jb_ty_dbq_pies(), _jb_ty_spk_charts(), _jb_ty_acc_charts()], bottom_cols='minmax(0,1fr)', no_table=True)   # tabel dihapus; 6 grafik melebar penuh; di bawahnya: DB per type, DB Quality (grafik), SPK per type vs bulan lalu, ACC% per type + ACC% bulan lalu
+                    for t_, nm_t in _JB_TY3:
+                        r_lm = []
+                        for nm_ in _jb_names:
+                            sc_, gc_, sl_, gl_ = _gs[nm_]
+                            a_, r_, o_ = _acc_cnt(sc_, gc_, t_); a0, r0, o0 = _acc_cnt(sl_, gl_, t_)
+                            p_c, p_l = _pc(a_, r_), _pc(a0, r0)
+                            tip_ = (f"<b>{_esc(nm_)}</b> — ACC% {t_}<br>Bulan ini <b>{_fx(p_c)}</b> (Disetujui {a_:,} · Ditolak {r_:,} · Terbuka {o_:,})<br>Bulan lalu <b>{_fx(p_l)}</b> (Disetujui {a0:,} · Ditolak {r0:,})<br>Ideal 50%"
+                                    + (f"<br>Selisih <b>{p_c - p_l:+.1f} pt</b>" if (p_c is not None and p_l is not None) else ''))
+                            if p_c is not None and p_l is not None:
+                                r_lm.append({'name': nm_, 'val': 100.0 + (p_c - p_l), 'a': p_c, 'b': p_l, 'a_txt': _fx(p_c), 'b_txt': _fx(p_l), 'label': f'{p_c - p_l:+.1f} pt', 'extra': f'{p_l:.1f}%→{p_c:.1f}%', 'tip': tip_})
+                            else:   # salah satu periode tanpa keputusan SPK (disetujui + ditolak = 0) → abu-abu n/a
+                                r_lm.append({'name': nm_, 'val': -1.0, 'a': 0, 'b': 0, 'a_txt': _fx(p_c), 'b_txt': _fx(p_l), 'label': 'n/a', 'extra': f'{_fx(p_l)}→{_fx(p_c)}', 'tip': tip_})
+                        ta_, tr_, _o = _acc_cnt(_tc, _tgc, t_); la_, lr_, _o2 = _acc_cnt(_tl, _tgl, t_)
+                        t_c, t_l = _pc(ta_, tr_), _pc(la_, lr_)
+                        both_ = (t_c is not None and t_l is not None)
+                        out_.append(bsg_chart_rank(f'ACC% {nm_t}', '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=((t_c if both_ else 0.0), (t_l if both_ else 0.0)), split_a_txt=_fx(t_c), split_b_txt=_fx(t_l), scale_max=max([r_['val'] for r_ in r_lm] + [115.0]),
+                                                   total=(f'{t_c - t_l:+.1f} pt' if both_ else _fx(t_c)), total_color=((BSG_GRN if t_c >= t_l else BSG_RED) if both_ else '#64748B')))
+                    return {'group': [c_ for c_ in out_ if c_], 'cols': 3}
+                def _jb_ty_grid():
+                    """Susunan per type: baris 1 = AT PREMIUM, baris 2 = AT CLASSY, baris 3 = AT LPM; tiap baris urut dari kiri: STU vs LM | DB vs LM | DB Q vs LM | SPK vs LM | ACC% vs LM."""
+                    cols_ = [_jb_ty_charts(), _jb_ty_db_bars()['group'], _jb_ty_dbq_bars()['group'], _jb_ty_spk_charts()['group'], _jb_ty_acc_charts()['group']]
+                    cols_ = [[c_ for c_ in col_ if c_] for col_ in cols_]
+                    n_ = max([len(c_) for c_ in cols_] + [0])
+                    if n_ == 0 or any(len(c_) != n_ for c_ in cols_): return {'group': [c_ for col_ in cols_ for c_ in col_], 'cols': 5, 'fixed': True}   # jaga-jaga bila ada grafik kosong
+                    return {'group': [cols_[k_][r_] for r_ in range(n_) for k_ in range(5)], 'cols': 5, 'fixed': True}
+                bsg_panel_table(df_ty_jb_i, df_ty_jb_f, kol_ty_jb, _NM_COL, '_tot', 'Jember_Penjualan_By_Type', jdl_jb_ty, None, (), layout='stackm', bottom_fn=lambda: [_jb_ty_grid()], bottom_cols='minmax(0,1fr)', no_table=True)   # tabel dihapus; 3 baris type (AT PREMIUM, AT CLASSY, AT LPM) x 5 kolom (STU, DB, DB Q, SPK, ACC% — semuanya vs bulan lalu)
                 _jb_sep(f'PRODUK NAIK / TURUN vs BULAN LALU — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})')
                 try:
                     _pdt_sel = lambda d_, t_: d_[d_['Type_Clean'] == t_] if (d_ is not None and not d_.empty and 'Type_Clean' in d_.columns) else pd.DataFrame()
@@ -6776,7 +7382,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         components.html(_pdt_doc, height=_pdt_h, scrolling=False)
                         st.caption(f'ℹ️ Produk = kolom AF file Faktur (judul "{_pdt_ok["h_produk"]}"), dikelompokkan per type. LM = jumlah faktur bulan lalu pada periode yang sama · STU = jumlah faktur bulan ini (1 s.d {tanggal_akhir}) · NAIK / TURUN = selisih STU − LM (hijau ▲ naik, merah ▼ turun). Klik baris produk untuk melihat warna (kolom F Faktur, judul "{_pdt_ok["h_warna"]}") dengan angka yang sama. Tombol Copy (HD) menyalin gambar sesuai kondisi baris yang sedang dibuka.')
                 except Exception as _e_pdt: st.warning(f'Tabel produk naik / turun gagal ditampilkan: {_e_pdt}')
-                st.caption('ℹ️ STU = jumlah faktur (kredit + cash) periode berjalan. STU OTHERS = semua type di luar AT PREMIUM, AT CLASSY, AT LPM (termasuk MOPED). Grafik diurut terbaik → terburuk; vs LM = STU ÷ STU bulan lalu periode sama. DB Quality per type = Database HOT PROSPECT (Data Type DEAL PROSPECT) ÷ total Database type tsb (ideal 30%). ACC% per type dari file SPK. Area = Total Area + MDS 4 kota.')
+                st.caption('ℹ️ STU = jumlah faktur (kredit + cash) periode berjalan. STU OTHERS = semua type di luar AT PREMIUM, AT CLASSY, AT LPM (termasuk MOPED). Grafik diurut terbaik → terburuk; vs LM = STU ÷ STU bulan lalu periode sama. DB per type & DB Quality per type = per dealer / koordinator / salesman vs Database bulan lalu (periode tanggal sama, dari file Database Bulan Lalu di menu UPLOAD FILE); DB Quality = Database HOT PROSPECT (Data Type DEAL PROSPECT) ÷ total Database type tsb. SPK per type = jumlah SPK bulan ini vs SPK bulan lalu (periode tanggal sama). ACC% per type = SPK disetujui ÷ (disetujui + ditolak) dari file SPK, bulan ini vs bulan lalu (selisih dalam poin; ideal 50%). Semua grafik per dealer / koordinator / salesman sesuai pilihan.')
 
             with jt_mp:
                 # ---- 8. TABEL MAN POWER MDS JEMBER + grafik MP Health / Prod Health + pie grading ----
@@ -6828,10 +7434,9 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     m_ = {}
                     try:
                         if path_employee and os.path.exists(path_employee):
-                            df_e_ = pd.read_csv(path_employee, header=None) if path_employee.lower().endswith('.csv') else pd.read_excel(path_employee, header=None)
+                            df_e_ = xl_any(path_employee, header=None)
                             if df_e_.shape[1] >= 6:
-                                for i_ in range(len(df_e_)):
-                                    nm_, pos_ = clean_str(df_e_.iloc[i_, 2]), clean_str(df_e_.iloc[i_, 5])
+                                for nm_, pos_ in zip((clean_str(v__) for v__ in df_e_.iloc[:, 2].tolist()), (clean_str(v__) for v__ in df_e_.iloc[:, 5].tolist())):
                                     g_ = next((g__ for g__, _c in _EMP_GRD if g__ in pos_), None)
                                     if nm_ and g_: m_[alnum_str(nm_)] = g_
                     except Exception: pass
@@ -6959,6 +7564,13 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         st.info(f'ℹ️ Belum ada data Faktur untuk dealer {_dd_lbl} pada periode ini.')
 
 bsg_ppt_job_step()   # CREATE PPT: simpan panel tahap ini & lanjut ke tahap berikut (rerun) / siapkan tombol UNDUH
+if menu_pilihan == DEALER_TAB and jt_mkt is not None:   # sub menu Market Overview & Digital Content: hanya untuk 7 dealer SIP terdaftar (DEALER_LOKASI), tampil setelah dealer dipilih
+    _mk_ok = bool(_dd_picked and _dd_dealer != 'SEMUA DEALER' and _lokasi_dealer(_dd_dealer))
+    for _mk_tab, _mk_fn, _mk_nm in ((jt_mkt, render_market_overview, 'Market Overview'), (jt_dc, render_digital_content, 'Digital Content')):
+        with _mk_tab:
+            if _mk_ok:
+                try: _mk_fn(_dd_dealer)
+                except Exception as _mk_e: st.warning(f'⚠️ {_mk_nm} belum bisa ditampilkan ({type(_mk_e).__name__}: {_mk_e}).')
 _an_inline = bool(menu_pilihan == DEALER_TAB and IS_SPV and jt_an_tab is not None)   # Analisa dirender langsung di dalam tab Dashboard Dealer (tanpa halaman perantara)
 if _an_inline and not (_dd_picked and _dd_dealer != 'SEMUA DEALER'):   # belum ada dealer dipilih → jangan render analisa (hemat proses, tidak menghitung semua dealer)
     with jt_an_tab: st.info('ℹ️ Pilih nama dealer pada drop box **🏢 Pilih Dealer** di atas untuk menampilkan Analisa Problem & Perbaikan.')
@@ -7252,21 +7864,31 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
         'plan_md': "Pilih lokasi event paling ramai, catat setiap pengunjung sebagai DB, dan follow-up semua HOT maksimal H+1 dengan tawaran test ride untuk mengejar STU% 10% TANPA MENURUNKAN KUALITAS DATABASE.",
         'plan_sosmed': "Balas leads media sosial maksimal 1 jam, pindahkan ke WhatsApp untuk kualifikasi budget, lalu jadwalkan test ride dan update status HOT harian demi mengejar STU% 10%.",
     }
-    _lok_now = _lokasi_dealer(dlr_pil); _intel_now = lokal_intel_get(dlr_pil)
+    _lok_now = _lokasi_dealer(dlr_pil); _intel_now = lokal_intel_get(dlr_pil); _nar_lok = None
     if _intel_now.get('text'):
-        default_cond_lokal = f"Intel lokal ring 1 ({_lok_now[0] if _lok_now else '-'}) tersimpan {_intel_now.get('ts', '')}. Klik Generate AI untuk merangkum menjadi peluang dan langkah aksi."
+        _nar_lok = lokal_intel_narasi(dlr_pil, _intel_now.get('text', ''))
+        if _nar_lok: default_cond_lokal = _nar_lok[0]
+        else: default_cond_lokal = f"Intel lokal ring 1 ({_lok_now[0] if _lok_now else '-'}) tersimpan {_intel_now.get('ts', '')}. Klik Generate AI untuk merangkum menjadi peluang dan langkah aksi."
     elif _lok_now:
         default_cond_lokal = f"Belum ada intel lokal ring 1 {_lok_now[0]}. Buka panel Intel Lokal Ring 1, jalankan prompt di Deep Research Gemini, lalu tempel hasilnya."
     else:
         default_cond_lokal = "Intel lokal hanya tersedia per dealer (bukan TOTAL)."
-    default_plan_lokal = "Belum ada rencana aksi lokal."
+    if _lok_now and _intel_now.get('text'):
+        default_cond_konten, default_plan_konten = lokal_intel_konten_narasi(dlr_pil, _intel_now.get('text', ''))
+        if not default_cond_konten: default_cond_konten = 'Intel belum memuat profil pembeli, model populer, format viral, hook, tagar, dan kalender 7 hari. Jalankan ulang prompt Deep Research terbaru (sudah mencakup konten & live), lalu tempel hasilnya.'
+    elif _lok_now:
+        default_cond_konten, default_plan_konten = 'Belum ada intel konten & FYP untuk dealer ini. Jalankan prompt Deep Research di panel Intel Lokal Ring 1, lalu tempel hasilnya.', lokal_intel_konten_narasi(dlr_pil, '')[1]
+    else:
+        default_cond_konten, default_plan_konten = 'Intel konten hanya tersedia per dealer (bukan TOTAL).', 'Pilih satu dealer.'
+    default_plan_lokal = _nar_lok[1] if (_intel_now.get('text') and _lok_now and _nar_lok) else "Belum ada rencana aksi lokal."
 
     active_api_key = resolve_gemini_api_key()
-    cache_key = f"ai_tbl6_v12_40w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
+    cache_key = f"ai_tbl6_v13_40w_{dlr_pil}_{tanggal_akhir}_{dlr_stu}_{cur_db}_{cur_spk}"
 
     with st.expander('🌐 Intel Lokal Ring 1 — Deep Research Gemini (SEMUA dealer, cukup 1x seminggu)', expanded=False):
         _ver = st.session_state.get('lokal_ver', 0)
         _all_now = lokal_intel_all_get()
+        if st.session_state.get('lokal_flash'): st.success(st.session_state.pop('lokal_flash'))
         st.caption('📍 Satu prompt untuk semua dealer terdaftar: ' + ', '.join(f'{n_} ({k_[0]})' for n_, k_ in DEALER_LOKASI.items()) + ' (ubah di DEALER_LOKASI).')
         st.markdown('**Langkah 1** — Salin prompt di bawah, buka Gemini, pilih **Deep Research**, tempel lalu jalankan. Cukup **seminggu sekali**.')
         st.code(build_deep_research_prompt_all(tanggal_akhir, periode_bulan_tahun), language=None)
@@ -7278,8 +7900,8 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
         with _c_a:
             if st.button('💾 Simpan Intel Lokal (Semua Dealer)', use_container_width=True, key='lokal_save_all'):
                 lokal_intel_all_set(st.session_state.get(_ta_key, ''))
-                st.success('✅ Intel lokal disimpan. Klik Generate Narasi pada dealer yang diinginkan.')
-                _all_now = lokal_intel_all_get()
+                st.session_state['lokal_flash'] = '✅ Intel lokal disimpan & tabel Market Overview & Konten/Live sudah diperbarui.'
+                st.rerun()
         with _c_b:
             if st.button('🗑️ Hapus Intel Lokal', use_container_width=True, key='lokal_del_all'):
                 lokal_intel_all_set(''); st.session_state['lokal_ver'] = _ver + 1; st.rerun()
@@ -7295,7 +7917,7 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
         else:
             st.caption('Belum ada intel lokal tersimpan.')
         if _lok_now:
-            if _intel_now.get('text'): st.markdown(f'**Bagian untuk {dlr_pil}:**'); st.code(_intel_now['text'][:1500], language=None)
+            if _intel_now.get('text'): st.markdown(f'**Bagian untuk {dlr_pil}:**'); st.code(_intel_now['text'][:8000], language=None)
             else: st.caption(f'Belum ada bagian untuk {dlr_pil} pada laporan tersimpan.')
         else:
             st.caption('Pilih satu dealer (bukan TOTAL) di tabel analisa untuk memakai intel ini pada narasinya.')
@@ -7333,7 +7955,7 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
                 f"--- DATA TABEL 1 (PENJUALAN KOOR/COUNTER) ---\n{raw_t1}\n--- DATA TABEL 2 (PROSES KERJA KOOR/COUNTER) ---\n{raw_t2}\n--- DATA TABEL 3 (LEASING KOOR/COUNTER) ---\n{raw_t3}\n--- DATA TABEL 4 (PER TYPE) ---\n{raw_t4}\n--- DATA SALESMAN AKTIF ZONA KRITIS (NON-COUNTER, DB>=2) ---\n{top_bad_raw_str}"
             )
             raw_context_for_ai += f"\n--- AKTIFITAS MD: SUB PROSPECT TYPE EVENT ---\n{default_cond_md}\n--- PROSPECT MEDIA SOSIAL ---\n{default_cond_sosmed}"
-            raw_context_for_ai += (f"\n--- INTEL LOKAL RING 1 (lokasi: Kecamatan {_lok_now[0]}, Kab. {_lok_now[1]}; hasil Deep Research tersimpan {_intel_now.get('ts', '-')}) ---\n{str(_intel_now.get('text', ''))[:6000]}" if (_lok_now and _intel_now.get('text')) else "\n--- INTEL LOKAL RING 1 ---\n(KOSONG — belum ada intel lokal untuk dealer ini)")
+            raw_context_for_ai += (f"\n--- INTEL LOKAL RING 1 + PROFIL PEMBELI + MODEL POPULER + FORMAT VIRAL + FYP + HOOK + KEYWORD/TAGAR + STRATEGI LIVE + KALENDER 7 HARI (lokasi: Kecamatan {_lok_now[0]}, Kab. {_lok_now[1]}; hasil Deep Research tersimpan {_intel_now.get('ts', '-')}) ---\n{str(_intel_now.get('text', ''))[:12000]}" if (_lok_now and _intel_now.get('text')) else "\n--- INTEL LOKAL RING 1 ---\n(KOSONG — belum ada intel lokal untuk dealer ini)")
             try:
                 st.session_state[cache_key] = call_gemini_ai_table(active_api_key, raw_context_for_ai)
                 st.success('✅ Narasi Dinamis AI Gemini dengan Target Rasional (Maks 35 kata per kotak) berhasil dibuat!')
@@ -7353,14 +7975,17 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
         ('📱 Media Sosial', limit_words(ai_res.get('cond_sosmed', default_cond_sosmed)), limit_words(ai_res.get('plan_sosmed') or default_plan_merged['plan_sosmed'], MAX_PLAN_WORDS)),
     ]
 
-    analisa_rows_data.append(('🌾 Peluang Ring 1', limit_words(ai_res.get('cond_lokal') or default_cond_lokal), limit_words(ai_res.get('plan_lokal') or default_plan_lokal, MAX_PLAN_WORDS)))
+    analisa_rows_data.append(('🌾 Market Overview', str(ai_res.get('cond_lokal') or default_cond_lokal), str(ai_res.get('plan_lokal') or default_plan_lokal)))   # TANPA batas kata
+    analisa_rows_data.append(('🎬 Konten & Live', str(ai_res.get('cond_konten') or default_cond_konten), str(ai_res.get('plan_konten') or default_plan_konten)))   # TANPA batas kata
 
     rows_html_list, copy_texts_dict = [], {}
     for idx_r, (item_lbl, c_txt, p_txt) in enumerate(analisa_rows_data):
         cid, pid = f"cond_txt_{idx_r}", f"plan_txt_{idx_r}"
         copy_texts_dict[cid], copy_texts_dict[pid] = c_txt, p_txt
         _btn = lambda i_, lb_: f'<div class="cell-btn-wrap no-capture"><button class="cell-copy-btn" onclick="copyCellText(\'{i_}\', this)">{lb_}</button></div>'
-        rows_html_list.append(f'<tr><td class="item-col">{item_lbl}</td><td class="cond-col">{format_paragraphs_html(c_txt)}{_btn(cid, "📋 Copy Condition")}</td><td class="plan-col">{format_paragraphs_html(p_txt, MAX_PLAN_WORDS)}{_btn(pid, "📋 Copy Action Plan & How To")}</td></tr>')
+        if 'Market Overview' in item_lbl or 'Konten & Live' in item_lbl: _hc, _hp = format_full_html(c_txt), format_full_html(p_txt)
+        else: _hc, _hp = format_paragraphs_html(c_txt), format_paragraphs_html(p_txt, MAX_PLAN_WORDS)
+        rows_html_list.append(f'<tr><td class="item-col">{item_lbl}</td><td class="cond-col">{_hc}{_btn(cid, "📋 Copy Condition")}</td><td class="plan-col">{_hp}{_btn(pid, "📋 Copy Action Plan & How To")}</td></tr>')
 
     tabel_analisa_dom_id = f"Capture_Analisa_{re.sub(r'[^a-zA-Z0-9]', '_', dlr_pil)}"
     copy_payload_json, safe_dlr_fname = json.dumps(copy_texts_dict), re.sub(r'[^a-zA-Z0-9_-]', '_', f"Analisa_ActionPlan_{dlr_pil}_Tgl_{tanggal_akhir}")
