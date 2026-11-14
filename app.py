@@ -972,6 +972,10 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
         if g_rows and any(x_['b'] > 0 for x_ in g_rows):
             T_, R_ = sum(x_['b'] for x_ in g_rows), sum(x_['a'] for x_ in g_rows if x_['b'] > 0); P_ = R_ / T_ * 100.0 if T_ else 0.0
             gr_c = bsg_chart_rank('Google Review vs Target', '', g_rows, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(R_, T_), total=f'{P_:.1f}%', total_color=bsg_stat_color(P_, 100.0, 85.0))
+    if gr_c:   # Google Review Harian (hari ini − kemarin) tepat DI BAWAH Google Review vs Target, satu kolom kanan
+        try: dy_c = bsg_chart_grev_daily(_gord_)
+        except Exception: dy_c = None
+        if dy_c: gr_c = (f'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">{gr_c[0]}{dy_c[0]}</div>', '\n'.join(dict.fromkeys([gr_c[1], dy_c[1]])), gr_c[2] + 12 + dy_c[2])
     if gr_c: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank, gr_c], 'Registrasi_MYDR_' + str(title), chart_cols='repeat(2,minmax(0,1fr))')   # tanpa pie: batang MYDR di kiri, Google Review di kanan
     else: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank], 'Registrasi_MYDR_' + str(title), chart_cols='minmax(0,720px)')
 
@@ -2809,22 +2813,85 @@ def apify_google_reviews(url_g, token_g, timeout_s=170):
     if it_.get('reviewsCount') is None: raise ValueError('data Apify tidak memuat jumlah review')
     return safe_int(it_.get('reviewsCount')), safe_float(it_.get('totalScore')), str(it_.get('title') or '')
 
+# ---- Riwayat harian Google Review: {NAMA DEALER: {'YYYY-MM-DD' (WIB): jumlah review}} — disimpan di folder saved_raw_files agar ikut tersinkron ke cloud (GitHub) ----
+GREV_HIST_FILE = os.path.join(UPLOAD_DIR, 'google_review_history.json')
+
+def grev_hist_record(vals, day=None, only_missing=False):
+    """vals: {nama dealer: jumlah review}. Catat ke riwayat harian pada tanggal `day` (default hari ini WIB). Return True bila ada perubahan."""
+    day = day or _wib_now().strftime('%Y-%m-%d'); h_ = load_json(GREV_HIST_FILE); ch_ = False
+    for d_, v_ in (vals or {}).items():
+        if v_ is None or safe_int(v_) <= 0: continue
+        k_ = str(d_).strip().upper(); e_ = dict(h_.get(k_, {}) or {})
+        if only_missing and day in e_: continue
+        if e_.get(day) != safe_int(v_): e_[day] = safe_int(v_); ch_ = True
+        if len(e_) > 120: e_ = dict(sorted(e_.items())[-120:])   # simpan ±4 bulan terakhir
+        h_[k_] = e_
+    if ch_:
+        try: os.makedirs(UPLOAD_DIR, exist_ok=True)
+        except Exception: pass
+        save_json(h_, GREV_HIST_FILE)
+    return ch_
+
+def grev_daily(dealer, hist=None):
+    """Review harian dealer = jumlah review pada tanggal tarik TERAKHIR − jumlah pada tanggal tarik SEBELUMNYA (normalnya hari ini − kemarin).
+    Return dict(delta, last, prev, n_last, n_prev) — delta None bila riwayat belum 2 hari."""
+    h_ = hist if hist is not None else load_json(GREV_HIST_FILE); k_ = str(dealer).strip().upper(); e_ = h_.get(k_)
+    if not e_:
+        try: e_ = next((v_ for kk_, v_ in h_.items() if _nrm_dlr(kk_) == _nrm_dlr(k_)), None)
+        except Exception: e_ = None
+    today_ = _wib_now().strftime('%Y-%m-%d')
+    ds_ = sorted(d_ for d_ in (e_ or {}) if d_ <= today_)
+    if not ds_: return None
+    if len(ds_) < 2: return dict(delta=None, last=ds_[-1], prev=None, n_last=safe_int(e_[ds_[-1]]), n_prev=None)
+    l_, p_ = ds_[-1], ds_[-2]
+    return dict(delta=safe_int(e_[l_]) - safe_int(e_[p_]), last=l_, prev=p_, n_last=safe_int(e_[l_]), n_prev=safe_int(e_[p_]))
+
+def _grev_dm(d_):
+    try: return datetime.datetime.strptime(d_, '%Y-%m-%d').strftime('%d/%m')
+    except Exception: return str(d_ or '-')
+
+def bsg_chart_grev_daily(names):
+    """Diagram batang horizontal: jumlah review Google HARIAN per dealer (review hari ini − review kemarin). Return (inner, css, tinggi) atau None."""
+    h_ = load_json(GREV_HIST_FILE); rows_, lasts_, prevs_, tot_ = [], [], [], 0
+    for n_ in names or []:
+        r_ = grev_daily(n_, h_)
+        if r_ is None or r_['delta'] is None:
+            rows_.append({'name': n_, 'val': 0.0, 'label': 'n/a', '_s': -10 ** 9, 'tip': f'<b>{_esc(n_)}</b><br>' + ('Riwayat baru 1 hari (' + _grev_dm(r_['last']) + f": {r_['n_last']:,} review) — angka harian muncul setelah tarik hari berikutnya" if r_ else 'Belum ada riwayat tarik Google Review')}); continue
+        d_ = r_['delta']; tot_ += d_; lasts_.append(r_['last']); prevs_.append(r_['prev'])
+        gap_ = (datetime.datetime.strptime(r_['last'], '%Y-%m-%d') - datetime.datetime.strptime(r_['prev'], '%Y-%m-%d')).days
+        rows_.append({'name': n_, 'val': float(max(0, d_)), 'label': f'{d_:+,}', '_s': d_,
+                      'tip': f"<b>{_esc(n_)}</b><br>Review per {_grev_dm(r_['last'])}: <b>{r_['n_last']:,}</b><br>Review per {_grev_dm(r_['prev'])}: {r_['n_prev']:,}<br>Tambahan <b>{d_:+,}</b> review" + (f'<br>(akumulasi {gap_} hari — tidak ada tarikan di antaranya)' if gap_ > 1 else '')})
+    if not rows_: return None
+    rows_.sort(key=lambda x_: -x_['_s'])
+    if lasts_:
+        l_ = max(set(lasts_), key=lasts_.count); p_ = max(set(prevs_), key=prevs_.count)
+        note_ = f'Review per {_grev_dm(l_)} − review per {_grev_dm(p_)}' + ('' if l_ == _wib_now().strftime('%Y-%m-%d') else ' · Google Review hari ini belum ditarik')
+    else: note_ = 'Riwayat harian belum cukup — tarik Google Review (menu Upload File) hari ini dan besok.'
+    return bsg_chart_rank('Google Review Harian', '', rows_, keep_order=True, fixed_color='#2563EB', parts=True, total=(f'{tot_:+,}' if lasts_ else 'n/a'), total_color=(BSG_GRN if tot_ > 0 else ('#64748B' if not lasts_ or tot_ == 0 else BSG_RED)), note=note_)
+
 def apify_pull_grev():
-    """Tarik jumlah review Google tiap dealer yang kolom URL GOOGLE-nya terisi (MASTER TARGET › KPI Dealer) → simpan ke R. G REV, G RATING & G REV UPDATE."""
+    """Tarik jumlah review Google tiap dealer yang kolom URL GOOGLE-nya terisi (MASTER TARGET › KPI Dealer) → simpan ke R. G REV, G RATING & G REV UPDATE (+ riwayat harian)."""
     _all_a = load_json(KPI_SAVED_FILE); _sd_a = _all_a.get('dealer', {}) or {}
     _urls = {str(n_): str((v_ or {}).get(KPI_URL_COL, '') or '').strip() for n_, v_ in _sd_a.items() if str((v_ or {}).get(KPI_URL_COL, '') or '').strip().lower().startswith('http')}
-    _tok = apify_token(); _okn, _errs = 0, []
+    for _dn0, _e0 in _sd_a.items():   # riwayat awal: angka tarikan sebelumnya dicatat pada tanggal tarikannya (bila belum tercatat) → angka harian langsung muncul di tarikan pertama
+        try: grev_hist_record({_dn0: (_e0 or {}).get('R. G REV')}, datetime.datetime.strptime(str((_e0 or {}).get('G REV UPDATE', '')), '%d/%m/%Y %H:%M').strftime('%Y-%m-%d'), only_missing=True)
+        except Exception: pass
+    _tok = apify_token(); _okn, _errs, _new = 0, [], {}
     _pb = st.progress(0.0, text='Menarik data Google Maps…')
     for _i, (_dn, _un) in enumerate(_urls.items()):
         _pb.progress(_i / len(_urls), text=f'{_dn} ({_i + 1}/{len(_urls)})')
         try:
             _rc, _sc, _ttl = apify_google_reviews(_un, _tok)
             _e_a = _sd_a.get(_dn, {}) or {}
-            _e_a['R. G REV'] = int(_rc); _e_a['G RATING'] = round(float(_sc), 2); _e_a['G REV UPDATE'] = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
-            _sd_a[_dn] = _e_a; _okn += 1
+            _e_a['R. G REV'] = int(_rc); _e_a['G RATING'] = round(float(_sc), 2); _e_a['G REV UPDATE'] = _wib_now().strftime('%d/%m/%Y %H:%M')   # jam WIB (server online memakai UTC)
+            _sd_a[_dn] = _e_a; _okn += 1; _new[_dn] = int(_rc)
         except Exception as _ex: _errs.append(f'{_dn}: {str(_ex)[:90]}')
     _pb.progress(1.0, text='Selesai')
     _all_a['dealer'] = _sd_a; save_json(_all_a, KPI_SAVED_FILE)
+    if _new:
+        grev_hist_record(_new)
+        try: gcs_sync_up()   # riwayat harian ikut tersimpan ke cloud
+        except Exception: pass
     st.session_state['apify_grev_msg'] = (('⚠️ ' + str(len(_errs)) + ' dealer gagal: ' + ' | '.join(_errs)) if _errs else '')   # sukses → cukup baris 'SELESAI UPDATE …'
 
 
@@ -5571,9 +5638,11 @@ if menu_pilihan == MASTER_TAB:
             sec_dict = cur_all.get(section_key, {})
             td_sync = load_json(TARGET_DEALER_FILE) if section_key == 'dealer' else load_json(TARGET_KOOR_FILE)
             tj_sync = load_json(TARGET_LAIN_FILE) if section_key == 'dealer' else {}
+            _grev_chg = {}   # R. G REV yang diubah manual → ikut dicatat ke riwayat harian Google Review
             for _, r in df_rows.iterrows():
                 enm = str(r[name_col])
                 if enm == 'TOTAL': continue
+                if section_key == 'dealer' and 'R. G REV' in edit_cols_sec and safe_int(r['R. G REV']) != safe_int((sec_dict.get(enm, {}) or {}).get('R. G REV', 0)): _grev_chg[enm] = safe_int(r['R. G REV'])
                 sec_dict[enm] = {**(sec_dict.get(enm, {}) or {}), **{k_ed: (str(r[k_ed] if not pd.isna(r[k_ed]) else '').strip() if k_ed == KPI_URL_COL else (safe_float(r[k_ed]) if 'ACC%' in k_ed else safe_int(r[k_ed]))) for k_ed in edit_cols_sec}}   # kolom lain (mis. waktu tarik Apify) dipertahankan
                 if section_key == 'dealer' and enm not in daftar_dealer:
                     for k_old in [k_ for k_ in tj_sync if _nrm_dlr(k_) == _nrm_dlr(enm)]: tj_sync.pop(k_old, None)
@@ -5582,6 +5651,9 @@ if menu_pilihan == MASTER_TAB:
                     td_sync[enm] = safe_int(r['T. STU'])
             cur_all[section_key] = sec_dict
             save_json(cur_all, KPI_SAVED_FILE)
+            if _grev_chg and grev_hist_record(_grev_chg):
+                try: gcs_sync_up()
+                except Exception: pass
             if section_key == 'dealer': save_json(tj_sync, TARGET_LAIN_FILE)
             save_json(td_sync, TARGET_DEALER_FILE if section_key == 'dealer' else TARGET_KOOR_FILE)
             st.success(f'✅ Target & Data {title_txt} berhasil disimpan!')
