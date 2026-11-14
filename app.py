@@ -89,6 +89,7 @@ html, body, .stApp, [data-testid="stApp"], [data-testid="stAppViewContainer"], [
 h1, h2, h3, h4, h5, h6, label, label p, [data-testid="stWidgetLabel"] *, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] *, [data-testid="stMetricValue"], [data-testid="stMetricLabel"] *,
 [data-testid="stMarkdownContainer"] p:not([style]), [data-testid="stMarkdownContainer"] li:not([style]), [data-testid="stMarkdownContainer"] strong, [data-testid="stExpander"] summary *, [data-testid="stFileUploader"] *, [data-testid="stRadio"] *, [data-testid="stCheckbox"] *, [data-testid="stToggle"] * { color: #1E3A8A !important; }
 a, a:visited { color: #4318FF !important; }
+html body .mk-red, html body [data-testid="stMarkdownContainer"] .mk-red { color: #D32F2F !important; -webkit-text-fill-color: #D32F2F !important; font-weight: 800 !important; }
 hr, [data-testid="stDivider"] hr { border-color: #8FA8F0 !important; background-color: #8FA8F0 !important; }
 [data-testid="stDivider"] { margin: 0 !important; padding: 0 !important; }
 [data-testid="stDivider"] hr, hr:not([style]) { margin: 4px 0 !important; }
@@ -852,7 +853,8 @@ window.pnCapCard=async function(mode,btn){
   else{dl();st.style.color='#12A150';st.textContent='✅ '+FN+'_Ulasan.jpg berhasil diunduh!';setTimeout(function(){st.textContent='';},4500);}
  }catch(e){var h=document.getElementById('hold');h.innerHTML='';h.style.width='';st.style.color='#DC2626';st.textContent='Gagal membuat gambar: '+e.message;}
 };
-window.pnCapData=async function(){var hold=document.getElementById('hold');hold.innerHTML='';var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
+window.pnCapData=async function(sel){var hold=document.getElementById('hold');hold.innerHTML='';var c=document.getElementById('pn').cloneNode(true);c.removeAttribute('id');c.classList.remove('narrow');c.classList.add('cap');
+  if(sel){var br=c.querySelector('.pn-btnrow');if(br){while(br.nextSibling)br.nextSibling.remove();br.remove();}}   /* sel=1: hanya bagian di atas tombol (mis. SPK & Leasing → kartu batang STU · SPK · ACC% saja) */
   hold.appendChild(c);redrawCharts(c);fitTables(c);fitCards(c);c.querySelectorAll('.card').forEach(function(x){x.style.zoom='';});stretch(c);await svgFix(c);await new Promise(function(r){setTimeout(r,150);});var canvas=await html2canvas(hold,h2cO(hold));hold.innerHTML='';return canvas.toDataURL('image/jpeg',0.95);};
 })();</script></body></html>"""
 
@@ -1050,7 +1052,7 @@ def bsg_arsip_activate(upfile):
 # Butuh library `python-pptx` (requirements.txt). Fungsi di blok ini tidak memakai Streamlit.
 # ====================================================================================================
 _TPL_KOOR, _TPL_NON = 'TEMPLATE_PPT_DEALER_DENGAN_KOORDINATOR.pptx', 'TEMPLATE_PPT_DEALER_NON_KOORDINATOR.pptx'   # dealer yang punya Koordinator vs dealer tanpa Koordinator (hanya Counter)
-_TPL_SAMPLE_DEALERS = ('SIP SRONO', 'SIP A. YANI')   # nama dealer contoh pada cover / slide pembatas kedua template
+_TPL_SAMPLE_DEALERS = ('SIP PANJI', 'SIP A. YANI', 'SIP SRONO')   # nama dealer contoh pada cover / slide pembatas kedua template (nama di cover template juga otomatis dikenali)
 _KN = 'KOOR / COUNTER / DEALER'
 
 def _act_vals(d_x):   # (DB, HOT, DB Q, STU, STU%) -- level modul, dipakai _ppt_scope & tabel Analisa/Action Plan
@@ -1251,7 +1253,7 @@ def _cx_type(S):
     return out
 
 # jenis tabel (nama shape tabel di template: BSGT|<jenis>) → (perlu koordinator/counter?, pembuat baris)
-_CX_TABLES = {'dbq': (None, _cx_dbq), 'sub_d': (None, lambda S: _cx_sub(S, 3, True)), 'sales_k': ('k', _cx_salesman), 'sub_k': ('k', lambda S: _cx_sub(S, 2, True, 'SUB PROSPECT EVENT', 'MEDIA SOSIAL KOORDINATOR:')),
+_CX_TABLES = {'dbq': (None, _cx_dbq), 'sub_d': (None, lambda S: _cx_sub(S, 3, True)), 'sales_d': (None, _cx_salesman), 'sales_k': ('k', _cx_salesman), 'sub_k': ('k', lambda S: _cx_sub(S, 2, True, 'SUB PROSPECT EVENT', 'MEDIA SOSIAL KOORDINATOR:')),
               'counter': ('c', _cx_counter), 'leasing': (None, _cx_leasing), 'type': (None, _cx_type)}
 
 # ---------------------------------------------------------------------------------------------------
@@ -1306,16 +1308,26 @@ _PPT_SLOTS_KOOR = {2: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'dealer'), 3: ('
                    10: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'koor'), 11: ('panel', 'Jember_Man_Power_MDS', 'koor'), 13: ('panel', 'Jember_Proses_Kerja_Dealer', 'koor'), 15: ('panel', 'Jember_Activity', 'koor'), 17: ('kpi', 'kpi', 'koor'),
                    19: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'counter'), 20: ('panel', 'Jember_Proses_Kerja_Dealer', 'counter'), 21: ('panel', 'Jember_Activity', 'counter'), 23: ('kpi', 'kpi', 'counter'),
                    25: ('panel', 'Jember_Analisa_SPK_Leasing', 'dealer'), 28: ('panel', 'Jember_Penjualan_By_Type', 'dealer'), 30: ('panel', 'Registrasi_MYDR_', 'dealer'), 31: ('kpi', 'kpi', 'dealer')}
-_PPT_SLOTS_NON = {2: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'dealer'), 3: ('panel', 'Jember_Man_Power_MDS', 'dealer'), 5: ('panel', 'Jember_Proses_Kerja_Dealer', 'dealer'), 7: ('panel', 'Jember_Activity', 'dealer'),   # TEMPLATE_PPT_DEALER_NON_KOORDINATOR.pptx (24 slide)
-                  10: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'counter'), 11: ('panel', 'Jember_Proses_Kerja_Dealer', 'counter'), 12: ('panel', 'Jember_Activity', 'counter'), 14: ('kpi', 'kpi', 'counter'),
-                  16: ('panel', 'Jember_Analisa_SPK_Leasing', 'dealer'), 19: ('panel', 'Jember_Penjualan_By_Type', 'dealer'), 21: ('panel', 'Registrasi_MYDR_', 'dealer'), 22: ('kpi', 'kpi', 'dealer')}
+_PPT_SLOTS_NON = {2: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'dealer'), 3: ('panel', 'Jember_Man_Power_MDS', 'dealer'), 5: ('panel', 'Jember_Proses_Kerja_Dealer', 'dealer'), 8: ('panel', 'Jember_Activity', 'dealer'),   # TEMPLATE_PPT_DEALER_NON_KOORDINATOR.pptx (25 slide; slide 6 = tabel Salesman Terburuk dealer)
+                  11: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'counter'), 12: ('panel', 'Jember_Proses_Kerja_Dealer', 'counter'), 13: ('panel', 'Jember_Activity', 'counter'), 15: ('kpi', 'kpi', 'counter'),
+                  17: ('panel', 'Jember_Analisa_SPK_Leasing', 'dealer'), 20: ('panel', 'Jember_Penjualan_By_Type', 'dealer'), 22: ('panel', 'Registrasi_MYDR_', 'dealer'), 23: ('kpi', 'kpi', 'dealer')}
 _PPT_STAGE_LBL = {'dealer': 'dealer', 'koor': 'koordinator terlemah', 'counter': 'counter terlemah'}
+_PPT_PANEL_SEL = {'Jember_Analisa_SPK_Leasing'}   # panel yang di PPT hanya dipotret bagian atasnya (grafik batang STU · SPK · ACC%, tanpa donut & ACC% per leasing) — sama dengan tombol "Copy STU · SPK · ACC%"
 
 def _ppt_jpeg_stub(n):
     """JPEG putih kecil yang UNIK per slide (agar tidak digabung python-pptx) — pengganti gambar sampel; isinya ditimpa di browser."""
     import io
     from PIL import Image
     b = io.BytesIO(); Image.new('RGB', (n + 1, 1), (255, 255, 255)).save(b, 'JPEG'); return b.getvalue()
+
+def _ppt_slot_pic(sl):
+    """Gambar dashboard pada slide = gambar teratas (paling akhir) yang BUKAN latar kiri (≈8,82 x 7,5 in di pojok kiri atas) dan BUKAN logo kecil."""
+    def _in(v): return (v or 0) / 914400
+    def _skip(p_):
+        w_, h_, l_, t_ = _in(p_.width), _in(p_.height), _in(p_.left), _in(p_.top)
+        return (abs(l_) < 0.05 and abs(t_) < 0.05 and abs(w_ - 8.82) < 0.3 and h_ > 7.3) or (w_ < 2.6 and h_ < 0.9)
+    cand = [p_ for p_ in sl.shapes if p_.shape_type == 13 and not _skip(p_)]
+    return cand[-1] if cand else None
 
 def _ppt_stub_slots(prs, S_by, warn, slots_map):
     """Ganti gambar sampel (screenshot dealer lain) pada tiap slot dengan stub; return daftar slot {slide, kind, label, who, media, aspect}."""
@@ -1325,7 +1337,7 @@ def _ppt_stub_slots(prs, S_by, warn, slots_map):
     for n_, (kind, lab, who) in slots_map.items():
         if n_ > len(prs.slides): continue
         if S_by[who] is None: warn.append(f'Slide {n_}: tidak ada {_PPT_STAGE_LBL[who]} pada dealer / periode ini — gambar template dibiarkan.'); continue
-        sl = prs.slides[n_ - 1]; pic = next((p_ for p_ in sl.shapes if p_.shape_type == 13), None)
+        sl = prs.slides[n_ - 1]; pic = _ppt_slot_pic(sl)
         if pic is None: warn.append(f'Slide {n_}: kotak gambar tidak ditemukan di template.'); continue
         try:
             _, rid = sl.part.get_or_add_image_part(io.BytesIO(_ppt_jpeg_stub(n_)))
@@ -1338,13 +1350,16 @@ def _ppt_stub_slots(prs, S_by, warn, slots_map):
         except Exception as e_: warn.append(f'Slide {n_} (gambar): {type(e_).__name__}: {e_}')
     return slots
 
-def _ppt_build(src, S_d, S_k, S_c, slots_map):
-    """src = path / bytes template. Return (bytes_pptx, daftar_pesan, daftar_slot_gambar)."""
+def _ppt_build(src, S_d, S_k, S_c, slots_map, koor_tpl=True):
+    """src = path / bytes template. koor_tpl=False → TEMPLATE_PPT_DEALER_NON_KOORDINATOR (tabel BSGT|sales_k = Salesman Terburuk level dealer). Return (bytes_pptx, daftar_pesan, daftar_slot_gambar)."""
     import io
     from pptx import Presentation
     prs = Presentation(io.BytesIO(src) if isinstance(src, (bytes, bytearray)) else src)
     warn, dealer = [], S_d['dealer']
     k_name, c_name = (S_k['koor'] if S_k else None), (S_c['koor'] if S_c else None)
+    samples = set(_TPL_SAMPLE_DEALERS)   # + nama dealer contoh yang tertulis di cover template (agar template baru dengan dealer contoh lain tetap terganti)
+    try: samples |= {s_.text_frame.text.strip() for s_ in _ppt_shapes(prs.slides[0].shapes) if s_.has_text_frame and s_.text_frame.text.strip() and s_.text_frame.paragraphs[0].runs and (s_.text_frame.paragraphs[0].runs[0].font.size or 0) >= 600000}
+    except Exception: pass
     seen = set()
     for i, sl in enumerate(prs.slides, 1):
         shapes = list(_ppt_shapes(sl.shapes)); texts = {id(s_): s_.text_frame.text.strip() for s_ in shapes if s_.has_text_frame}
@@ -1354,7 +1369,7 @@ def _ppt_build(src, S_d, S_k, S_c, slots_map):
                 if i == 1 and sh.has_text_frame and sh.text_frame.paragraphs[0].runs and (sh.text_frame.paragraphs[0].runs[0].font.size or 0) >= 600000: _ppt_set_text(sh, dealer, _ppt_title_size(dealer, 66, 6.4))
                 elif sh.has_text_frame and t_ and 'LOW PERFORM COORDINATOR' in texts.values() and t_ != 'LOW PERFORM COORDINATOR': _ppt_set_text(sh, k_name or '-', _ppt_title_size(k_name or '-', 66, 8.0))   # slide pembatas koordinator: teks selain judul = nama koordinator
                 elif sh.has_text_frame and t_.startswith('COUNTER') and not t_.startswith('COUNTER DEALER') and any(v.startswith('COUNTER DEALER') for v in texts.values()): _ppt_set_text(sh, c_name or '-', _ppt_title_size(c_name or '-', 66, 8.0))   # slide pembatas counter
-                elif t_ in _TPL_SAMPLE_DEALERS: _ppt_set_text(sh, dealer)   # nama dealer contoh pada slide pembatas (SPK & Leasing, STU by Type)
+                elif t_ in samples: _ppt_set_text(sh, dealer)   # nama dealer contoh pada slide pembatas (SPK & Leasing, STU by Type)
                 elif t_.startswith('COUNTER DEALER'): _ppt_set_text(sh, f'COUNTER DEALER {dealer}')
                 elif t_.startswith('PERBAIKAN RECRUITMENT'):
                     S_ = S_k if any(v == 'RECRUITMENT KOORDINATOR' for v in texts.values()) else S_d
@@ -1366,7 +1381,9 @@ def _ppt_build(src, S_d, S_k, S_c, slots_map):
             if kind not in _CX_TABLES: warn.append(f'Slide {i}: jenis tabel "{kind}" tidak dikenal (nama shape {sh.name}).'); continue
             if kind in seen: warn.append(f'Slide {i}: nama tabel "{sh.name}" dipakai dua kali di template — ganti nama shape salah satunya agar isinya sesuai.')
             seen.add(kind)
-            needs, fn = _CX_TABLES[kind]; S_ = {None: S_d, 'k': S_k, 'c': S_c}[needs]
+            needs, fn = _CX_TABLES[kind]
+            if needs == 'k' and not koor_tpl: needs = None   # template NON KOORDINATOR: tabel Salesman Terburuk / Sub Prospect diisi level dealer
+            S_ = {None: S_d, 'k': S_k, 'c': S_c}[needs]
             try: _ppt_fill_condition(sh, fn(S_) if S_ is not None else [('', 'Tidak ada ' + ('koordinator' if needs == 'k' else 'counter') + ' pada dealer / periode ini.')])
             except Exception as e_: warn.append(f'Slide {i} (kolom Condition {kind}): {type(e_).__name__}: {e_}')
     if k_name or c_name: warn.insert(0, 'ℹ️ Slide koordinator / counter memakai ' + (f'koordinator terlemah: {k_name}' if k_name else '') + (' · ' if (k_name and c_name) else '') + (f'counter terlemah: {c_name}' if c_name else '') + '.')
@@ -1387,7 +1404,7 @@ def bsg_ppt_for_dealer(dealer, tpl_bytes=None):
         c_ = [r_ for r_ in S_d['ent_p'] if str(r_[_KN]).upper().startswith('COUNTER') == counter]   # cadangan bila daftar notif tidak dapat dibuat
         return next(iter([r_ for r_ in c_ if r_['TARGET'] > 0] or c_), {}).get(_KN)
     S_k, S_c = [(_ppt_scope(dealer, e_) if e_ else None) for e_ in ((_weakest(False) if has_koor else None), _weakest(True))]
-    data, warn, slots = _ppt_build(src, S_d, S_k, S_c, slots_map)
+    data, warn, slots = _ppt_build(src, S_d, S_k, S_c, slots_map, koor_tpl=has_koor)
     return dict(data=data, name=f"Review_{_ppt_san(dealer)}_Tgl{int(tanggal_akhir)}_{_ppt_san(periode_bulan_tahun)}.pptx", warn=warn, slots=slots, koor=(S_k['koor'] if S_k else None), counter=(S_c['koor'] if S_c else None))
 
 
@@ -1467,7 +1484,7 @@ def bsg_ppt_job_step():
             kind = 'frag'
             try: html = bsg_kpi_capture_html(job['dealer']) if sl_['who'] == 'dealer' else bsg_entity_kpi_capture_html(job['koor'] if sl_['who'] == 'koor' else job['counter'])[1]
             except Exception as e_: html = None; job['warn'].append(f"Slide {sl_['slide']}: Dashboard KPI tidak dapat dibuat ({type(e_).__name__}: {str(e_)[:80]}) — gambar kosong.")
-        if html: items.append(dict(tag=f"slide {sl_['slide']}", media=sl_['media'], aspect=sl_['aspect'], kind=kind, html=html))
+        if html: items.append(dict(tag=f"slide {sl_['slide']}", media=sl_['media'], aspect=sl_['aspect'], kind=kind, html=html, sel=(1 if (kind == 'panel' and sl_['label'] in _PPT_PANEL_SEL) else 0)))
     payload = json.dumps(dict(pptx=job['pptx'], name=job['name'], items=items), ensure_ascii=False).replace('</', '<\\/')
     st.session_state['ppt_final'] = dict(dealer=job['dealer'], payload=payload, warn=job['warn'])
     if job.get('orig_koor') is not None: st.session_state['ppt_restore'] = (f"dd_sel_koor_{job['dealer']}_None", job['orig_koor'])
@@ -1494,7 +1511,7 @@ async function run(){
    try{let url;
     if(it.kind==='panel'){const f=document.createElement('iframe');f.style.cssText='position:fixed;left:-20000px;top:0;width:1500px;height:1400px;border:0;';f.srcdoc=it.html;document.body.appendChild(f);
      const good=await waitFor(()=>f.contentWindow&&f.contentWindow.pnCapData&&typeof f.contentWindow.html2canvas!=='undefined',25000);if(!good)throw new Error('panel tidak termuat');
-     await sleep(600);url=await f.contentWindow.pnCapData();f.remove();}
+     await sleep(600);url=await f.contentWindow.pnCapData(it.sel||0);f.remove();}
     else{const h=document.getElementById('hold');h.innerHTML=it.html;await sleep(300);const c=await html2canvas(h.firstElementChild,h2cO(h.firstElementChild));h.innerHTML='';url=c.toDataURL('image/jpeg',0.95);}
     const out=await fit(url,it.aspect);zip.file(it.media.replace(/^\\//,''),out.split(',')[1],{base64:true});ok++;
    }catch(e){fail.push(it.tag+' ('+e.message+')');}}
@@ -2191,6 +2208,7 @@ _DC_CSS = """<style>
 .mk-chip{display:inline-block;background:#FFFFFF;border:1px solid #8FA8F0;color:#1E3A8A;border-radius:14px;padding:2px 10px;margin:3px 4px 0 0;font-size:12.5px;font-weight:700;}
 .mk-card{background:#FFFFFF;border:1px solid #C9D6F7;border-left:5px solid #4318FF;border-radius:10px;padding:10px 16px;margin:0 0 10px 0;}
 .mk-card h4{margin:0 0 6px 0;font-size:16px;color:#1E1B8F;} .mk-card p,.mk-card li{color:#1E3A8A;font-size:14.5px;line-height:1.65;margin:0 0 4px 0;} .mk-card ul,.mk-card ol{margin:0;padding-left:20px;}
+.mk-red,.mk-card .mk-red,[data-testid="stMarkdownContainer"] .mk-red,[data-testid="stMarkdownContainer"] p .mk-red,[data-testid="stMarkdownContainer"] li .mk-red{color:#D32F2F !important;-webkit-text-fill-color:#D32F2F !important;font-weight:800 !important;}
 .mk-note{background:#FFF8E1;border:1px solid #F2D98B;border-radius:8px;padding:8px 12px;font-size:13px;color:#7A5B00;margin-bottom:10px;}
 .mk-tbl{width:100%;border-collapse:collapse;font-size:13.5px;} .mk-tbl th{background:#EAF0FF;color:#1E1B8F;text-align:left;padding:7px 9px;border:1px solid #C9D6F7;} .mk-tbl td{padding:7px 9px;border:1px solid #C9D6F7;color:#1E3A8A;vertical-align:top;line-height:1.5;}
 </style>"""
@@ -2199,13 +2217,16 @@ def _mk_card(title, body_html): return f'<div class="mk-card"><h4>{title}</h4>{b
 def _mk_ul(lst, ordered=False):
     tag_ = 'ol' if ordered else 'ul'
     return f'<{tag_}>' + ''.join(f'<li>{_html.escape(x_)}</li>' for x_ in lst) + f'</{tag_}>' if lst else ''
-_MK_BLN = r'(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)'
-_MK_TGL = re.compile(r'(?:\d{1,2}(?:\s*(?:[–—\-&,]|dan|s\.?d\.?)\s*\d{1,2})*\s+' + _MK_BLN + r'(?:\s+\d{4})?|' + _MK_BLN + r'\s+\d{4})', re.I)   # tanggal harus punya angka hari atau tahun (bulan saja tidak diwarnai)
+_MK_BLN = r'(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember|Jan|Feb|Mar|Apr|Jun|Jul|Agu|Agt|Ags|Sep|Sept|Okt|Nov|Des)\.?(?![a-z])'
+_MK_DASH = r'(?:[–—―‐‑‒−\-&,/]|â€“|â€”|dan|s\.?\s?d\.?|sampai|hingga)'   # termasuk variasi tanda pisah dari teks tempelan / encoding berbeda
+_MK_TGL = re.compile(r'(?:\d{1,2}(?:\s*' + _MK_DASH + r'\s*\d{1,2})*\s+' + _MK_BLN + r'(?:\s+\d{4})?|' + _MK_BLN + r'\s+\d{4}|\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4})', re.I)   # tanggal harus punya angka hari atau tahun (bulan saja tidak diwarnai)
+_MK_RED_STYLE = 'color:#D32F2F !important;-webkit-text-fill-color:#D32F2F !important;font-weight:800 !important;'
 def _mk_red_dates(t_):
-    """Escape teks lalu bungkus tanggal (mis. '13–27 November 2026', 'November 2026') jadi merah + bold."""
+    """Escape teks lalu bungkus tanggal (mis. '13–27 November 2026', 'November 2026', '14/11/2026') jadi merah + bold.
+    Warna merah dipasang lewat class .mk-red (CSS !important di _DC_CSS) DAN style inline → tetap merah walau tema / versi Streamlit di server online berbeda."""
     t_ = str(t_ or ''); out_, pos_ = '', 0
     for m_ in _MK_TGL.finditer(t_):
-        out_ += _html.escape(t_[pos_:m_.start()]) + f'<span style="color:#D32F2F;font-weight:800;">{_html.escape(m_.group(0))}</span>'; pos_ = m_.end()
+        out_ += _html.escape(t_[pos_:m_.start()]) + f'<span class="mk-red" style="{_MK_RED_STYLE}">{_html.escape(m_.group(0))}</span>'; pos_ = m_.end()
     return out_ + _html.escape(t_[pos_:])
 def _mk_ul_dates(lst): return '<ul>' + ''.join(f'<li>{_mk_red_dates(x_)}</li>' for x_ in lst) + '</ul>' if lst else ''
 _LIVE_SPLIT = re.compile(r'(?<=[.!?"”])\s+(?=[A-Z][\w/&\- ]{0,30}(?:\s*\([^)]*\))?\s*:)')
