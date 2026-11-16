@@ -1,0 +1,83 @@
+# ⚡ Generate RSSM otomatis (Faktur, Nota, SPK, Stok) — dijalankan server GitHub, tanpa laptop.
+# Letakkan file ini di repo: .github/workflows/generate_rssm.yml  (branch main)
+# Butuh Secrets repo (Settings › Secrets and variables › Actions): RSSM_USER, RSSM_PASS
+#
+# JAM JADWAL: GitHub memakai jam UTC = WIB − 7 jam. Format cron: "menit jam * * *"
+#   07:30 WIB → '30 0 * * *'     12:00 WIB → '0 5 * * *'     16:30 WIB → '30 9 * * *'
+#   (jam WIB 00:00–06:59 → kurangi 7 jam = jam UTC hari sebelumnya, mis. 06:00 WIB → '0 23 * * *')
+# GitHub bisa terlambat beberapa menit dari jadwal saat servernya ramai.
+
+name: Generate RSSM otomatis
+
+on:
+  schedule:
+    - cron: '30 0 * * *'   # 07:30 WIB
+    - cron: '0 5 * * *'    # 12:00 WIB
+    - cron: '30 9 * * *'   # 16:30 WIB
+  workflow_dispatch:       # tombol "Run workflow" (bisa dari HP lewat github.com)
+    inputs:
+      laporan:
+        description: 'Laporan (pisahkan koma): faktur,nota,spk,stok'
+        required: false
+        default: 'faktur,nota,spk,stok'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rssm-generate
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Ambil kode aplikasi (branch main)
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Ambil data aplikasi (branch data)
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: datarepo
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Pasang library
+        run: pip install requests pandas xlrd
+
+      - name: Tarik laporan dari RSSM / RM
+        env:
+          RSSM_USER: ${{ secrets.RSSM_USER }}
+          RSSM_PASS: ${{ secrets.RSSM_PASS }}
+        run: python app/rssm_faktur.py --tarik-ke staging "${{ github.event.inputs.laporan || 'faktur,nota,spk,stok' }}"
+
+      - name: Simpan ke branch data (dibaca aplikasi Streamlit)
+        run: |
+          cd datarepo
+          git config user.name "rssm-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3; do
+            git fetch origin data && git reset --hard origin/data
+            python ../app/rssm_faktur.py --terapkan ../staging bushido_raw
+            git add -A bushido_raw
+            if git diff --cached --quiet; then echo "Tidak ada perubahan"; break; fi
+            git commit -m "Generate RSSM otomatis $(TZ=Asia/Jakarta date '+%d/%m/%Y %H:%M') WIB"
+            if git push origin HEAD:data; then echo "Tersimpan"; break; fi
+            echo "Push bentrok dengan simpanan aplikasi — ulangi ($i)"; sleep 5
+          done
+
+      - name: Laporkan laporan yang gagal
+        run: |
+          python - <<'PY'
+          import json, sys
+          m = json.load(open('staging/manifest.json'))
+          for k, v in m.items():
+              print(('OK   ' if v.get('ok') else 'GAGAL'), k, '-', v.get('pesan', ''))
+          sys.exit(1 if any(not v.get('ok') for v in m.values()) else 0)
+          PY
