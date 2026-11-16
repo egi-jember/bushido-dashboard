@@ -2,18 +2,16 @@
 # Letakkan file ini di repo: .github/workflows/generate_rssm.yml  (branch main)
 # Butuh Secrets repo (Settings › Secrets and variables › Actions): RSSM_USER, RSSM_PASS
 #
-# JAM JADWAL: GitHub memakai jam UTC = WIB − 7 jam. Format cron: "menit jam * * *"
-#   07:30 WIB → '30 0 * * *'     12:00 WIB → '0 5 * * *'     16:30 WIB → '30 9 * * *'
-#   (jam WIB 00:00–06:59 → kurangi 7 jam = jam UTC hari sebelumnya, mis. 06:00 WIB → '0 23 * * *')
+# JAM JADWAL: GitHub memakai jam UTC = WIB − 7 jam. Format cron: "menit jam * * *" (jam boleh dipisah koma)
+#   Sekarang: tiap 2 jam, 08:00–20:00 WIB  = UTC 01,03,05,07,09,11,13  → '0 1,3,5,7,9,11,13 * * *'
+#   Contoh lain: 08:00–18:00 WIB → '0 1,3,5,7,9,11 * * *' · tiap jam 08:00–20:00 WIB → '0 1,2,3,4,5,6,7,8,9,10,11,12,13 * * *'
 # GitHub bisa terlambat beberapa menit dari jadwal saat servernya ramai.
 
 name: Generate RSSM otomatis
 
 on:
   schedule:
-    - cron: '30 0 * * *'   # 07:30 WIB
-    - cron: '0 5 * * *'    # 12:00 WIB
-    - cron: '30 9 * * *'   # 16:30 WIB
+    - cron: '0 1,3,5,7,9,11,13 * * *'   # 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00 WIB
   workflow_dispatch:       # tombol "Run workflow" (bisa dari HP lewat github.com)
     inputs:
       laporan:
@@ -71,6 +69,15 @@ jobs:
             if git push origin HEAD:data; then echo "Tersimpan"; break; fi
             echo "Push bentrok dengan simpanan aplikasi — ulangi ($i)"; sleep 5
           done
+          # Bersihkan riwayat otomatis bila sudah > 60 versi, agar ukuran repo tidak terus membengkak.
+          # Isi file tetap (versi terakhir); dilewati bila aplikasi baru saja menyimpan sesuatu (force-with-lease).
+          n=$(git rev-list --count HEAD)
+          if [ "$n" -gt 60 ]; then
+            base=$(git rev-parse HEAD)
+            git checkout -q --orphan squash
+            git commit -q -m "Bersihkan riwayat data otomatis $(TZ=Asia/Jakarta date '+%d/%m/%Y %H:%M') WIB"
+            git push --force-with-lease=data:$base origin squash:data && echo "Riwayat dibersihkan ($n versi → 1)" || echo "Pembersihan dilewati (ada simpanan baru), dicoba lagi lain kali"
+          fi
 
       - name: Laporkan laporan yang gagal
         run: |
