@@ -1568,7 +1568,7 @@ _GCS_PENDING_DEL = []   # nama file (relatif terhadap UPLOAD_DIR) yang dihapus l
 _STATE_SUB = '_app_state/'
 _STATE_FILES = ['dealer_targets_saved.json', 'koor_targets_saved.json', 'kpi_targets_saved.json', 'koor_resigned.json', 'jember_targets_saved.json',
                 'md_targets_saved.json', 'libur_nasional.json', 'kpi_dashboard_manual.json', 'running_text.json', 'hot_prospect_hasil.json',
-                'lokal_intel_saved.json', 'tiktok_trend_saved.json']
+                'lokal_intel_saved.json', 'tiktok_trend_saved.json', 'rssm_jadwal.json']
 
 def _cloud_local_path(rel):
     """Nama file di cloud (relatif setelah prefix) → path lokal. None = bukan file yang dikenal (diabaikan)."""
@@ -1819,7 +1819,8 @@ def cloud_push_file(f):
         _gh_dirty().discard(rel)
     except Exception as e_:
         _gh_dirty().add(rel)   # jangan ditimpa versi cloud yang lama; dikirim ulang saat sinkron berikutnya
-        st.session_state['gcs_msg'] = f'☁️ Gagal menyimpan {rel} ke cloud: {str(e_)[:60]} — tersimpan lokal'
+        try: st.session_state['gcs_msg'] = f'☁️ Gagal menyimpan {rel} ke cloud: {str(e_)[:60]} — tersimpan lokal'
+        except Exception: pass   # dipanggil dari penjadwal (tanpa sesi browser)
 
 gcs_sync_down()   # ONLINE: ambil data mentah terbaru dari cloud sebelum file dibaca
 _tick('sinkron cloud')
@@ -2461,7 +2462,7 @@ def tiktok_trend_pull_ui():
 def tiktok_trend_note():
     """Catatan di menu Digital Content: data TikTok diambil dari menu UPLOAD FILE."""
     _tt = tiktok_trend_get()
-    st.caption(f"🕒 Trend TikTok (Creative Center) diambil {_tt_ts_fmt(_tt['ts'])} WIB · ambil data terbaru lewat tombol di menu 📁 UPLOAD FILE." if _tt.get('ts') else "ℹ️ Trend TikTok (Audio & Tagar FYP) belum diambil — klik **Ambil Trend TikTok (Apify)** di menu 📁 UPLOAD FILE.")
+    st.caption(f"🕒 Trend TikTok (Creative Center) diambil {_tt_ts_fmt(_tt['ts'])} WIB · ambil data terbaru lewat tombol di menu 🗃️ UPLOAD BY MD." if _tt.get('ts') else "ℹ️ Trend TikTok (Audio & Tagar FYP) belum diambil — klik **Ambil Trend TikTok (Apify)** di menu 📁 UPLOAD FILE.")
 
 def render_digital_content(dealer):
     lok_ = _lokasi_dealer(dealer); intel_ = lokal_intel_get(dealer); ts_ = intel_.get('ts', '') or lokal_intel_all_get().get('ts', '')
@@ -2579,9 +2580,207 @@ def save_raw_file(up_file, prefix):
         except Exception: pass
     with open(fpath, 'wb') as f: f.write(up_file.getbuffer())
     meta = load_json(RAW_META_FILE)
-    meta[prefix] = {'original_name': up_file.name, 'saved_path': fpath, 'updated_at': datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')}
+    meta[prefix] = {'original_name': up_file.name, 'saved_path': fpath, 'updated_at': _wib_now().strftime('%d %b %Y, %H:%M WIB')}
     save_json(meta, RAW_META_FILE)
     gcs_sync_up()
+
+# ====================================================================================================
+# ============ GENERATE FAKTUR / NOTA / SPK / STOK: tarik langsung dari Online Report RSSM / RM ======
+# Secrets: RSSM_USER, RSSM_PASS (wajib, sama untuk semua laporan). Alamat/kode area default ada di rssm_faktur.LAPORAN.
+# ====================================================================================================
+try:
+    import rssm_faktur as _rssm
+except Exception:
+    _rssm = None
+
+def _rssm_cfg(jenis):
+    """User/password sama untuk Faktur (RSSM) & Nota (RM). Opsional per laporan: RSSM_<JENIS>_BASE_URL / _AREA_KODE / _AREA_NAMA."""
+    def _g(k_, d_=''):
+        try: v_ = st.secrets.get(k_, None)
+        except Exception: v_ = None
+        return str(v_ if v_ not in (None, '') else os.environ.get(k_, d_) or '').strip()
+    u_, p_ = _g('RSSM_USER'), _g('RSSM_PASS')
+    if not (u_ and p_): return None
+    J_ = jenis.upper()
+    return dict(user=u_, pwd=p_, base_url=_g(f'RSSM_{J_}_BASE_URL') or (_g('RSSM_BASE_URL') if jenis == 'faktur' else ''),
+                area_kode=_g(f'RSSM_{J_}_AREA_KODE'), area_nama=_g(f'RSSM_{J_}_AREA_NAMA'))
+
+@st.cache_resource(show_spinner=False)
+def _rssm_lock(jenis): return {'busy': False, 't': 0.0}   # dibagi semua pengguna di server yang sama: cegah tarikan dobel
+
+class _BytesUpload:   # meniru objek file_uploader agar bisa disimpan lewat save_raw_file()
+    def __init__(self, name, data): self.name, self._d, self.size = name, data, len(data)
+    def getbuffer(self): return memoryview(self._d)
+
+def _rssm_xls_ok(data, jenis):
+    """Pastikan file hasil tarikan memang laporan yang benar & ada baris datanya (file lama tidak tertimpa file rusak)."""
+    import io
+    cfg_ = _rssm.LAPORAN[jenis]
+    try: df_ = pd.read_excel(io.BytesIO(data), header=None, nrows=14)
+    except Exception as e_: return False, f'file tidak terbaca ({type(e_).__name__})'
+    txt_ = ' '.join(str(v_) for v_ in df_.values.ravel() if str(v_) != 'nan').upper()
+    if cfg_['judul_file'] not in txt_: return False, f"isinya bukan laporan {cfg_['judul_file']}"
+    if len(df_) < cfg_['min_baris']: return False, 'laporan kosong (tidak ada baris data pada periode ini)'
+    return True, ''
+
+def rssm_generate_ui(jenis):
+    """Tombol ⚡ Generate Faktur / Nota di bawah kotak upload masing-masing."""
+    msg_ = st.session_state.pop(f'rssm_msg_{jenis}', None)
+    if msg_: (st.success if msg_[0] else st.error)(('✅ ' if msg_[0] else '⚠️ ') + msg_[1])
+    if _rssm is None or not hasattr(_rssm, 'LAPORAN'): st.caption('⚡ Generate: file rssm_faktur.py (versi terbaru) belum ada di repo — letakkan di samping app.py.'); return
+    judul_ = _rssm.LAPORAN[jenis]['judul']
+    cfg_ = _rssm_cfg(jenis)
+    if not cfg_: st.caption(f'⚡ Generate {judul_}: isi RSSM_USER & RSSM_PASS di Secrets untuk mengaktifkan.'); return
+    a0_, b0_ = _rssm.periode_default(jenis); lap_ = _rssm.LAPORAN[jenis]
+    with st.expander('📅 Periode tarik', expanded=False):
+        if lap_.get('tanpa_tgl_awal'):   # STOK: posisi per tanggal (tanpa tanggal awal)
+            d_ = st.date_input('Per tanggal', value=b0_, key=f'rssm_periode_{jenis}', format='DD/MM/YYYY', label_visibility='collapsed')
+            rng_ = (d_, d_); st.caption('Default: posisi stok per hari ini.')
+        else:
+            rng_ = st.date_input('Periode', value=(a0_, b0_), key=f'rssm_periode_{jenis}', format='DD/MM/YYYY', label_visibility='collapsed')
+            st.caption('Default: tgl 1 bulan ' + ('lalu' if lap_['periode'] == 'bulan_lalu' else 'ini') + ' s/d hari ini.')
+    a_, b_ = (rng_[0], rng_[1]) if isinstance(rng_, (list, tuple)) and len(rng_) == 2 else (a0_, b0_)
+    per_txt_ = f'per {b_:%d/%m/%Y}' if lap_.get('tanpa_tgl_awal') else f'periode {a_:%d/%m/%Y} s/d {b_:%d/%m/%Y}'
+    lk_ = _rssm_lock(jenis); sisa_ = int(120 - (time.time() - lk_['t']))
+    if lk_['busy'] and sisa_ > -600: st.info(f'⏳ {judul_} sedang ditarik oleh pengguna lain… tunggu sebentar lalu muat ulang.'); return
+    if not st.button(f'⚡ Generate {judul_}', key=f'btn_rssm_{jenis}', type='primary', use_container_width=True): return
+    if sisa_ > 0: st.session_state[f'rssm_msg_{jenis}'] = (False, f'Baru saja ditarik — coba lagi {sisa_} detik lagi.'); st.rerun()
+    lk_['busy'], lk_['t'] = True, time.time(); res_ = None
+    try:
+        with st.status(f'Menarik {judul_} dari server…', expanded=True) as stt_:
+            data_ = _rssm.tarik(jenis, cfg_['user'], cfg_['pwd'], a_, b_, log=stt_.write,
+                                base_url=cfg_['base_url'], area_kode=cfg_['area_kode'], area_nama=cfg_['area_nama'])
+            ok_, why_ = _rssm_xls_ok(data_, jenis)
+            if not ok_: raise _rssm.RSSMError('File hasil tarikan ditolak: ' + why_ + f'. File {judul_} lama tetap dipakai.')
+            now_ = _wib_now()
+            save_raw_file(_BytesUpload(f'{jenis.upper()}_RSSM_{now_:%d%m%Y_%H%M}.xls', data_), jenis)
+            stt_.update(label=f'{judul_} diperbarui', state='complete')
+        res_ = (True, f'{judul_} diperbarui — {per_txt_} · ditarik {now_:%H:%M} WIB')
+    except Exception as e_:
+        res_ = (False, str(e_) if isinstance(e_, _rssm.RSSMError) else f'Gagal menarik {judul_}: {type(e_).__name__}: {str(e_)[:150]}')
+    finally:
+        lk_['busy'] = False
+    st.session_state[f'rssm_msg_{jenis}'] = res_; st.rerun()
+
+# ---------------- ⏰ GENERATE OTOMATIS (jadwal harian) ----------------
+# Jadwal (aktif, jam WIB, laporan) disimpan di rssm_jadwal.json (ikut sinkron cloud).
+# Penjalan jadwal HANYA hidup di komputer/server yang Secrets-nya berisi RSSM_AUTO = true (mis. PC kantor yang menyala terus),
+# berjalan di latar selama `streamlit run app.py` hidup — browser tidak perlu dibuka (cukup dibuka sekali setelah server dinyalakan).
+RSSM_JADWAL_FILE = _ABS('rssm_jadwal.json')
+RSSM_AUTO_LOG_FILE = _ABS('rssm_auto_log.json')   # riwayat jalan otomatis di komputer ini (lokal, tidak dikirim ke cloud)
+RSSM_AUTO_WINDOW_MIN = 60   # jadwal yang terlewat lebih dari 60 menit (mis. komputer mati) dilewati
+
+def _rssm_auto_enabled_here():
+    try: v_ = st.secrets.get('RSSM_AUTO', None)
+    except Exception: v_ = None
+    v_ = v_ if v_ is not None else os.environ.get('RSSM_AUTO', '')
+    return str(v_).strip().lower() in ('1', 'true', 'ya', 'yes', 'on')
+
+def _parse_jam(txt):
+    out = []
+    for t_ in re.split(r'[\s,;]+', str(txt or '')):
+        m_ = re.fullmatch(r'(\d{1,2})[:.](\d{2})', t_.strip())
+        if m_ and int(m_.group(1)) < 24 and int(m_.group(2)) < 60: out.append(f'{int(m_.group(1)):02d}:{m_.group(2)}')
+    return sorted(set(out))
+
+def _save_raw_bytes_headless(prefix, name, data):
+    """Sama dengan save_raw_file tetapi tanpa st.* (dipakai penjadwal di latar). Return (file yang berubah, file cloud yang dihapus)."""
+    ext = os.path.splitext(name)[1].lower(); fpath = os.path.join(UPLOAD_DIR, f'{prefix}_latest{ext}'); dels = []
+    for old in glob.glob(os.path.join(UPLOAD_DIR, f'{prefix}_*')):
+        if os.path.abspath(old) != os.path.abspath(fpath):
+            try: os.remove(old); dels.append(os.path.relpath(old, UPLOAD_DIR).replace(os.sep, '/'))
+            except Exception: pass
+    with open(fpath, 'wb') as f_: f_.write(data)
+    meta = load_json(RAW_META_FILE)
+    meta[prefix] = {'original_name': name, 'saved_path': fpath, 'updated_at': _wib_now().strftime('%d %b %Y, %H:%M WIB')}
+    with open(RAW_META_FILE, 'w') as fp_: json.dump(meta, fp_)
+    return [fpath, RAW_META_FILE], dels
+
+def _cloud_delete(rel):
+    try:
+        kind_ = _cloud_kind()
+        if kind_ == 'github':
+            _, repo, br = _gh_cfg(); path = urllib.parse.quote(_GCS_PREFIX + rel)
+            s_, cur = _gh_req('GET', f'/repos/{repo}/contents/{path}?ref={urllib.parse.quote(br)}', timeout=30)
+            if s_ == 200 and isinstance(cur, dict) and cur.get('sha'):
+                _gh_req('DELETE', f'/repos/{repo}/contents/{path}', {'message': f'hapus {rel}', 'sha': cur['sha'], 'branch': br}, timeout=60)
+        elif kind_ == 'gcs':
+            bl_ = _gcs_bucket().blob(_GCS_PREFIX + rel)
+            if bl_.exists(): bl_.delete()
+    except Exception: pass
+
+def _rssm_run_job(jenis, lock_):
+    """Tarik + cek + simpan + kirim ke cloud untuk 1 laporan, tanpa st.* . Return (ok, pesan)."""
+    if lock_['busy']: return False, 'sedang ditarik (manual)'
+    cfg_ = _rssm_cfg(jenis)
+    if not cfg_: return False, 'RSSM_USER / RSSM_PASS belum diisi'
+    lock_['busy'], lock_['t'] = True, time.time()
+    try:
+        a_, b_ = _rssm.periode_default(jenis)
+        data_ = _rssm.tarik(jenis, cfg_['user'], cfg_['pwd'], a_, b_, base_url=cfg_['base_url'], area_kode=cfg_['area_kode'], area_nama=cfg_['area_nama'])
+        ok_, why_ = _rssm_xls_ok(data_, jenis)
+        if not ok_: return False, why_ + ' (file lama tetap dipakai)'
+        files_, dels_ = _save_raw_bytes_headless(jenis, f'{jenis.upper()}_RSSM_{_wib_now():%d%m%Y_%H%M}.xls', data_)
+        for f_ in files_: cloud_push_file(f_)
+        for r_ in dels_: _cloud_delete(r_)
+        return True, f'{len(data_) // 1024:,} KB'
+    except Exception as e_: return False, str(e_)[:200]
+    finally: lock_['busy'] = False
+
+@st.cache_resource(show_spinner=False)
+def _rssm_auto_runner():
+    """Thread latar (1 per proses server): cek jadwal tiap 30 detik, jalankan Generate pada jam yang ditentukan."""
+    import threading
+    state_ = {'mulai': _wib_now().strftime('%d/%m/%Y %H:%M'), 'locks': {j_: _rssm_lock(j_) for j_ in _rssm.LAPORAN}}
+    def _loop():
+        while True:
+            try:
+                jd_ = load_json(RSSM_JADWAL_FILE)
+                if jd_.get('aktif'):
+                    now_ = _wib_now(); today_ = now_.strftime('%Y-%m-%d'); mnow_ = now_.hour * 60 + now_.minute
+                    for jam_ in _parse_jam(' '.join(jd_.get('jam', []))):
+                        slot_ = f'{today_} {jam_}'; selisih_ = mnow_ - (int(jam_[:2]) * 60 + int(jam_[3:]))
+                        if selisih_ < 0 or selisih_ > RSSM_AUTO_WINDOW_MIN or slot_ in load_json(RSSM_AUTO_LOG_FILE).get('slots_done', []): continue
+                        hasil_ = {}
+                        for j_ in [x_ for x_ in _rssm.LAPORAN if x_ in (jd_.get('jenis') or list(_rssm.LAPORAN))]:
+                            ok_, m_ = _rssm_run_job(j_, state_['locks'][j_]); hasil_[_rssm.LAPORAN[j_]['judul']] = ('✅ ' if ok_ else '⚠️ ') + m_
+                        lg_ = load_json(RSSM_AUTO_LOG_FILE)
+                        lg_['slots_done'] = (lg_.get('slots_done', []) + [slot_])[-60:]
+                        lg_['last'] = {'slot': slot_, 'selesai': _wib_now().strftime('%d/%m/%Y %H:%M'), 'hasil': hasil_}
+                        with open(RSSM_AUTO_LOG_FILE, 'w') as fp_: json.dump(lg_, fp_)
+            except Exception: pass
+            time.sleep(30)
+    th_ = threading.Thread(target=_loop, name='rssm-auto', daemon=True); th_.start(); state_['thread'] = th_
+    return state_
+
+def rssm_jadwal_ui():
+    """Kotak pengaturan ⏰ Generate otomatis (di menu Upload File, baris ke-2)."""
+    if _rssm is None or not hasattr(_rssm, 'LAPORAN') or not _rssm_cfg('faktur'): return
+    jd_ = load_json(RSSM_JADWAL_FILE); here_ = _rssm_auto_enabled_here()
+    jam_now_ = jd_.get('jam') or []; jen_now_ = [j_ for j_ in (jd_.get('jenis') or list(_rssm.LAPORAN)) if j_ in _rssm.LAPORAN]
+    ttl_ = '⏰ Generate otomatis — ' + (('AKTIF ' + ', '.join(jam_now_)) if jd_.get('aktif') and jam_now_ else 'nonaktif')
+    with st.expander(ttl_, expanded=False):
+        if here_: st.caption('🖥️ Penjalan jadwal hidup di komputer ini (RSSM_AUTO = true). Selama aplikasi ini berjalan, Generate dijalankan otomatis pada jam di bawah — browser boleh ditutup.')
+        else: st.caption('ℹ️ Server ini bukan penjalan jadwal. Jadwal dijalankan oleh komputer yang Secrets-nya berisi RSSM_AUTO = true.')
+        if IS_ADMIN:
+            akt_ = st.toggle('Aktifkan jadwal', value=bool(jd_.get('aktif')), key='rssm_auto_aktif')
+            jam_txt_ = st.text_input('Jam WIB (pisahkan koma)', value=', '.join(jam_now_) or '07:30, 12:00, 16:30', key='rssm_auto_jam', help='Contoh: 07:30, 12:00, 16:30')
+            jen_ = st.multiselect('Laporan', options=list(_rssm.LAPORAN), default=jen_now_, format_func=lambda j_: _rssm.LAPORAN[j_]['judul'], key='rssm_auto_jenis')
+            if st.button('💾 Simpan jadwal', key='btn_rssm_jadwal', use_container_width=True):
+                jam_ = _parse_jam(jam_txt_)
+                if akt_ and not jam_: st.error('Format jam tidak terbaca. Contoh: 07:30, 12:00, 16:30')
+                elif akt_ and not jen_: st.error('Pilih minimal 1 laporan.')
+                else: save_json({'aktif': bool(akt_), 'jam': jam_, 'jenis': jen_}, RSSM_JADWAL_FILE); st.rerun()
+        else:
+            st.caption('Laporan: ' + ', '.join(_rssm.LAPORAN[j_]['judul'] for j_ in jen_now_) + ' · masukkan Kode Akses untuk mengubah jadwal.')
+        lg_ = load_json(RSSM_AUTO_LOG_FILE).get('last') if here_ else None
+        if lg_:
+            st.markdown(f"<div style='font-size:12px;line-height:1.5;padding-bottom:16px;'><b>Terakhir jalan:</b> jadwal {lg_['slot'][-5:]} · selesai {lg_['selesai']} WIB<br>" +
+                        '<br>'.join(f'{k_}: {_html.escape(str(v_))}' for k_, v_ in (lg_.get('hasil') or {}).items()) + '</div>', unsafe_allow_html=True)
+
+if _rssm is not None and hasattr(_rssm, 'LAPORAN') and not ARCHIVE_MODE and _rssm_auto_enabled_here():
+    try: _rssm_auto_runner()   # mulai sekali per proses server
+    except Exception: pass
 
 AWARD_PHOTO_DIR = os.path.join(UPLOAD_DIR, 'award_photos')   # foto awarding (ikut tersinkron ke cloud bersama file upload lain)
 
@@ -2608,7 +2807,7 @@ def save_database_files(up_files, target_dir=None, meta_key='database_multi'):
     target_dir = target_dir or DB_Multi_DIR
     os.makedirs(target_dir, exist_ok=True)
     meta = load_json(RAW_META_FILE)
-    now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
+    now_str = _wib_now().strftime('%d %b %Y, %H:%M WIB')
     file_times = meta.get(meta_key, {}).get('file_times', {})
     updated_dealers = []
     for uf in up_files:
@@ -2749,7 +2948,7 @@ def get_saved_database_lm_paths():
 
 def save_rating_files(up_files):
     meta = load_json(RAW_META_FILE)
-    now_str = datetime.datetime.now().strftime('%d %b %Y, %H:%M WIB')
+    now_str = _wib_now().strftime('%d %b %Y, %H:%M WIB')
     file_times = meta.get('rating_multi', {}).get('file_times', {})
     updated_dealers = []
     for uf in up_files:
@@ -2999,10 +3198,11 @@ TARGET_LAIN_FILE = _ABS('jember_targets_saved.json')
 def dealer_sip_ok(n_x):
     u_x = str(n_x).strip().upper(); return u_x.startswith('SIP') or u_x.startswith('SENTRAL YAMAHA')
 KPI_TAB, UPLOAD_TAB, MASTER_TAB = '📊 DASHBOARD KPI', '📁 UPLOAD FILE', '🎯 MASTER TARGET'
+UPLOAD_MD_TAB = '🗃️ UPLOAD BY MD'   # khusus kode akses (BAMBURUNCING): Faktur, Nota, SPK, Stok, Master Employee, Data Lookup + Generate RSSM
 STOCK_TAB = '📦 STOCK CONDITION'   # menu baru tepat di bawah DASHBOARD DEALER (akses umum): cari stok unit per Series › Type › Warna
 MD_TAB, MD_SUB_JUAL, MD_SUB_TYPE = '🏢 DASHBOARD MD', '💰 PENJUALAN', '📊 PENJUALAN BY TYPE'   # menu baru: DASHBOARD MD › sub menu Penjualan
 MD_TARGET_FILE = _ABS('md_targets_saved.json')   # T. MD input manual per dealer: {NAMA DEALER (normal): target}
-# ---- Hak akses menu: kode kosong = Dashboard Dealer · Dashboard KPI · Cek Data · Upload File | kode benar (BAMBURUNCING) = + Dashboard MD + Master Target + Analisa ----
+# ---- Hak akses menu: kode kosong = Dashboard Dealer · Dashboard KPI · Cek Data · Upload File | kode benar (BAMBURUNCING) = + Upload by MD + Dashboard MD + Master Target + Analisa ----
 def _resolve_kode_spv():   # satu-satunya kode akses (SPV / admin); bisa diganti lewat st.secrets['KODE_AKSES_SPV'] atau environment BSG_KODE_AKSES_SPV
     try: v_ = st.secrets.get('KODE_AKSES_SPV', None)
     except Exception: v_ = None
@@ -3010,7 +3210,7 @@ def _resolve_kode_spv():   # satu-satunya kode akses (SPV / admin); bisa diganti
 _kode_now = (st.session_state.get('kode_akses_input') or '').strip()   # nilai kolom Kode Akses dari run sebelumnya (kolomnya sendiri ada di bawah)
 IS_ADMIN = bool(_kode_now) and hmac.compare_digest(_kode_now.encode('utf-8'), _resolve_kode_spv().encode('utf-8'))   # kode benar = semua menu + Analisa
 NAV_DASH = [DEALER_TAB, STOCK_TAB, KPI_TAB] + ([MD_TAB] if IS_ADMIN else [])   # DASHBOARD KPI terbuka untuk akses umum · DASHBOARD MD, MASTER TARGET & Analisa hanya dengan kode akses (BAMBURUNCING)
-NAV_DATA = [CEK_TAB, UPLOAD_TAB] + ([MASTER_TAB] if IS_ADMIN else [])
+NAV_DATA = [CEK_TAB, UPLOAD_TAB] + ([UPLOAD_MD_TAB, MASTER_TAB] if IS_ADMIN else [])
 if st.session_state.get('active_menu_tab') not in NAV_DASH + NAV_DATA:
     st.session_state['active_menu_tab'] = DEALER_TAB   # default saat aplikasi dibuka / menu tidak lagi boleh diakses
 render_sidebar_azura_logo()   # logo selalu paling atas
@@ -3467,157 +3667,167 @@ def bsg_cek_avg_db():
                      'ASAL FILE': _top(gs_['File_Database'], 3) if 'File_Database' in gs_.columns else (_top(gs_['Dealer_File_Asal'], 3) if 'Dealer_File_Asal' in gs_.columns else '-'), 'POINT CODE': _top(gs_[_pc], 3) if _pc else '-'})
     st.dataframe(pd.DataFrame(det_).sort_values('DB (BARIS)', ascending=False), use_container_width=True, hide_index=True)
 
-if menu_pilihan == UPLOAD_TAB:
+if menu_pilihan in (UPLOAD_TAB, UPLOAD_MD_TAB):   # UPLOAD FILE = data dari dealer · UPLOAD BY MD = data MD (kode akses)
     if ARCHIVE_MODE:
         st.warning('📦 MODE ARSIP aktif — menu Upload dinonaktifkan agar data terkini tidak tertimpa. Klik ↩️ Kembali ke data terkini di sidebar untuk mengunggah file baru.')
         st.stop()
-    st.markdown('<div class="main-title">UPLOAD FILE</div><div class="sub-title">Unggah file sumber data sesuai kelompoknya (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
+    if menu_pilihan == UPLOAD_MD_TAB: st.markdown('<div class="main-title">UPLOAD BY MD</div><div class="sub-title">Data penjualan &amp; master dari MD — upload manual atau ⚡ Generate langsung dari RSSM (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
+    else: st.markdown('<div class="main-title">UPLOAD FILE</div><div class="sub-title">Database &amp; Rating dari dealer (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
     meta_info = load_json(RAW_META_FILE)
 
     def _status_line(kp, lbl):
         m_ = meta_info.get(kp)
         if m_ and os.path.exists(m_.get('saved_path', '')):
-            st.markdown(f"<div style='font-size:12px;color:#3B5BC8;line-height:1.5;'>📌 <b>Aktif:</b> <code style='font-size:11px;'>{m_['original_name']}</code> · {m_['updated_at']}</div>", unsafe_allow_html=True)
-        else: st.markdown("<div style='font-size:12px;color:#D68A00;'>⚠️ Belum ada file.</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:12px;color:#3B5BC8;line-height:1.5;padding-bottom:18px;word-break:break-all;'>📌 <b>Aktif:</b> <code style='font-size:11px;'>{m_['original_name']}</code><br>🕒 {m_['updated_at']}</div>", unsafe_allow_html=True)
+        else: st.markdown("<div style='font-size:12px;color:#D68A00;padding-bottom:18px;'>⚠️ Belum ada file.</div>", unsafe_allow_html=True)
 
-    # ---------- Grup 1: Data Penjualan & Master ----------
-    with st.container(border=True):
-        st.markdown("#### 📒 Data Penjualan & Master")
-        st.caption('Diupload oleh admin MD')
-        up_defs = [('Faktur', 'faktur', ['xls', 'xlsx'], 'File Faktur penjualan (.xls / .xlsx).'),
-                   ('Nota', 'nota', ['xls', 'xlsx'], 'File Nota (.xls / .xlsx).'),
-                   ('SPK', 'spk', ['xls', 'xlsx', 'csv'], 'File SPK leasing (.xls / .xlsx / .csv).'),
-                   ('Master Employee', 'employee', ['xls', 'xlsx', 'csv'], 'Target otomatis salesman — Kolom C: Nama, Kolom F: Posisi.'),
-                   ('Data Lookup', 'lookup', ['xls', 'xlsx'], 'Mapping type, salesman, koordinator & dealer (.xls / .xlsx).')]
-        _up_cols = st.columns(len(up_defs) + 1)
-        for col_u, (lbl, kp, exts, hlp) in zip(_up_cols, up_defs):
-            with col_u:
-                uf = st.file_uploader(lbl, type=exts, key=f'{kp}_up', help=hlp)
-                if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**"); bsg_toast_once(f'up_{kp}_{uf.name}_{uf.size}', f'{lbl} diperbarui: {uf.name}'); meta_info = load_json(RAW_META_FILE)
-                _status_line(kp, lbl)
-        with _up_cols[-1]:   # Google Review hari ini (Apify) — di samping kanan Data Lookup
-            st.markdown('<div style="font-size:14px;margin-bottom:6px;">Google Review hari ini</div>', unsafe_allow_html=True)
+    if menu_pilihan == UPLOAD_MD_TAB:
+        # ---------- Grup 1: Data Penjualan & Master ----------
+        with st.container(border=True):
+            st.markdown("#### 📒 Data Penjualan & Master")
+            st.caption('Diupload oleh admin MD')
+            up_defs = [('Faktur', 'faktur', ['xls', 'xlsx'], 'File Faktur penjualan (.xls / .xlsx).'),
+                       ('Nota', 'nota', ['xls', 'xlsx'], 'File Nota (.xls / .xlsx).'),
+                       ('SPK', 'spk', ['xls', 'xlsx', 'csv'], 'File SPK leasing (.xls / .xlsx / .csv).'),
+                       ('Stok Unit', 'stok', ['xls', 'xlsx'], 'File Stok Detail [ SEPEDA MOTOR ] (.xls / .xlsx) — sumber menu STOCK CONDITION.'),
+                       ('Master Employee', 'employee', ['xls', 'xlsx', 'csv'], 'Target otomatis salesman — Kolom C: Nama, Kolom F: Posisi.'),
+                       ('Data Lookup', 'lookup', ['xls', 'xlsx'], 'Mapping type, salesman, koordinator & dealer (.xls / .xlsx).')]
+            # Baris 1: FAKTUR - NOTA - SPK - STOK - MASTER EMPLOYEE - DATA LOOKUP
+            _up_cols = st.columns(len(up_defs))
+            for col_u, (lbl, kp, exts, hlp) in zip(_up_cols, up_defs):
+                with col_u:
+                    uf = st.file_uploader(lbl, type=exts, key=f'{kp}_up', help=hlp)
+                    if uf: save_raw_file(uf, kp); st.success(f"✅ {lbl} diperbarui: **{uf.name}**"); bsg_toast_once(f'up_{kp}_{uf.name}_{uf.size}', f'{lbl} diperbarui: {uf.name}'); meta_info = load_json(RAW_META_FILE)
+                    _status_line(kp, lbl)
+                    if kp in ('faktur', 'nota', 'spk', 'stok'): rssm_generate_ui(kp)   # ⚡ tarik Faktur (RSSM) / Nota, SPK, Stok (RM) langsung dari server
+            # Baris 2: Google Review · Trend TikTok · Token Apify
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
             _ap_urls = {str(n_): v_ for n_, v_ in (load_json(KPI_SAVED_FILE).get('dealer', {}) or {}).items() if str((v_ or {}).get(KPI_URL_COL, '') or '').strip().lower().startswith('http')}
             _tok_ok = bool(apify_token())
-            if not _tok_ok: st.warning('Token Apify belum diisi — isi pada kotak ⚙️ Token Apify di bawah (satu token untuk Google Review & Trend TikTok).')
-            elif not _ap_urls: st.info('Belum ada dealer dengan URL GOOGLE (isi di MASTER TARGET › KPI Dealer).')
-            elif st.button('🔄 Tarik Google Review hari ini (Apify)', key='btn_apify_grev', type='primary', use_container_width=True):
-                apify_pull_grev(); st.rerun()
-            _ap_last = []
-            for _v_ in _ap_urls.values():
-                try: _ap_last.append(datetime.datetime.strptime(str((_v_ or {}).get('G REV UPDATE', '')), '%d/%m/%Y %H:%M'))
-                except Exception: pass
-            if st.session_state.get('apify_grev_msg'): st.warning(st.session_state['apify_grev_msg'])
-            elif _ap_last: st.caption(f"✅ SELESAI UPDATE {max(_ap_last).strftime('%d/%m/%Y %H:%M')}")
-            if _tok_ok: tiktok_trend_pull_ui()   # Ambil Trend TikTok (Apify) — tepat di bawah tombol Google Review
-            apify_token_settings('up')
-        _stk_cols = st.columns(len(up_defs) + 1)   # baris kedua Grup 1: Stok Unit (untuk menu STOCK CONDITION)
-        with _stk_cols[0]:
-            _stk_uf = st.file_uploader('Stok Unit', type=['xls', 'xlsx'], key='stok_up', help='File Stok Detail [ SEPEDA MOTOR ] (.xls / .xlsx) — sumber menu STOCK CONDITION.')
-            if _stk_uf: save_raw_file(_stk_uf, 'stok'); st.success(f'✅ Stok Unit diperbarui: **{_stk_uf.name}**'); bsg_toast_once(f'up_stok_{_stk_uf.name}_{_stk_uf.size}', f'Stok Unit diperbarui: {_stk_uf.name}'); meta_info = load_json(RAW_META_FILE)
-            _status_line('stok', 'Stok Unit')
-
-    # ---------- Grup 2: Data Operasional Dealer ----------
-    with st.container(border=True):
-        st.markdown("#### 🗂️ Data Operasional Dealer")
-        st.caption('Diupload setiap sore oleh admin dealer')
-        col_db, col_rt = st.columns(2)
-        with col_db:
-            db_ups = st.file_uploader('Database — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_up')
-            if db_ups:
-                upd_list, total_active = save_database_files(db_ups)
-                st.success(f"✅ **Update Parsial Berhasil!** File diperbarui: `{', '.join(upd_list)}`. File dealer lainnya tetap aman (Total **{total_active} File Database** aktif).")
-                bsg_toast_once('up_db_' + '|'.join(f'{u.name}{u.size}' for u in db_ups), f'Database diperbarui ({len(db_ups)} file)')
-            saved_db_paths_now = get_saved_database_paths()
-            if saved_db_paths_now:
-                ftimes = load_json(RAW_META_FILE).get('database_multi', {}).get('file_times', {})
-                badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_db_paths_now]
-                st.info(f"📌 **Database Aktif ({len(saved_db_paths_now)} File):** " + " | ".join(badge_items))
-                if IS_ADMIN and st.button('🗑️ Reset Semua DB', key='btn_rst_all_db', help='Hapus seluruh file database jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
-                    for old_p in saved_db_paths_now:
-                        try:
-                            os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
-                        except Exception: pass
-                    meta_info.pop('database_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
-            else: st.warning("⚠️ Belum ada file Database.")
-            # ---- Database BULAN LALU (di bawah Database bulan ini; perlakuan sama: parsial / banyak file, nama file = dealer) ----
-            st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-            db_lm_ups = st.file_uploader('Database Bulan Lalu — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_lm_up', help='Dipakai sebagai pembanding (vs bulan lalu) di menu Penjualan per Type. Nama file sama dengan Database bulan ini (mis. SIP PANJI.xlsx).')
-            if db_lm_ups:
-                upd_lm_list, total_lm_active = save_database_files(db_lm_ups, DB_LM_DIR, 'database_lm_multi')
-                st.success(f"✅ **Update Parsial Database Bulan Lalu Berhasil!** File diperbarui: `{', '.join(upd_lm_list)}`. File dealer lainnya tetap aman (Total **{total_lm_active} File Database Bulan Lalu** aktif).")
-                bsg_toast_once('up_dblm_' + '|'.join(f'{u.name}{u.size}' for u in db_lm_ups), f'Database bulan lalu diperbarui ({len(db_lm_ups)} file)')
-            saved_db_lm_now = get_saved_database_lm_paths()
-            if saved_db_lm_now:
-                lm_ftimes = load_json(RAW_META_FILE).get('database_lm_multi', {}).get('file_times', {})
-                lm_badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({lm_ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_db_lm_now]
-                st.info(f"📌 **Database Bulan Lalu Aktif ({len(saved_db_lm_now)} File):** " + " | ".join(lm_badge_items))
-                if IS_ADMIN and st.button('🗑️ Reset Semua DB Bulan Lalu', key='btn_rst_all_db_lm', help='Hapus seluruh file database bulan lalu jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
-                    for old_p in saved_db_lm_now:
-                        try:
-                            os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
-                        except Exception: pass
-                    meta_info.pop('database_lm_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
-            else: st.warning("⚠️ Belum ada file Database Bulan Lalu.")
-        with col_rt:
-            rt_ups = st.file_uploader('Rating Dealer — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='rating_up')
-            if rt_ups:
-                upd_rt_list, total_rt_active = save_rating_files(rt_ups)
-                st.success(f"✅ **Update Parsial Rating Berhasil!** File diperbarui: `{', '.join(upd_rt_list)}`. File dealer lainnya tetap aman (Total **{total_rt_active} File Rating** aktif).")
-                bsg_toast_once('up_rt_' + '|'.join(f'{u.name}{u.size}' for u in rt_ups), f'Rating diperbarui ({len(rt_ups)} file)')
-            saved_rt_paths_now = get_saved_rating_paths()
-            if saved_rt_paths_now:
-                rt_ftimes = load_json(RAW_META_FILE).get('rating_multi', {}).get('file_times', {})
-                rt_badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({rt_ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_rt_paths_now]
-                st.info(f"📌 **File Rating Aktif ({len(saved_rt_paths_now)} File):** " + " | ".join(rt_badge_items))
-                if IS_ADMIN and st.button('🗑️ Reset Semua Rating', key='btn_rst_all_rt', help='Hapus seluruh file rating jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
-                    for old_p in saved_rt_paths_now:
-                        try:
-                            os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
-                        except Exception: pass
-                    meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
-            else: st.warning("⚠️ Belum ada file Rating.")
-
-    # ---------- Foto Awarding ----------
-    with st.expander('📸 Foto Awarding (Shop Manager · Koord/Kapos · Sales Counter)'):
-        st.caption('Aturan nama file: Dealer = SM + nama dealer (mis. SM SIP SOBO.jpg) · Counter = COUNTER + nama dealer (mis. COUNTER SIP SOBO.jpg) · Koordinator = nama koordinatornya sendiri (mis. MUCHAMMAD ISHAQ SETIAWAN.jpg). Format jpg / png / webp; foto bernama sama akan diganti. Tanpa foto, kartu menampilkan nama.')
-        aw_ups = st.file_uploader('Upload foto (boleh banyak sekaligus)', type=['jpg', 'jpeg', 'png', 'webp'], accept_multiple_files=True, key='award_photo_up')
-        if aw_ups:
-            _aw_names = save_award_photos(aw_ups)
-            st.success(f"✅ {len(_aw_names)} foto tersimpan: `{', '.join(_aw_names)}`")
-            bsg_toast_once('up_aw_' + '|'.join(f'{u.name}{u.size}' for u in aw_ups), f'{len(aw_ups)} foto awarding tersimpan')
-        _aw_saved = sorted(os.path.basename(p_) for p_ in glob.glob(os.path.join(glob.escape(AWARD_PHOTO_DIR), '*')))
-        if _aw_saved:
-            st.info(f"📌 **Foto aktif ({len(_aw_saved)}):** " + ' | '.join(f'`{n_}`' for n_ in _aw_saved))
-            if st.button('🗑️ Hapus semua foto awarding', key='btn_rst_aw_photo'):
-                for n_ in _aw_saved:
-                    try:
-                        os.remove(os.path.join(AWARD_PHOTO_DIR, n_)); _GCS_PENDING_DEL.append('award_photos/' + n_)
+            _g_cols = st.columns(3)
+            with _g_cols[0]:   # Google Review hari ini (Apify)
+                st.markdown('<div style="font-size:14px;margin-bottom:6px;">Google Review hari ini</div>', unsafe_allow_html=True)
+                if not _tok_ok: st.warning('Token Apify belum diisi — isi pada kotak ⚙️ Token Apify (satu token untuk Google Review & Trend TikTok).')
+                elif not _ap_urls: st.info('Belum ada dealer dengan URL GOOGLE (isi di MASTER TARGET › KPI Dealer).')
+                elif st.button('🔄 Tarik Google Review hari ini (Apify)', key='btn_apify_grev', type='primary', use_container_width=True):
+                    apify_pull_grev(); st.rerun()
+                _ap_last = []
+                for _v_ in _ap_urls.values():
+                    try: _ap_last.append(datetime.datetime.strptime(str((_v_ or {}).get('G REV UPDATE', '')), '%d/%m/%Y %H:%M'))
                     except Exception: pass
-                gcs_sync_up(); st.rerun()
-        else: st.warning('⚠️ Belum ada foto awarding.')
+                if st.session_state.get('apify_grev_msg'): st.warning(st.session_state['apify_grev_msg'])
+                elif _ap_last: st.caption(f"✅ SELESAI UPDATE {max(_ap_last).strftime('%d/%m/%Y %H:%M')}")
+            with _g_cols[1]:   # Trend TikTok (Apify)
+                st.markdown('<div style="font-size:14px;margin-bottom:6px;">Trend TikTok</div>', unsafe_allow_html=True)
+                if _tok_ok: tiktok_trend_pull_ui()
+                else: st.caption('Isi Token Apify terlebih dulu.')
+            with _g_cols[2]:
+                st.markdown('<div style="font-size:14px;margin-bottom:6px;">Pengaturan</div>', unsafe_allow_html=True)
+                apify_token_settings('up')
+                rssm_jadwal_ui()   # ⏰ jadwal Generate otomatis Faktur/Nota/SPK/Stok
 
-    # ---------- Bersihkan riwayat cloud (hanya dengan kode akses & cloud GitHub aktif) ----------
-    if IS_ADMIN and _cloud_kind() == 'github':
-        with st.expander('🧹 Bersihkan Riwayat Cloud (GitHub)'):
-            st.caption('Setiap upload/simpan membuat versi baru di GitHub; versi lama tetap tertumpuk di riwayat sehingga ukuran repo terus bertambah. '
-                       'Tombol ini membuang riwayat lama dan menyisakan VERSI TERAKHIR semua file — data yang dipakai dashboard tidak berubah. Disarankan sebulan sekali (mis. setelah closing).')
-            if st.session_state.get('gh_squash_msg'):
-                ok_, m_ = st.session_state.pop('gh_squash_msg'); (st.success if ok_ else st.error)(('✅ ' if ok_ else '⚠️ ') + m_)
-            if not st.session_state.get('gh_squash_confirm'):
-                if st.button('🧹 Bersihkan riwayat cloud', key='btn_gh_squash'): st.session_state['gh_squash_confirm'] = True; st.rerun()
-            else:
-                st.warning('Riwayat versi lama di GitHub akan dihapus permanen (tidak bisa dikembalikan). Versi terakhir semua file tetap aman. Lanjutkan?')
-                _sq1, _sq2, _ = st.columns([1, 1, 3])
-                if _sq1.button('✅ Ya, bersihkan', key='btn_gh_squash_yes', type='primary'):
-                    with st.spinner('Membersihkan riwayat cloud…'): st.session_state['gh_squash_msg'] = gh_squash_history()
-                    st.session_state.pop('gh_squash_confirm', None); st.rerun()
-                if _sq2.button('Batal', key='btn_gh_squash_no'): st.session_state.pop('gh_squash_confirm', None); st.rerun()
+        # ---------- Foto Awarding ----------
+        with st.expander('📸 Foto Awarding (Shop Manager · Koord/Kapos · Sales Counter)'):
+            st.caption('Aturan nama file: Dealer = SM + nama dealer (mis. SM SIP SOBO.jpg) · Counter = COUNTER + nama dealer (mis. COUNTER SIP SOBO.jpg) · Koordinator = nama koordinatornya sendiri (mis. MUCHAMMAD ISHAQ SETIAWAN.jpg). Format jpg / png / webp; foto bernama sama akan diganti. Tanpa foto, kartu menampilkan nama.')
+            aw_ups = st.file_uploader('Upload foto (boleh banyak sekaligus)', type=['jpg', 'jpeg', 'png', 'webp'], accept_multiple_files=True, key='award_photo_up')
+            if aw_ups:
+                _aw_names = save_award_photos(aw_ups)
+                st.success(f"✅ {len(_aw_names)} foto tersimpan: `{', '.join(_aw_names)}`")
+                bsg_toast_once('up_aw_' + '|'.join(f'{u.name}{u.size}' for u in aw_ups), f'{len(aw_ups)} foto awarding tersimpan')
+            _aw_saved = sorted(os.path.basename(p_) for p_ in glob.glob(os.path.join(glob.escape(AWARD_PHOTO_DIR), '*')))
+            if _aw_saved:
+                st.info(f"📌 **Foto aktif ({len(_aw_saved)}):** " + ' | '.join(f'`{n_}`' for n_ in _aw_saved))
+                if st.button('🗑️ Hapus semua foto awarding', key='btn_rst_aw_photo'):
+                    for n_ in _aw_saved:
+                        try:
+                            os.remove(os.path.join(AWARD_PHOTO_DIR, n_)); _GCS_PENDING_DEL.append('award_photos/' + n_)
+                        except Exception: pass
+                    gcs_sync_up(); st.rerun()
+            else: st.warning('⚠️ Belum ada foto awarding.')
 
-    # ---------- Logo ----------
-    with st.expander('🐺 Logo AZURA (pojok kiri atas)'):
-        logo_uf = st.file_uploader('Upload Logo AZURA (.jpg / .png)', type=['jpg', 'jpeg', 'png'], key='azura_logo_up')
-        if logo_uf: save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
+        # ---------- Bersihkan riwayat cloud (hanya dengan kode akses & cloud GitHub aktif) ----------
+        if IS_ADMIN and _cloud_kind() == 'github':
+            with st.expander('🧹 Bersihkan Riwayat Cloud (GitHub)'):
+                st.caption('Setiap upload/simpan membuat versi baru di GitHub; versi lama tetap tertumpuk di riwayat sehingga ukuran repo terus bertambah. '
+                           'Tombol ini membuang riwayat lama dan menyisakan VERSI TERAKHIR semua file — data yang dipakai dashboard tidak berubah. Disarankan sebulan sekali (mis. setelah closing).')
+                if st.session_state.get('gh_squash_msg'):
+                    ok_, m_ = st.session_state.pop('gh_squash_msg'); (st.success if ok_ else st.error)(('✅ ' if ok_ else '⚠️ ') + m_)
+                if not st.session_state.get('gh_squash_confirm'):
+                    if st.button('🧹 Bersihkan riwayat cloud', key='btn_gh_squash'): st.session_state['gh_squash_confirm'] = True; st.rerun()
+                else:
+                    st.warning('Riwayat versi lama di GitHub akan dihapus permanen (tidak bisa dikembalikan). Versi terakhir semua file tetap aman. Lanjutkan?')
+                    _sq1, _sq2, _ = st.columns([1, 1, 3])
+                    if _sq1.button('✅ Ya, bersihkan', key='btn_gh_squash_yes', type='primary'):
+                        with st.spinner('Membersihkan riwayat cloud…'): st.session_state['gh_squash_msg'] = gh_squash_history()
+                        st.session_state.pop('gh_squash_confirm', None); st.rerun()
+                    if _sq2.button('Batal', key='btn_gh_squash_no'): st.session_state.pop('gh_squash_confirm', None); st.rerun()
+
+        # ---------- Logo ----------
+        with st.expander('🐺 Logo AZURA (pojok kiri atas)'):
+            logo_uf = st.file_uploader('Upload Logo AZURA (.jpg / .png)', type=['jpg', 'jpeg', 'png'], key='azura_logo_up')
+            if logo_uf: save_raw_file(logo_uf, 'azura_logo'); st.success(f"✅ Logo AZURA berhasil diperbarui: **{logo_uf.name}**"); st.rerun()
+
+    else:
+        # ---------- Grup 2: Data Operasional Dealer ----------
+        with st.container(border=True):
+            st.markdown("#### 🗂️ Data Operasional Dealer")
+            st.caption('Diupload setiap sore oleh admin dealer')
+            col_db, col_rt = st.columns(2)
+            with col_db:
+                db_ups = st.file_uploader('Database — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_up')
+                if db_ups:
+                    upd_list, total_active = save_database_files(db_ups)
+                    st.success(f"✅ **Update Parsial Berhasil!** File diperbarui: `{', '.join(upd_list)}`. File dealer lainnya tetap aman (Total **{total_active} File Database** aktif).")
+                    bsg_toast_once('up_db_' + '|'.join(f'{u.name}{u.size}' for u in db_ups), f'Database diperbarui ({len(db_ups)} file)')
+                saved_db_paths_now = get_saved_database_paths()
+                if saved_db_paths_now:
+                    ftimes = load_json(RAW_META_FILE).get('database_multi', {}).get('file_times', {})
+                    badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_db_paths_now]
+                    st.info(f"📌 **Database Aktif ({len(saved_db_paths_now)} File):** " + " | ".join(badge_items))
+                    if IS_ADMIN and st.button('🗑️ Reset Semua DB', key='btn_rst_all_db', help='Hapus seluruh file database jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
+                        for old_p in saved_db_paths_now:
+                            try:
+                                os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
+                            except Exception: pass
+                        meta_info.pop('database_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
+                else: st.warning("⚠️ Belum ada file Database.")
+                # ---- Database BULAN LALU (di bawah Database bulan ini; perlakuan sama: parsial / banyak file, nama file = dealer) ----
+                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+                db_lm_ups = st.file_uploader('Database Bulan Lalu — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='db_lm_up', help='Dipakai sebagai pembanding (vs bulan lalu) di menu Penjualan per Type. Nama file sama dengan Database bulan ini (mis. SIP PANJI.xlsx).')
+                if db_lm_ups:
+                    upd_lm_list, total_lm_active = save_database_files(db_lm_ups, DB_LM_DIR, 'database_lm_multi')
+                    st.success(f"✅ **Update Parsial Database Bulan Lalu Berhasil!** File diperbarui: `{', '.join(upd_lm_list)}`. File dealer lainnya tetap aman (Total **{total_lm_active} File Database Bulan Lalu** aktif).")
+                    bsg_toast_once('up_dblm_' + '|'.join(f'{u.name}{u.size}' for u in db_lm_ups), f'Database bulan lalu diperbarui ({len(db_lm_ups)} file)')
+                saved_db_lm_now = get_saved_database_lm_paths()
+                if saved_db_lm_now:
+                    lm_ftimes = load_json(RAW_META_FILE).get('database_lm_multi', {}).get('file_times', {})
+                    lm_badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({lm_ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_db_lm_now]
+                    st.info(f"📌 **Database Bulan Lalu Aktif ({len(saved_db_lm_now)} File):** " + " | ".join(lm_badge_items))
+                    if IS_ADMIN and st.button('🗑️ Reset Semua DB Bulan Lalu', key='btn_rst_all_db_lm', help='Hapus seluruh file database bulan lalu jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
+                        for old_p in saved_db_lm_now:
+                            try:
+                                os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
+                            except Exception: pass
+                        meta_info.pop('database_lm_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
+                else: st.warning("⚠️ Belum ada file Database Bulan Lalu.")
+            with col_rt:
+                rt_ups = st.file_uploader('Rating Dealer — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='rating_up')
+                if rt_ups:
+                    upd_rt_list, total_rt_active = save_rating_files(rt_ups)
+                    st.success(f"✅ **Update Parsial Rating Berhasil!** File diperbarui: `{', '.join(upd_rt_list)}`. File dealer lainnya tetap aman (Total **{total_rt_active} File Rating** aktif).")
+                    bsg_toast_once('up_rt_' + '|'.join(f'{u.name}{u.size}' for u in rt_ups), f'Rating diperbarui ({len(rt_ups)} file)')
+                saved_rt_paths_now = get_saved_rating_paths()
+                if saved_rt_paths_now:
+                    rt_ftimes = load_json(RAW_META_FILE).get('rating_multi', {}).get('file_times', {})
+                    rt_badge_items = [f"`{os.path.basename(p)}` → **{normalize_dealer_name(os.path.splitext(os.path.basename(p))[0])}** ({rt_ftimes.get(os.path.basename(p), 'Tersimpan')})" for p in saved_rt_paths_now]
+                    st.info(f"📌 **File Rating Aktif ({len(saved_rt_paths_now)} File):** " + " | ".join(rt_badge_items))
+                    if IS_ADMIN and st.button('🗑️ Reset Semua Rating', key='btn_rst_all_rt', help='Hapus seluruh file rating jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
+                        for old_p in saved_rt_paths_now:
+                            try:
+                                os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
+                            except Exception: pass
+                        meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
+                else: st.warning("⚠️ Belum ada file Rating.")
 
 path_faktur, path_nota, path_lookup = get_saved_file_path('faktur'), get_saved_file_path('nota'), get_saved_file_path('lookup')
 paths_database, paths_rating, path_spk = get_saved_database_paths(), get_saved_rating_paths(), get_saved_file_path('spk')
@@ -5778,7 +5988,7 @@ if menu_pilihan == MASTER_TAB:
         c_b1, c_b2 = st.columns([1, 3])
         with c_b1:
             if st.button(btn_label, type='primary', key=f'btn_save_kpi_{section_key}'): _save_rows(ed_df)
-        if section_key == 'dealer': st.caption('ℹ️ Penarikan Google Review hari ini (Apify) dipindah ke menu 📁 UPLOAD FILE, di samping Data Lookup. Kolom URL GOOGLE tetap diisi di tabel ini.')
+        if section_key == 'dealer': st.caption('ℹ️ Penarikan Google Review hari ini (Apify) ada di menu 🗃️ UPLOAD BY MD (baris ke-2). Kolom URL GOOGLE tetap diisi di tabel ini.')
         if _can_del:
             _sel_del = [str(r_[name_col]) for _, r_ in ed_df.iterrows() if bool(r_.get('✖')) and str(r_[name_col]) != 'TOTAL']
             _pk = f'kpi_del_pending_{section_key}'
@@ -6285,7 +6495,7 @@ elif menu_pilihan == STOCK_TAB:
     st.markdown('<div class="main-title">STOCK CONDITION</div><div class="sub-title">Cari unit yang tersedia di dealer beserta umur stoknya (hari)</div>', unsafe_allow_html=True)
     _stk_path = get_saved_file_path('stok')
     if not _stk_path:
-        st.info('ℹ️ File Stok belum diunggah. Admin MD mengunggahnya di menu 📁 UPLOAD FILE › Data Penjualan & Master › Stok Unit.')
+        st.info('ℹ️ File Stok belum diunggah. Admin MD mengunggah / Generate-nya di menu 🗃️ UPLOAD BY MD › Stok Unit.')
     else:
         try: _stk_df, _stk_per = load_stok_detail(_stk_path, os.path.getmtime(_stk_path))
         except Exception as _e_stk: _stk_df, _stk_per = None, ''; st.error(f'⚠️ File stok tidak bisa dibaca: {_e_stk}')
