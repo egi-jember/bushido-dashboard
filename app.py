@@ -1774,6 +1774,25 @@ def gcs_sync_up():
     elif kind == 'gcs': _gcs_up()
     else: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif'
 
+def gh_squash_history():
+    """BERSIHKAN RIWAYAT CLOUD: branch data di-reset jadi 1 commit berisi versi TERAKHIR semua file (isi file tidak berubah).
+    Riwayat versi lama dibuang → ukuran repo tidak terus membengkak. Return (ok, pesan)."""
+    if _cloud_kind() != 'github': return False, 'Cloud GitHub belum aktif.'
+    try:
+        gcs_sync_up()   # pastikan perubahan lokal terakhir sudah terkirim dulu
+        _, repo, br = _gh_cfg()
+        s_, ref_ = _gh_req('GET', f'/repos/{repo}/git/ref/heads/{br}', timeout=20)
+        if s_ != 200: return False, f'Branch {br} tidak terbaca (HTTP {s_}).'
+        s_, cm_ = _gh_req('GET', f"/repos/{repo}/git/commits/{ref_['object']['sha']}", timeout=20)
+        if s_ != 200: return False, f'Commit terakhir tidak terbaca (HTTP {s_}).'
+        msg_ = 'Bersihkan riwayat data — snapshot ' + _wib_now().strftime('%d %b %Y %H:%M WIB')
+        s_, new_ = _gh_req('POST', f'/repos/{repo}/git/commits', {'message': msg_, 'tree': cm_['tree']['sha'], 'parents': []}, timeout=60)
+        if s_ not in (200, 201): return False, f'Gagal membuat snapshot (HTTP {s_}).'
+        s_, _r = _gh_req('PATCH', f'/repos/{repo}/git/refs/heads/{br}', {'sha': new_['sha'], 'force': True}, timeout=30)
+        if s_ != 200: return False, f'Gagal mengganti branch {br} (HTTP {s_}).'
+        return True, 'Riwayat cloud dibersihkan. Semua file versi terakhir tetap tersimpan.'
+    except Exception as e_: return False, f'Gagal: {str(e_)[:80]}'
+
 def cloud_push_file(f):
     """Kirim SATU file (pengaturan JSON / metadata) ke cloud tepat setelah disimpan — dipanggil otomatis oleh save_json()."""
     if ARCHIVE_MODE: return
@@ -3577,6 +3596,23 @@ if menu_pilihan == UPLOAD_TAB:
                     except Exception: pass
                 gcs_sync_up(); st.rerun()
         else: st.warning('⚠️ Belum ada foto awarding.')
+
+    # ---------- Bersihkan riwayat cloud (hanya dengan kode akses & cloud GitHub aktif) ----------
+    if IS_ADMIN and _cloud_kind() == 'github':
+        with st.expander('🧹 Bersihkan Riwayat Cloud (GitHub)'):
+            st.caption('Setiap upload/simpan membuat versi baru di GitHub; versi lama tetap tertumpuk di riwayat sehingga ukuran repo terus bertambah. '
+                       'Tombol ini membuang riwayat lama dan menyisakan VERSI TERAKHIR semua file — data yang dipakai dashboard tidak berubah. Disarankan sebulan sekali (mis. setelah closing).')
+            if st.session_state.get('gh_squash_msg'):
+                ok_, m_ = st.session_state.pop('gh_squash_msg'); (st.success if ok_ else st.error)(('✅ ' if ok_ else '⚠️ ') + m_)
+            if not st.session_state.get('gh_squash_confirm'):
+                if st.button('🧹 Bersihkan riwayat cloud', key='btn_gh_squash'): st.session_state['gh_squash_confirm'] = True; st.rerun()
+            else:
+                st.warning('Riwayat versi lama di GitHub akan dihapus permanen (tidak bisa dikembalikan). Versi terakhir semua file tetap aman. Lanjutkan?')
+                _sq1, _sq2, _ = st.columns([1, 1, 3])
+                if _sq1.button('✅ Ya, bersihkan', key='btn_gh_squash_yes', type='primary'):
+                    with st.spinner('Membersihkan riwayat cloud…'): st.session_state['gh_squash_msg'] = gh_squash_history()
+                    st.session_state.pop('gh_squash_confirm', None); st.rerun()
+                if _sq2.button('Batal', key='btn_gh_squash_no'): st.session_state.pop('gh_squash_confirm', None); st.rerun()
 
     # ---------- Logo ----------
     with st.expander('🐺 Logo AZURA (pojok kiri atas)'):
