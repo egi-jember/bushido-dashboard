@@ -1750,6 +1750,22 @@ def _cloud_kind():
 
 def _cloud_ready(): return _cloud_kind() in ('github', 'gcs')
 
+def _gh_diag():
+    """Alasan cloud GitHub tidak aktif (ditampilkan di sidebar agar mudah diperbaiki)."""
+    cfg = _gh_cfg()
+    if not cfg: return 'GITHUB_TOKEN / GITHUB_REPO tidak ada di Secrets'
+    _, repo, br = cfg
+    if repo.lower().startswith('http') or repo.count('/') != 1: return f'GITHUB_REPO harus berbentuk "akun/nama-repo" (sekarang: {repo[:45]})'
+    try:
+        s_, _r = _gh_req('GET', f'/repos/{repo}', timeout=10)
+        if s_ == 401: return 'token ditolak GitHub (401) — token salah, sudah di-Regenerate, atau kedaluwarsa. Tempel token terbaru di Secrets.'
+        if s_ in (403, 404): return f'repo {repo} tidak bisa diakses token ini (HTTP {s_}) — cek nama repo & Repository access token'
+        if s_ != 200: return f'GitHub menjawab HTTP {s_}'
+        s_, _r = _gh_req('GET', f'/repos/{repo}/git/ref/heads/{br}', timeout=10)
+        if s_ != 200: return f'branch {br} tidak terbaca (HTTP {s_}) — token butuh izin Contents: Read and write'
+    except Exception as e_: return f'GitHub tidak bisa dihubungi ({type(e_).__name__})'
+    return 'koneksi sekarang OK — klik Sambung ulang cloud'
+
 def gcs_sync_down(force=False):
     """Ambil data mentah dari cloud (GitHub privat atau Google Cloud Storage) bila ONLINE. Sekali per sesi (force=True = paksa)."""
     if ARCHIVE_MODE or (st.session_state.get('gcs_down_done') and not force): return
@@ -1762,7 +1778,7 @@ def gcs_sync_down(force=False):
         except Exception as e_: st.session_state['gcs_msg'] = f'☁️ GitHub gagal dibaca: {str(e_)[:60]}'
         st.session_state['gcs_down_done'] = True
     elif kind == 'gcs': _gcs_down(force)
-    else: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif'; st.session_state['gcs_down_done'] = True
+    else: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif — ' + _gh_diag(); st.session_state['gcs_down_done'] = True
 
 def gcs_sync_up():
     """Kirim data mentah yang baru / berubah ke cloud (dipanggil setelah setiap upload)."""
@@ -3224,7 +3240,10 @@ if st.session_state.get('nav_data_radio') not in NAV_DATA + [None]: del st.sessi
 st.sidebar.radio('Menu Data:', NAV_DATA, index=NAV_DATA.index(st.session_state['active_menu_tab']) if st.session_state['active_menu_tab'] in NAV_DATA else None, key='nav_data_radio', on_change=_nav_data_change, label_visibility='collapsed')
 st.sidebar.markdown('<hr>', unsafe_allow_html=True)
 if st.session_state.get('gcs_msg'): st.sidebar.markdown(f'<div class="sb-cloud">{st.session_state["gcs_msg"]}</div>', unsafe_allow_html=True)
-if _cloud_ready() and st.sidebar.button('🔄 Muat ulang dari cloud', key='btn_gcs_refresh', use_container_width=True): gcs_sync_down(force=True); st.rerun()
+if _cloud_ready():
+    if st.sidebar.button('🔄 Muat ulang dari cloud', key='btn_gcs_refresh', use_container_width=True): gcs_sync_down(force=True); st.rerun()
+elif not ARCHIVE_MODE and st.sidebar.button('🔌 Sambung ulang cloud', key='btn_gcs_reconnect', use_container_width=True, help='Coba lagi setelah Secrets GitHub diperbaiki'):
+    _gh_ready.clear(); _gcs_bucket.clear(); gcs_sync_down(force=True); st.rerun()
 # ---------------------------------------------------------------- KODE AKSES ----
 # Kode SPV dapat diganti lewat st.secrets['KODE_AKSES_SPV'] atau environment variable BSG_KODE_AKSES_SPV (default: SPV).
 st.sidebar.markdown('<div class="sb-h">🔑 Kode Akses</div>', unsafe_allow_html=True)
