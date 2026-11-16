@@ -1562,6 +1562,47 @@ os.makedirs(RATING_Multi_DIR, exist_ok=True)
 _GCS_PREFIX = 'bushido_raw/'
 _GCS_PENDING_DEL = []   # nama file (relatif terhadap UPLOAD_DIR) yang dihapus lokal & perlu dihapus juga di cloud
 
+# ---- File PENGATURAN (Master Target, KPI, running text, libur, hasil Hot Prospect, dll.) ----
+# Disimpan di folder aplikasi (DI LUAR saved_raw_files) → dulu TIDAK ikut ke cloud sehingga hilang saat server restart.
+# Sekarang ikut disinkron ke cloud di 'bushido_raw/_app_state/<nama file>'. API key (ai_config / apify_config) sengaja TIDAK ikut → simpan di Secrets.
+_STATE_SUB = '_app_state/'
+_STATE_FILES = ['dealer_targets_saved.json', 'koor_targets_saved.json', 'kpi_targets_saved.json', 'koor_resigned.json', 'jember_targets_saved.json',
+                'md_targets_saved.json', 'libur_nasional.json', 'kpi_dashboard_manual.json', 'running_text.json', 'hot_prospect_hasil.json',
+                'lokal_intel_saved.json', 'tiktok_trend_saved.json']
+
+def _cloud_local_path(rel):
+    """Nama file di cloud (relatif setelah prefix) → path lokal. None = bukan file yang dikenal (diabaikan)."""
+    if rel.startswith(_STATE_SUB):
+        n_ = rel[len(_STATE_SUB):]
+        return n_ if n_ in _STATE_FILES else None
+    return os.path.join(UPLOAD_DIR, *rel.split('/'))
+
+def _cloud_local_items():
+    """Semua file lokal yang wajib ada di cloud: isi saved_raw_files + file pengaturan. Yield (path lokal, nama relatif cloud)."""
+    for root, _d, files in os.walk(UPLOAD_DIR):
+        for fn in files:
+            lp = os.path.join(root, fn); yield lp, os.path.relpath(lp, UPLOAD_DIR).replace(os.sep, '/')
+    for n_ in _STATE_FILES:
+        if os.path.isfile(n_): yield n_, _STATE_SUB + n_
+
+def _cloud_rel_of(f):
+    """Path lokal → nama relatif cloud (None bila file ini tidak disinkron)."""
+    try:
+        a_ = os.path.abspath(f)
+        for n_ in _STATE_FILES:
+            if os.path.abspath(n_) == a_: return _STATE_SUB + n_
+        up_ = os.path.abspath(UPLOAD_DIR)
+        if a_.startswith(up_ + os.sep): return os.path.relpath(a_, up_).replace(os.sep, '/')
+    except Exception: pass
+    return None
+
+def _md5_b64(p_):
+    with open(p_, 'rb') as f_: return base64.b64encode(hashlib.md5(f_.read()).digest()).decode('ascii')
+
+def _mkparent(p_):
+    d_ = os.path.dirname(p_)
+    if d_: os.makedirs(d_, exist_ok=True)
+
 @st.cache_resource(ttl=300, show_spinner=False)
 def _gcs_bucket():
     try:
@@ -1584,9 +1625,16 @@ def _gcs_down(force=False):
         for bl in b.client.list_blobs(b, prefix=_GCS_PREFIX, timeout=30):
             rel = bl.name[len(_GCS_PREFIX):]
             if not rel or rel.endswith('/'): continue
-            lp = os.path.join(UPLOAD_DIR, *rel.split('/')); rm = float((bl.metadata or {}).get('mtime') or (bl.updated.timestamp() if bl.updated else 0))
-            if os.path.exists(lp) and os.path.getmtime(lp) >= rm - 1: continue   # lokal sama / lebih baru
-            os.makedirs(os.path.dirname(lp), exist_ok=True); bl.download_to_filename(lp, timeout=300); os.utime(lp, (rm, rm)); n += 1
+            lp = _cloud_local_path(rel)
+            if lp is None: continue
+            rm = float((bl.metadata or {}).get('mtime') or (bl.updated.timestamp() if bl.updated else 0))
+            if os.path.exists(lp):
+                if rel.startswith(_STATE_SUB):   # file pengaturan: isi beda → versi cloud yang dipakai (kecuali lokal belum sempat terkirim)
+                    if rel in _gh_dirty() or _md5_b64(lp) == bl.md5_hash: continue
+                elif os.path.getmtime(lp) >= rm - 1: continue   # lokal sama / lebih baru
+            _mkparent(lp); bl.download_to_filename(lp, timeout=300); os.utime(lp, (rm, rm)); n += 1
+        for n_ in _STATE_FILES:   # file pengaturan lokal yang belum pernah ada di cloud → kirim sekali (migrasi otomatis)
+            if os.path.isfile(n_) and not b.blob(_GCS_PREFIX + _STATE_SUB + n_).exists(timeout=15): cloud_push_file(n_)
         st.session_state['gcs_msg'] = f'☁️ Tersinkron dengan cloud ({n} file diperbarui dari cloud).'
     except Exception as e_: st.session_state['gcs_msg'] = f'☁️ Gagal membaca cloud ({type(e_).__name__}) — memakai data lokal.'
     st.session_state['gcs_down_done'] = True
@@ -1598,11 +1646,11 @@ def _gcs_up():
     if b is None: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif'; return
     try:
         remote = {bl.name: bl for bl in b.client.list_blobs(b, prefix=_GCS_PREFIX, timeout=30)}; n = 0
-        for root, _d, files in os.walk(UPLOAD_DIR):
-            for fn in files:
-                lp = os.path.join(root, fn); name = _GCS_PREFIX + os.path.relpath(lp, UPLOAD_DIR).replace(os.sep, '/'); lm = os.path.getmtime(lp); bl = remote.get(name)
-                if bl is not None and bl.size == os.path.getsize(lp) and float((bl.metadata or {}).get('mtime') or 0) >= lm - 1: continue
-                nb = b.blob(name); nb.metadata = {'mtime': str(lm)}; nb.upload_from_filename(lp, timeout=600); n += 1
+        for lp, rel in _cloud_local_items():
+            name = _GCS_PREFIX + rel; lm = os.path.getmtime(lp); bl = remote.get(name)
+            if bl is not None and bl.size == os.path.getsize(lp):
+                if bl.md5_hash == _md5_b64(lp) or (not rel.startswith(_STATE_SUB) and float((bl.metadata or {}).get('mtime') or 0) >= lm - 1): _gh_dirty().discard(rel); continue
+            nb = b.blob(name); nb.metadata = {'mtime': str(lm)}; nb.upload_from_filename(lp, timeout=600); _gh_dirty().discard(rel); n += 1
         for rel in _GCS_PENDING_DEL:
             bl = remote.get(_GCS_PREFIX + rel)
             if bl is not None: bl.delete()
@@ -1662,24 +1710,25 @@ def _gh_remote_files():
     return {t_['path']: t_ for t_ in tr.get('tree', []) if t_.get('type') == 'blob' and t_['path'].startswith(_GCS_PREFIX)}
 
 def _gh_down():
-    _, repo, br = _gh_cfg(); n = 0
-    for path, t_ in _gh_remote_files().items():
-        rel = path[len(_GCS_PREFIX):]; lp = os.path.join(UPLOAD_DIR, *rel.split('/'))
-        if rel in _gh_dirty(): continue
+    _, repo, br = _gh_cfg(); n = 0; remote = _gh_remote_files()
+    for path, t_ in remote.items():
+        rel = path[len(_GCS_PREFIX):]; lp = _cloud_local_path(rel)
+        if lp is None or rel in _gh_dirty(): continue
         if os.path.exists(lp):
             with open(lp, 'rb') as f_: same = _gh_blob_sha(f_.read()) == t_['sha']
             if same: continue
         s_, bl = _gh_req('GET', f"/repos/{repo}/git/blobs/{t_['sha']}", timeout=300)
         if s_ != 200: raise RuntimeError(f'unduh {rel} gagal (HTTP {s_})')
-        os.makedirs(os.path.dirname(lp), exist_ok=True)
+        _mkparent(lp)
         with open(lp, 'wb') as f_: f_.write(base64.b64decode(bl['content'])); n += 1
+    for n_ in _STATE_FILES:   # file pengaturan yang ada di lokal tapi belum pernah ada di cloud → kirim sekali (migrasi otomatis)
+        if os.path.isfile(n_) and (_GCS_PREFIX + _STATE_SUB + n_) not in remote: cloud_push_file(n_)
     return n
 
 def _gh_up():
     _, repo, br = _gh_cfg(); remote = _gh_remote_files(); n = 0; skipped = []
-    for root, _d, files in os.walk(UPLOAD_DIR):
-        for fn in files:
-            lp = os.path.join(root, fn); rel = os.path.relpath(lp, UPLOAD_DIR).replace(os.sep, '/'); path = _GCS_PREFIX + rel
+    for lp, rel in _cloud_local_items():
+            path = _GCS_PREFIX + rel
             with open(lp, 'rb') as f_: data = f_.read()
             if path in remote and remote[path]['sha'] == _gh_blob_sha(data): _gh_dirty().discard(rel); continue
             if len(data) > 95 * 1024 * 1024: skipped.append(rel); continue   # batas GitHub 100 MB per file
@@ -1724,6 +1773,34 @@ def gcs_sync_up():
         except Exception as e_: st.session_state['gcs_msg'] = f'☁️ GitHub gagal: {str(e_)[:60]} — file tetap lokal'
     elif kind == 'gcs': _gcs_up()
     else: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif'
+
+def cloud_push_file(f):
+    """Kirim SATU file (pengaturan JSON / metadata) ke cloud tepat setelah disimpan — dipanggil otomatis oleh save_json()."""
+    if ARCHIVE_MODE: return
+    rel = _cloud_rel_of(f)
+    if not rel or not os.path.isfile(f): return
+    kind = _cloud_kind()
+    if kind not in ('github', 'gcs'): return
+    try:
+        with open(f, 'rb') as f_: data = f_.read()
+        if kind == 'github':
+            _, repo, br = _gh_cfg(); path = urllib.parse.quote(_GCS_PREFIX + rel)
+            for _try in range(3):   # 409/422 = sha berubah (commit lain barusan) → ambil sha terbaru & ulangi
+                s_, cur = _gh_req('GET', f'/repos/{repo}/contents/{path}?ref={urllib.parse.quote(br)}', timeout=30)
+                body = {'message': f'simpan {rel}', 'content': base64.b64encode(data).decode('ascii'), 'branch': br}
+                if s_ == 200 and isinstance(cur, dict) and cur.get('sha'):
+                    if cur['sha'] == _gh_blob_sha(data): break   # isi cloud sudah sama
+                    body['sha'] = cur['sha']
+                s_, _r = _gh_req('PUT', f'/repos/{repo}/contents/{path}', body, timeout=120)
+                if s_ in (200, 201): break
+                if s_ not in (409, 422) or _try == 2: raise RuntimeError(f'HTTP {s_}')
+                time.sleep(1.0)
+        else:
+            nb = _gcs_bucket().blob(_GCS_PREFIX + rel); nb.metadata = {'mtime': str(os.path.getmtime(f))}; nb.upload_from_filename(f, timeout=120)
+        _gh_dirty().discard(rel)
+    except Exception as e_:
+        _gh_dirty().add(rel)   # jangan ditimpa versi cloud yang lama; dikirim ulang saat sinkron berikutnya
+        st.session_state['gcs_msg'] = f'☁️ Gagal menyimpan {rel} ke cloud: {str(e_)[:60]} — tersimpan lokal'
 
 gcs_sync_down()   # ONLINE: ambil data mentah terbaru dari cloud sebelum file dibaca
 _tick('sinkron cloud')
@@ -2459,6 +2536,8 @@ def load_json(f):
 def save_json(data, f):
     try:
         with open(f, 'w') as fp: json.dump(data, fp)
+    except Exception: return
+    try: cloud_push_file(f)   # pengaturan & metadata langsung ikut tersimpan ke cloud → tidak hilang saat server restart
     except Exception: pass
 
 def resolve_gemini_api_key():
@@ -3437,9 +3516,10 @@ if menu_pilihan == UPLOAD_TAB:
                 st.info(f"📌 **Database Aktif ({len(saved_db_paths_now)} File):** " + " | ".join(badge_items))
                 if IS_ADMIN and st.button('🗑️ Reset Semua DB', key='btn_rst_all_db', help='Hapus seluruh file database jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
                     for old_p in saved_db_paths_now:
-                        try: os.remove(old_p)
+                        try:
+                            os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
                         except Exception: pass
-                    meta_info.pop('database_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
+                    meta_info.pop('database_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
             else: st.warning("⚠️ Belum ada file Database.")
             # ---- Database BULAN LALU (di bawah Database bulan ini; perlakuan sama: parsial / banyak file, nama file = dealer) ----
             st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
@@ -3458,7 +3538,7 @@ if menu_pilihan == UPLOAD_TAB:
                         try:
                             os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
                         except Exception: pass
-                    meta_info.pop('database_lm_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
+                    meta_info.pop('database_lm_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
             else: st.warning("⚠️ Belum ada file Database Bulan Lalu.")
         with col_rt:
             rt_ups = st.file_uploader('Rating Dealer — 1 file (parsial) atau 6 file sekaligus (.xls / .xlsx / .csv)', type=['xls', 'xlsx', 'csv'], accept_multiple_files=True, key='rating_up')
@@ -3473,9 +3553,10 @@ if menu_pilihan == UPLOAD_TAB:
                 st.info(f"📌 **File Rating Aktif ({len(saved_rt_paths_now)} File):** " + " | ".join(rt_badge_items))
                 if IS_ADMIN and st.button('🗑️ Reset Semua Rating', key='btn_rst_all_rt', help='Hapus seluruh file rating jika ingin mulai dari 0'):   # hanya muncul dengan kode akses (BAMBURUNCING)
                     for old_p in saved_rt_paths_now:
-                        try: os.remove(old_p)
+                        try:
+                            os.remove(old_p); _GCS_PENDING_DEL.append(os.path.relpath(old_p, UPLOAD_DIR).replace(os.sep, '/'))
                         except Exception: pass
-                    meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); st.rerun()
+                    meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
             else: st.warning("⚠️ Belum ada file Rating.")
 
     # ---------- Foto Awarding ----------
