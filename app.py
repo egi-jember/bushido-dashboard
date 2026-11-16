@@ -574,7 +574,8 @@ def bsg_chart_curve(title, subtitle, df_stu, target, tgl_akhir, max_day, forc=No
             for hh, cc in df_lm['hari'].dropna().astype(int).value_counts().items(): cnt_l[int(hh)] = int(cc)
         _lm_last = min(int(max_day), max([int(tgl_akhir)] + list(cnt_l.keys())))   # kumulatif bulan lalu ditarik sampai akhir bulan (bila data tersedia)
         for d in range(1, _lm_last + 1):
-            lm_tot += cnt_l.get(d, 0); lm_pts.append([d, lm_tot])
+            lm_tot += cnt_l.get(d, 0) + (sum(v_ for k_, v_ in cnt_l.items() if k_ > int(max_day)) if d == int(max_day) else 0)   # akhir bulan ini = akhir bulan lalu (mis. tgl 31 bulan lalu digabung ke titik tgl 30)
+            lm_pts.append([d, lm_tot])
     lm_same = next((v_ for d_, v_ in lm_pts if d_ == int(tgl_akhir)), lm_tot)   # STU bulan lalu pada tanggal yang sama (pembanding realisasi)
     proj = [[int(tgl_akhir), run], [int(max_day), float(forc)]] if (forc is not None and bsg_num(forc) > 0 and int(tgl_akhir) < int(max_day)) else []
     ext = []
@@ -1090,7 +1091,7 @@ def _ppt_notif_frames(dealer):
         d_ = df_x[df_x[dcol].astype(str).str.strip().str.upper() == dl_]
         m_, y_ = (g['last_month'], g['last_month_year']) if lm else (g['current_month'], g['current_year'])
         d_ = d_[(d_['bulan'] == m_) & (d_['tahun'] == y_)]
-        return d_[d_['hari'] <= g['tanggal_akhir']]
+        return d_[d_['hari'] <= (g.get('tanggal_akhir_lm', g['tanggal_akhir']) if lm else g['tanggal_akhir'])]
     try: N_ = _cur(_jb_read_nota(g['path_nota'], get_file_mtime(g['path_nota']), get_file_mtime(g['path_lookup'])), '_jb') if g.get('path_nota') else pd.DataFrame()
     except Exception: N_ = pd.DataFrame()
     F_all = g.get('df_faktur_all')
@@ -4893,6 +4894,8 @@ if ARCHIVE_MODE and ARCHIVE_META.get('tanggal_akhir'): default_day_today = min(m
 st.sidebar.markdown('### 📅 Periode Analisa')
 tgl_kal_pilihan = st.sidebar.date_input('Pilih Tanggal Akhir Periode (Kalender):', value=datetime.date(current_year, current_month, default_day_today), min_value=datetime.date(current_year, current_month, 1), max_value=datetime.date(current_year, current_month, max_day_in_month), format='DD/MM/YYYY')
 tanggal_akhir = int(tgl_kal_pilihan[-1].day) if isinstance(tgl_kal_pilihan, (tuple, list)) and len(tgl_kal_pilihan) > 0 else (int(tgl_kal_pilihan.day) if hasattr(tgl_kal_pilihan, 'day') else default_day_today)
+max_day_last_month = pycal.monthrange(last_month_year, last_month)[1]
+tanggal_akhir_lm = max_day_last_month if tanggal_akhir >= max_day_in_month else min(tanggal_akhir, max_day_last_month)   # pembanding bulan lalu: akhir bulan vs akhir bulan (mis. 30 Nov vs 31 Okt; 31 Mar vs 28/29 Feb)
 
 target_persen_harian = tabel_target_harian.get(tanggal_akhir, 0.0)
 persen_desimal = target_persen_harian / 100.0
@@ -5044,7 +5047,7 @@ def build_type_table(df_fc, df_fl, df_dbc, df_spkc, filter_col_vals, col_headers
     return df_it, pd.concat([df_it, pd.DataFrame([tot_r])], ignore_index=True), tot_r
 
 df_fak_curr_g = df_faktur[(df_faktur['bulan'] == current_month) & (df_faktur['tahun'] == current_year) & (df_faktur['hari'] <= tanggal_akhir)] if (df_faktur is not None and 'bulan' in df_faktur.columns) else pd.DataFrame()
-df_fak_lm_g = df_faktur[(df_faktur['bulan'] == last_month) & (df_faktur['tahun'] == last_month_year) & (df_faktur['hari'] <= tanggal_akhir)] if (df_faktur is not None and 'bulan' in df_faktur.columns) else pd.DataFrame()
+df_fak_lm_g = df_faktur[(df_faktur['bulan'] == last_month) & (df_faktur['tahun'] == last_month_year) & (df_faktur['hari'] <= tanggal_akhir_lm)] if (df_faktur is not None and 'bulan' in df_faktur.columns) else pd.DataFrame()
 df_nota_curr_g = df_nota[(df_nota['bulan'] == current_month) & (df_nota['tahun'] == current_year) & (df_nota['hari'] <= tanggal_akhir)] if (df_nota is not None and 'bulan' in df_nota.columns) else pd.DataFrame()
 df_nota_tod_g = df_nota[(df_nota['bulan'] == current_month) & (df_nota['tahun'] == current_year) & (df_nota['hari'] == tanggal_akhir)] if (df_nota is not None and 'bulan' in df_nota.columns) else pd.DataFrame()
 if df_database is not None and not df_database.empty and 'hari' in df_database.columns and df_database['hari'].notna().any():
@@ -5062,7 +5065,7 @@ if df_rating is not None and not df_rating.empty and 'hari' in df_rating.columns
 else:
     df_rating_curr_g = df_rating.copy() if df_rating is not None else pd.DataFrame()
 df_spk_curr_g = df_spk[(df_spk['bulan'] == current_month) & (df_spk['tahun'] == current_year) & (df_spk['hari'] <= tanggal_akhir)] if (df_spk is not None and 'bulan' in df_spk.columns) else pd.DataFrame()
-df_spk_lm_g = df_spk[(df_spk['bulan'] == last_month) & (df_spk['tahun'] == last_month_year) & (df_spk['hari'] <= tanggal_akhir)] if (df_spk is not None and 'bulan' in df_spk.columns) else pd.DataFrame()
+df_spk_lm_g = df_spk[(df_spk['bulan'] == last_month) & (df_spk['tahun'] == last_month_year) & (df_spk['hari'] <= tanggal_akhir_lm)] if (df_spk is not None and 'bulan' in df_spk.columns) else pd.DataFrame()
 
 saved_kpi = load_json(KPI_SAVED_FILE)
 saved_td = load_json(TARGET_DEALER_FILE)
@@ -5689,7 +5692,7 @@ def bsg_render_stu_per_leasing_faktur():
         dlr_col_fa = 'Nama Dealer' if 'Nama Dealer' in df_fa.columns else next((c for c in df_fa.columns if 'DEALER' in str(c).upper()), df_fa.columns[1] if df_fa.shape[1] > 1 else df_fa.columns[0])
         df_fa['Dealer_Map_Leasing'] = df_fa[dlr_col_fa].apply(match_dealer_stu_leasing)
         fa_curr = df_fa[(df_fa['bulan'] == current_month) & (df_fa['tahun'] == current_year) & (df_fa['hari'] >= 1) & (df_fa['hari'] <= tanggal_akhir)] if 'bulan' in df_fa.columns else pd.DataFrame()
-        fa_lm = df_fa[(df_fa['bulan'] == last_month) & (df_fa['tahun'] == last_month_year) & (df_fa['hari'] >= 1) & (df_fa['hari'] <= tanggal_akhir)] if 'bulan' in df_fa.columns else pd.DataFrame()
+        fa_lm = df_fa[(df_fa['bulan'] == last_month) & (df_fa['tahun'] == last_month_year) & (df_fa['hari'] >= 1) & (df_fa['hari'] <= tanggal_akhir_lm)] if 'bulan' in df_fa.columns else pd.DataFrame()
         KREDIT_CATS = ['BAF', 'ADIRA', 'SOF', 'IMFI', 'OTHERS']
 
         def calc_stu_per_leasing_row(label_row, dealer_subset):   # dealer_subset=None → seluruh baris Faktur (semua dealer + sub dealer)
@@ -6316,7 +6319,7 @@ elif menu_pilihan == MD_TAB:
         else:
             _md_fk = _md_fk.copy(); _md_fk['_k'] = _md_fk['Nama Dealer'].astype(str).map(_nrm_dlr)
             _md_cur = _md_fk[(_md_fk['bulan'] == current_month) & (_md_fk['tahun'] == current_year) & (_md_fk['hari'] <= tanggal_akhir)]
-            _md_lm = _md_fk[(_md_fk['bulan'] == last_month) & (_md_fk['tahun'] == last_month_year) & (_md_fk['hari'] <= tanggal_akhir)]
+            _md_lm = _md_fk[(_md_fk['bulan'] == last_month) & (_md_fk['tahun'] == last_month_year) & (_md_fk['hari'] <= tanggal_akhir_lm)]
             _md_tod = _md_cur[_md_cur['hari'] == tanggal_akhir]
             _c_stu, _c_lm, _c_tod = _md_cur['_k'].value_counts().to_dict(), _md_lm['_k'].value_counts().to_dict(), _md_tod['_k'].value_counts().to_dict()
             _nt_col = 'Nama Dealer' if (df_nota is not None and 'Nama Dealer' in df_nota.columns) else 'Dealer'
@@ -6418,7 +6421,7 @@ elif menu_pilihan == MD_TAB:
                 t_n, t_p = sum(x_['stu'] for x_ in rows_), sum(x_['lm'] for x_ in rows_)
                 m_n, m_p = sum(x_['stu'] for x_ in rows_ if x_['status'] == 'MDS'), sum(x_['lm'] for x_ in rows_ if x_['status'] == 'MDS')
                 return bsg_chart_donut(ttl_, '', [('MDS', m_n, '#2563EB'), ('DEALER', t_n - m_n, '#12A150')], ctr_, parts=True, keep_zero=True,
-                                       prev={'MDS': m_p, 'DEALER': t_p - m_p}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})',
+                                       prev={'MDS': m_p, 'DEALER': t_p - m_p}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})',
                                        center_cmp=((m_n / t_n * 100.0) if t_n > 0 else 0.0, (m_p / t_p * 100.0) if t_p > 0 else 0.0))
             try:
                 _md_pies = [_md_pie(_md_rows, 'MDS vs Total STU', 'Total STU')] + [_md_pie(_md_kt(_md_rows, kt_), f'MDS — Kota {kt_.title()}', 'STU') for kt_ in _MD_KOTA_FIX]
@@ -6498,7 +6501,7 @@ elif menu_pilihan == MD_TAB:
             _tf['_ser'] = _ty_raw.map(_ty_map)
             _tf['_det'] = _ty_raw.map(lambda v_: _ty_nmax(v_))
             _ty_cur = _tf[(_tf['bulan'] == current_month) & (_tf['tahun'] == current_year) & (_tf['hari'] <= tanggal_akhir)]
-            _ty_lm = _tf[(_tf['bulan'] == last_month) & (_tf['tahun'] == last_month_year) & (_tf['hari'] <= tanggal_akhir)]
+            _ty_lm = _tf[(_tf['bulan'] == last_month) & (_tf['tahun'] == last_month_year) & (_tf['hari'] <= tanggal_akhir_lm)]
             _ty_grp = 'Type_Clean' if 'Type_Clean' in _tf.columns else None
 
             def _ty_fmt(n_): return '-' if not n_ else f'{int(n_):,}'.replace(',', '.')
@@ -6733,7 +6736,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
         _jf = _dd_apply(_jf, '_jb')
         if _dd_lvl != 'dealer' and not _jf.empty: _jf['_jb'] = _dd_key(_jf, '_jb')
         jb_f_c = _jf[(_jf['bulan'] == current_month) & (_jf['tahun'] == current_year) & (_jf['hari'] <= tanggal_akhir)]
-        jb_f_l = _jf[(_jf['bulan'] == last_month) & (_jf['tahun'] == last_month_year) & (_jf['hari'] <= tanggal_akhir)]
+        jb_f_l = _jf[(_jf['bulan'] == last_month) & (_jf['tahun'] == last_month_year) & (_jf['hari'] <= tanggal_akhir_lm)]
         jb_f_l_full = _jf[(_jf['bulan'] == last_month) & (_jf['tahun'] == last_month_year)]   # STU bulan lalu 1 bulan penuh → kurva kumulatif bulan lalu
         jb_n_c, jb_n_t = pd.DataFrame(), pd.DataFrame()
         if path_nota:
@@ -6809,7 +6812,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     d_ = _dd_rows(df_x, dcol, False)
                     if d_ is None or d_.empty or 'hari' not in d_.columns or 'bulan' not in d_.columns: return pd.DataFrame()
                     d_ = d_[(d_['bulan'] == last_month) & (d_['tahun'] == last_month_year)]
-                    return d_[d_['hari'] <= tanggal_akhir]
+                    return d_[d_['hari'] <= tanggal_akhir_lm]
                 F_lm_ = _scp_lm(_jf_unf, '_jb')
                 try: N_ = _scp(_jb_read_nota(path_nota, get_file_mtime(path_nota), get_file_mtime(path_lookup)), '_jb', False) if path_nota else pd.DataFrame()
                 except Exception: N_ = pd.DataFrame()
@@ -6878,7 +6881,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
             if _bm_slot is not None:   # Benchmark KPI: Sub Area atau Dealer / Koor / Salesman terpilih (Dashboard Dealer)
                 def _bm_scope(df_a, dcol, lm=False):   # data dealer / koor / salesman terpilih; lm=True → bulan lalu (periode tanggal sama)
                     if df_a is None or df_a.empty or dcol not in df_a.columns or 'hari' not in df_a.columns: return pd.DataFrame()
-                    d_ = df_a[(df_a['bulan'] == (last_month if lm else current_month)) & (df_a['tahun'] == (last_month_year if lm else current_year)) & (df_a['hari'] <= tanggal_akhir)]
+                    d_ = df_a[(df_a['bulan'] == (last_month if lm else current_month)) & (df_a['tahun'] == (last_month_year if lm else current_year)) & (df_a['hari'] <= (tanggal_akhir_lm if lm else tanggal_akhir))]
                     d_ = _dd_apply(d_, dcol)
                     if d_.empty: return d_
                     d_ = d_.copy(); d_['_jbk'] = _dd_key(d_, dcol)
@@ -6929,14 +6932,14 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 def _jb_pies():
                     _fk_ = df_faktur_kontribusi if df_faktur_kontribusi is not None else df_faktur_all   # SEMUA dealer: hanya untuk menghitung kontribusi MDS
                     fa_ = _fk_[(_fk_['bulan'] == current_month) & (_fk_['tahun'] == current_year) & (_fk_['hari'] <= tanggal_akhir)]
-                    fl_ = _fk_[(_fk_['bulan'] == last_month) & (_fk_['tahun'] == last_month_year) & (_fk_['hari'] <= tanggal_akhir)]   # periode sama bulan lalu
+                    fl_ = _fk_[(_fk_['bulan'] == last_month) & (_fk_['tahun'] == last_month_year) & (_fk_['hari'] <= tanggal_akhir_lm)]   # periode sama bulan lalu
                     fa_, fl_ = _dd_apply(fa_, 'Nama Dealer'), _dd_apply(fl_, 'Nama Dealer')
                     if COL_STATUS not in fa_.columns: return []
                     def _pie(df_x, df_p, ttl, sub, ctr):
                         n_m = int((df_x[COL_STATUS] == 'MDS').sum()); n_o = int(len(df_x)) - n_m
                         p_m = int((df_p[COL_STATUS] == 'MDS').sum()) if (df_p is not None and COL_STATUS in df_p.columns) else 0
                         p_o = (int(len(df_p)) - p_m) if (df_p is not None and COL_STATUS in df_p.columns) else 0
-                        return bsg_chart_donut(ttl, sub, [('MDS', n_m, '#2563EB'), ('DEALER', n_o, '#12A150')], ctr, parts=True, prev={'MDS': p_m, 'DEALER': p_o}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})')
+                        return bsg_chart_donut(ttl, sub, [('MDS', n_m, '#2563EB'), ('DEALER', n_o, '#12A150')], ctr, parts=True, prev={'MDS': p_m, 'DEALER': p_o}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})')
                     pies_ = [_pie(fa_, fl_, 'MDS vs Total Penjualan', 'Kontribusi STU MDS terhadap seluruh penjualan', 'Total STU')]
                     for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
                         pies_.append(_pie(fa_[fa_[COL_KOTA] == kt_], (fl_[fl_[COL_KOTA] == kt_] if COL_KOTA in fl_.columns else None), f'MDS — Kota {kt_.title()}', f'Kontribusi MDS terhadap total {kt_.title()}', 'STU'))
@@ -7469,7 +7472,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 _jb_sep(jdl_jb_sl)
                 _jb_sl_l = df_spk_alldlr.copy() if (df_spk_alldlr is not None and not df_spk_alldlr.empty and 'Nama_Dealer_SPK' in df_spk_alldlr.columns and 'hari' in df_spk_alldlr.columns) else pd.DataFrame()
                 if not _jb_sl_l.empty:
-                    _jb_sl_l = _jb_sl_l[(_jb_sl_l['bulan'] == last_month) & (_jb_sl_l['tahun'] == last_month_year) & (_jb_sl_l['hari'] <= tanggal_akhir)]   # periode sama bulan lalu
+                    _jb_sl_l = _jb_sl_l[(_jb_sl_l['bulan'] == last_month) & (_jb_sl_l['tahun'] == last_month_year) & (_jb_sl_l['hari'] <= tanggal_akhir_lm)]   # periode sama bulan lalu
                     _jb_sl_l = _dd_apply(_jb_sl_l, 'Nama_Dealer_SPK')
                     _jb_sl_l['_jbk'] = _dd_key(_jb_sl_l, 'Nama_Dealer_SPK')
                 def _jb_sl_row(label, s_c, s_l, f_c):
@@ -7513,7 +7516,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         pv_ = {l_: _jb_sl_cnt(s_l_, l_) for l_, _ in _JB_LSG}
                         ln_, ln_l = max(0, len(s_c_) - sum(v_ for _, v_, _ in its_)), max(0, len(s_l_) - sum(pv_.values()))
                         if ln_ > 0 or ln_l > 0: its_.append(('LAINNYA', ln_, '#94A3B8')); pv_['LAINNYA'] = ln_l
-                        out_.append(bsg_chart_donut('Kontribusi Leasing — Total SPK' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing — {lb_}', 'Porsi SPK per leasing', its_, 'SPK', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                        out_.append(bsg_chart_donut('Kontribusi Leasing — Total SPK' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing — {lb_}', 'Porsi SPK per leasing', its_, 'SPK', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})'))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
                 def _jb_sl_acc():
                     """Grafik ACC% per leasing (BAF, ADIRA, SOF, IMFI): Total Area + MDS 4 kota."""
@@ -7548,7 +7551,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         pv_ = {l_: int(vc_l.get(l_, 0)) for l_, _ in _JB_LSG}
                         ln_, ln_l = int(vc_c.sum()) - sum(v_ for _, v_, _ in its_), int(vc_l.sum()) - sum(pv_.values())
                         if ln_ > 0 or ln_l > 0: its_.append(('LAINNYA', ln_, '#94A3B8')); pv_['LAINNYA'] = ln_l
-                        out_.append(bsg_chart_donut('Kontribusi Leasing STU Kredit — Total' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing STU Kredit — {lb_}', 'Porsi STU kredit per leasing', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})', legend_unit='STU'))
+                        out_.append(bsg_chart_donut('Kontribusi Leasing STU Kredit — Total' if lb_ == 'TOTAL AREA' else f'Kontribusi Leasing STU Kredit — {lb_}', 'Porsi STU kredit per leasing', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})', legend_unit='STU'))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
                 def _jb_sl_stu_charts():
                     """5 grafik STU vs bulan lalu (batang terbelah LM : STU, format sama dengan STU AT PREM / CLASSY / AT LPM): STU BAF | STU ADIRA | STU SOF | STU KREDIT | STU TOTAL per dealer (atau koordinator / counter / salesman). Diurut terbaik → terburuk."""
@@ -7689,7 +7692,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         vc_c, vc_l = _jb_type_grp(f_c_).value_counts(), _jb_type_grp(f_l_).value_counts()
                         its_ = [(t_, int(vc_c.get(t_, 0)), c_) for t_, c_ in _TYPE_PAL.items()]
                         pv_ = {t_: int(vc_l.get(t_, 0)) for t_ in _TYPE_PAL}
-                        out_.append(bsg_chart_donut(f'STU Kredit by Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'STU Kredit by Type — {lb_}', 'Porsi STU kredit per type', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                        out_.append(bsg_chart_donut(f'STU Kredit by Type — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'STU Kredit by Type — {lb_}', 'Porsi STU kredit per type', its_, 'STU kredit', parts=True, keep_zero=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})'))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
                 def _jb_rej_df(d_):   # SPK berstatus DITOLAK (+ filter leasing); alasan = file SPK kolom S (Alasan_Reject_Clean)
                     if d_ is None or d_.empty or 'Status_SPK_Clean' not in d_.columns or 'Alasan_Reject_Clean' not in d_.columns: return pd.DataFrame()
@@ -7708,7 +7711,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         if d_c.empty: out_.append(bsg_chart_donut(ttl_, '', [('Tidak ada reject', 0, '#64748B')], 'Reject', parts=True, keep_zero=True)); continue
                         vc_ = d_c['Alasan_Reject_Clean'].value_counts()
                         pv_ = {str(k_): int(v_) for k_, v_ in d_l['Alasan_Reject_Clean'].value_counts().items()} if not d_l.empty else {}
-                        out_.append(bsg_chart_donut(ttl_, '', [(str(k_), int(v_), pal_.get(str(k_), '#64748B')) for k_, v_ in vc_.items()], 'Reject', parts=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir})'))
+                        out_.append(bsg_chart_donut(ttl_, '', [(str(k_), int(v_), pal_.get(str(k_), '#64748B')) for k_, v_ in vc_.items()], 'Reject', parts=True, prev=pv_, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})'))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
                 bsg_panel_table(pd.DataFrame({'x': [1]}), pd.DataFrame({'x': [1]}), ['x'], 'x', 'x', 'Jember_ACC_DP_STU_Type', f'ACC BY DP, STU KREDIT BY TYPE & REJECT REASON — {jb_lsg_sel} (1 s.d {tanggal_akhir} {periode_bulan_tahun})', None, (), layout='stack', no_table=True, bottom_fn=lambda: [_jb_dp_pies(), _jb_type_pies(), _jb_rej_pies()], bottom_cols='minmax(0,1fr)')
                 st.caption('ℹ️ ACC by DP = SPK bulan ini berstatus DISETUJUI per cluster DP pricelist (< 5 jt, 5 jt s.d < 10 jt, ≥ 10 jt). STU Kredit by Type = faktur non-cash per kelompok type. Reject Reason = alasan pada file SPK kolom S untuk SPK berstatus DITOLAK. SPK tunai dan batal tidak dihitung.')
@@ -7751,7 +7754,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 # ---- Database BULAN LALU (periode sama, ikut pilihan Dealer / Koor / Salesman) ----
                 _jb_db_lm = df_database_lm_alldlr.copy() if (df_database_lm_alldlr is not None and not df_database_lm_alldlr.empty and {'Nama_Dealer_Clean', 'hari', 'bulan', 'tahun'}.issubset(df_database_lm_alldlr.columns)) else pd.DataFrame()
                 if not _jb_db_lm.empty:
-                    _jb_db_lm = _jb_db_lm[(_jb_db_lm['bulan'] == last_month) & (_jb_db_lm['tahun'] == last_month_year) & (_jb_db_lm['hari'] <= tanggal_akhir)]
+                    _jb_db_lm = _jb_db_lm[(_jb_db_lm['bulan'] == last_month) & (_jb_db_lm['tahun'] == last_month_year) & (_jb_db_lm['hari'] <= tanggal_akhir_lm)]
                     _jb_db_lm = _dd_apply(_jb_db_lm, 'Nama_Dealer_Clean')
                     if _jb_db_lm is not None and not _jb_db_lm.empty: _jb_db_lm['_jbk'] = _dd_key(_jb_db_lm, 'Nama_Dealer_Clean')
                     else: _jb_db_lm = pd.DataFrame()
