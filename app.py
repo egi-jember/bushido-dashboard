@@ -1678,8 +1678,20 @@ def _gh_req(method, path, body=None, timeout=60):
         try: return e_.code, json.loads(e_.read() or b'{}')
         except Exception: return e_.code, {}
 
+@st.cache_resource(show_spinner=False)
+def _gh_neg(): return {'t': 0.0}   # waktu cek GitHub terakhir yang GAGAL (dicek ulang paling cepat tiap 30 detik)
+
 @st.cache_resource(ttl=300, show_spinner=False)
+def _gh_ready_ok():   # hanya hasil SUKSES yang di-cache (exception tidak di-cache) → begitu Secrets diperbaiki, langsung tersambung
+    if not _gh_ready_check(): raise RuntimeError('GitHub belum siap')
+    return True
+
 def _gh_ready():
+    if time.time() - _gh_neg()['t'] < 30: return False
+    try: return _gh_ready_ok()
+    except Exception: _gh_neg()['t'] = time.time(); return False
+
+def _gh_ready_check():
     """True bila token & repo valid dan branch data tersedia (dibuat otomatis dari branch utama bila belum ada)."""
     try:
         cfg = _gh_cfg()
@@ -1768,8 +1780,9 @@ def _gh_diag():
 
 def gcs_sync_down(force=False):
     """Ambil data mentah dari cloud (GitHub privat atau Google Cloud Storage) bila ONLINE. Sekali per sesi (force=True = paksa)."""
+    if st.session_state.get('gcs_down_done') and not force and st.session_state.get('gcs_down_off') and _cloud_ready(): force = True   # tadi cloud mati, sekarang hidup → ambil data
     if ARCHIVE_MODE or (st.session_state.get('gcs_down_done') and not force): return
-    kind = _cloud_kind()
+    kind = _cloud_kind(); st.session_state['gcs_down_off'] = kind not in ('github', 'gcs')
     if kind == 'github':
         _stt = _gh_sync_state()
         if not force and (time.time() - _stt['t']) < 600:   # sesi lain baru saja sinkron → lewati; tombol 'Muat ulang dari cloud' tetap memaksa
@@ -3243,7 +3256,7 @@ if st.session_state.get('gcs_msg'): st.sidebar.markdown(f'<div class="sb-cloud">
 if _cloud_ready():
     if st.sidebar.button('🔄 Muat ulang dari cloud', key='btn_gcs_refresh', use_container_width=True): gcs_sync_down(force=True); st.rerun()
 elif not ARCHIVE_MODE and st.sidebar.button('🔌 Sambung ulang cloud', key='btn_gcs_reconnect', use_container_width=True, help='Coba lagi setelah Secrets GitHub diperbaiki'):
-    _gh_ready.clear(); _gcs_bucket.clear(); gcs_sync_down(force=True); st.rerun()
+    _gh_ready_ok.clear(); _gh_neg()['t'] = 0.0; _gcs_bucket.clear(); gcs_sync_down(force=True); st.rerun()
 # ---------------------------------------------------------------- KODE AKSES ----
 # Kode SPV dapat diganti lewat st.secrets['KODE_AKSES_SPV'] atau environment variable BSG_KODE_AKSES_SPV (default: SPV).
 st.sidebar.markdown('<div class="sb-h">🔑 Kode Akses</div>', unsafe_allow_html=True)
