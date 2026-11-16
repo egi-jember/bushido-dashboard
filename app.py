@@ -2782,12 +2782,32 @@ def _rssm_auto_runner():
     th_ = threading.Thread(target=_loop, name='rssm-auto', daemon=True); th_.start(); state_['thread'] = th_
     return state_
 
+def _gh_actions_jam():
+    """Jam jadwal GitHub Actions (WIB) dibaca dari .github/workflows/generate_rssm.yml di repo (cron UTC + 7 jam)."""
+    cands = []
+    try: cands.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.github', 'workflows', 'generate_rssm.yml'))
+    except Exception: pass
+    cands.append(os.path.join(os.getcwd(), '.github', 'workflows', 'generate_rssm.yml'))
+    for p_ in cands:
+        try:
+            with open(p_, encoding='utf-8') as f_: txt_ = f_.read()
+        except Exception: continue
+        out_ = []
+        for ms_, hs_ in re.findall(r"^\s*-\s*cron:\s*['\"]([\d,]+)\s+([\d,]+)\s+\*\s+\*\s+\*['\"]", txt_, flags=re.M):
+            for h_ in hs_.split(','):
+                for m_ in ms_.split(','):
+                    if h_.isdigit() and m_.isdigit(): out_.append(f'{(int(h_) + 7) % 24:02d}:{int(m_):02d}')
+        return sorted(set(out_))
+    return []
+
 def rssm_jadwal_ui():
     """Kotak pengaturan ⏰ Generate otomatis (di menu Upload File, baris ke-2)."""
     if _rssm is None or not hasattr(_rssm, 'LAPORAN') or not _rssm_cfg('faktur'): return
     jd_ = load_json(RSSM_JADWAL_FILE); here_ = _rssm_auto_enabled_here()
     jam_now_ = jd_.get('jam') or []; jen_now_ = [j_ for j_ in (jd_.get('jenis') or list(_rssm.LAPORAN)) if j_ in _rssm.LAPORAN]
-    ttl_ = '⏰ Generate otomatis — ' + (('AKTIF ' + ', '.join(jam_now_)) if jd_.get('aktif') and jam_now_ else 'nonaktif')
+    gh_jam_ = _gh_actions_jam()
+    ttl_ = ('⏰ Generate otomatis — Online (GitHub): ' + (', '.join(gh_jam_) if gh_jam_ else 'belum diatur') +
+            ' · Laptop: ' + (', '.join(jam_now_) if jd_.get('aktif') and jam_now_ else 'nonaktif'))
     with st.expander(ttl_, expanded=False):
         if here_: st.caption('🖥️ Penjalan jadwal hidup di komputer ini (RSSM_AUTO = true). Selama aplikasi ini berjalan, Generate dijalankan otomatis pada jam di bawah — browser boleh ditutup.')
         else: st.caption('ℹ️ Jadwal di kotak ini dijalankan oleh komputer yang Secrets-nya berisi RSSM_AUTO = true. Jadwal online (tanpa laptop) diatur di GitHub: .github/workflows/generate_rssm.yml.')
