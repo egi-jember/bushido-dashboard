@@ -199,7 +199,97 @@ def tarik_faktur(user, password, tgl_awal, tgl_akhir, area_kode='03', area_nama=
     return tarik_laporan(user, password, LAPORAN['faktur']['report'], tgl_awal, tgl_akhir, area_kode, area_nama, base_url, timeout, log)
 
 
-if __name__ == '__main__':   # uji coba di PC: python rssm_faktur.py
+def cek_isi(data, jenis):
+    """Pastikan file hasil tarikan memang laporan yang benar & ada baris datanya. Return (ok, alasan)."""
+    import io
+    import pandas as pd
+    cfg = LAPORAN[jenis]
+    try:
+        df = pd.read_excel(io.BytesIO(data), header=None, nrows=14)
+    except Exception as e_:
+        return False, f'file tidak terbaca ({type(e_).__name__})'
+    txt = ' '.join(str(v_) for v_ in df.values.ravel() if str(v_) != 'nan').upper()
+    if cfg['judul_file'] not in txt:
+        return False, f"isinya bukan laporan {cfg['judul_file']}"
+    if len(df) < cfg['min_baris']:
+        return False, 'laporan kosong (tidak ada baris data pada periode ini)'
+    return True, ''
+
+
+def _wib():
+    return datetime.datetime.utcnow() + datetime.timedelta(hours=7)
+
+
+def tarik_ke_folder(staging, jenis_list, user, password):
+    """Mode GitHub Actions langkah 1: tarik semua laporan → folder sementara + manifest.json. Return jumlah gagal."""
+    import os
+    os.makedirs(staging, exist_ok=True)
+    man, gagal = {}, 0
+    for jn in jenis_list:
+        a_, b_ = periode_default(jn)
+        print(f'--- {LAPORAN[jn]["judul"]}', flush=True)
+        try:
+            isi = tarik(jn, user, password, a_, b_, log=lambda m_: print('   ', m_, flush=True))
+            ok_, why_ = cek_isi(isi, jn)
+            if not ok_:
+                raise RSSMError('File hasil tarikan ditolak: ' + why_ + ' (file lama tetap dipakai)')
+            now_ = _wib()
+            with open(os.path.join(staging, f'{jn}.xls'), 'wb') as f_:
+                f_.write(isi)
+            man[jn] = dict(ok=True, file=f'{jn}.xls', nama=f'{jn.upper()}_RSSM_{now_:%d%m%Y_%H%M}.xls',
+                           waktu=now_.strftime('%d %b %Y, %H:%M WIB'), pesan=f'{len(isi) // 1024:,} KB')
+        except Exception as e_:
+            gagal += 1
+            man[jn] = dict(ok=False, pesan=str(e_)[:200])
+            print('    GAGAL:', e_, flush=True)
+    with open(os.path.join(staging, 'manifest.json'), 'w') as f_:
+        json.dump(man, f_)
+    return gagal
+
+
+def terapkan_ke_folder(staging, folder):
+    """Mode GitHub Actions langkah 2: salin hasil ke folder data aplikasi (= saved_raw_files) & perbarui metadata.json."""
+    import glob
+    import os
+    import shutil
+    with open(os.path.join(staging, 'manifest.json')) as f_:
+        man = json.load(f_)
+    os.makedirs(folder, exist_ok=True)
+    meta_p = os.path.join(folder, 'metadata.json')
+    try:
+        with open(meta_p) as f_:
+            meta = json.load(f_)
+    except Exception:
+        meta = {}
+    for jn, v_ in man.items():
+        if not v_.get('ok'):
+            continue
+        tujuan = os.path.join(folder, f'{jn}_latest.xls')
+        for lama in glob.glob(os.path.join(folder, f'{jn}_*')):   # file versi lain (mis. .xlsx) dihapus, sama seperti upload manual
+            if os.path.abspath(lama) != os.path.abspath(tujuan):
+                os.remove(lama)
+        shutil.copyfile(os.path.join(staging, v_['file']), tujuan)
+        meta[jn] = {'original_name': v_['nama'], 'saved_path': f'saved_raw_files/{jn}_latest.xls', 'updated_at': v_['waktu']}
+    with open(meta_p, 'w') as f_:
+        json.dump(meta, f_)
+    with open(os.path.join(folder, 'rssm_auto_gh.json'), 'w') as f_:   # ditampilkan di aplikasi: "Terakhir jalan via GitHub"
+        json.dump({'selesai': _wib().strftime('%d/%m/%Y %H:%M'),
+                   'hasil': {LAPORAN[jn]['judul']: ('✅ ' if v_.get('ok') else '⚠️ ') + v_.get('pesan', '') for jn, v_ in man.items()}}, f_)
+
+
+if __name__ == '__main__':
+    import os
+    import sys
+    if len(sys.argv) >= 3 and sys.argv[1] == '--tarik-ke':      # GitHub Actions: python rssm_faktur.py --tarik-ke staging faktur,nota,spk,stok
+        jl = [j_.strip() for j_ in (sys.argv[3] if len(sys.argv) > 3 else ','.join(LAPORAN)).split(',') if j_.strip() in LAPORAN]
+        n_gagal = tarik_ke_folder(sys.argv[2], jl, os.environ.get('RSSM_USER', ''), os.environ.get('RSSM_PASS', ''))
+        print(f'Selesai: {len(jl) - n_gagal} berhasil, {n_gagal} gagal')
+        raise SystemExit(0)                                       # kegagalan dilaporkan di langkah terakhir workflow
+    if len(sys.argv) >= 4 and sys.argv[1] == '--terapkan':        # GitHub Actions: python rssm_faktur.py --terapkan staging folder
+        terapkan_ke_folder(sys.argv[2], sys.argv[3])
+        raise SystemExit(0)
+
+    # ---- uji coba di PC: python rssm_faktur.py ----
     import getpass
     print('=== Tarik laporan RSSM / RM ===')
     j_ = (input('Laporan [faktur / nota / spk / stok / semua] (Enter = semua): ').strip().lower() or 'semua')

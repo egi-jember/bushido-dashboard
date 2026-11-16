@@ -2790,7 +2790,7 @@ def rssm_jadwal_ui():
     ttl_ = '⏰ Generate otomatis — ' + (('AKTIF ' + ', '.join(jam_now_)) if jd_.get('aktif') and jam_now_ else 'nonaktif')
     with st.expander(ttl_, expanded=False):
         if here_: st.caption('🖥️ Penjalan jadwal hidup di komputer ini (RSSM_AUTO = true). Selama aplikasi ini berjalan, Generate dijalankan otomatis pada jam di bawah — browser boleh ditutup.')
-        else: st.caption('ℹ️ Server ini bukan penjalan jadwal. Jadwal dijalankan oleh komputer yang Secrets-nya berisi RSSM_AUTO = true.')
+        else: st.caption('ℹ️ Jadwal di kotak ini dijalankan oleh komputer yang Secrets-nya berisi RSSM_AUTO = true. Jadwal online (tanpa laptop) diatur di GitHub: .github/workflows/generate_rssm.yml.')
         if IS_ADMIN:
             akt_ = st.toggle('Aktifkan jadwal', value=bool(jd_.get('aktif')), key='rssm_auto_aktif')
             jam_txt_ = st.text_input('Jam WIB (pisahkan koma)', value=', '.join(jam_now_) or '07:30, 12:00, 16:30', key='rssm_auto_jam', help='Contoh: 07:30, 12:00, 16:30')
@@ -2802,6 +2802,10 @@ def rssm_jadwal_ui():
                 else: save_json({'aktif': bool(akt_), 'jam': jam_, 'jenis': jen_}, RSSM_JADWAL_FILE); st.rerun()
         else:
             st.caption('Laporan: ' + ', '.join(_rssm.LAPORAN[j_]['judul'] for j_ in jen_now_) + ' · masukkan Kode Akses untuk mengubah jadwal.')
+        gh_ = load_json(os.path.join(UPLOAD_DIR, 'rssm_auto_gh.json'))   # hasil jadwal online (GitHub Actions: .github/workflows/generate_rssm.yml)
+        if gh_.get('selesai'):
+            st.markdown(f"<div style='font-size:12px;line-height:1.5;padding-bottom:16px;'><b>Terakhir jalan via GitHub (online):</b> {gh_['selesai']} WIB<br>" +
+                        '<br>'.join(f'{k_}: {_html.escape(str(v_))}' for k_, v_ in (gh_.get('hasil') or {}).items()) + '</div>', unsafe_allow_html=True)
         lg_ = load_json(RSSM_AUTO_LOG_FILE).get('last') if here_ else None
         if lg_:
             st.markdown(f"<div style='font-size:12px;line-height:1.5;padding-bottom:16px;'><b>Terakhir jalan:</b> jadwal {lg_['slot'][-5:]} · selesai {lg_['selesai']} WIB<br>" +
