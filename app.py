@@ -979,6 +979,10 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
         if dy_c: gr_c = (f'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">{gr_c[0]}{dy_c[0]}</div>', '\n'.join(dict.fromkeys([gr_c[1], dy_c[1]])), gr_c[2] + 12 + dy_c[2])
     if gr_c: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank, gr_c], 'Registrasi_MYDR_' + str(title), chart_cols='repeat(2,minmax(0,1fr))')   # tanpa pie: batang MYDR di kiri, Google Review di kanan
     else: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank], 'Registrasi_MYDR_' + str(title), chart_cols='minmax(0,720px)')
+    if grev:   # Google Review per TANGGAL 1..31 (analisa harian): panel sendiri di bawah grafik Google Review
+        try: dd_c = bsg_chart_grev_by_date(_gord_)
+        except Exception: dd_c = None
+        if dd_c: bsg_panel_charts(f'Google Review Harian per Tanggal — {title}', [dd_c], 'GoogleReview_Harian_' + str(title), chart_cols='minmax(0,1100px)')
 
 
 # ====================================================================================================
@@ -1052,8 +1056,8 @@ def bsg_arsip_activate(upfile):
 
 # ====================================================================================================
 # ============ CREATE PPT: isi OTOMATIS kolom CONDITION pada TEMPLATE_PPT_DEALER_DENGAN_KOORDINATOR.pptx / TEMPLATE_PPT_DEALER_NON_KOORDINATOR.pptx ===============
-# Hanya kolom CONDITION (+ nama dealer / koordinator / counter pada cover & slide pembatas, + angka "Tambah N salesman"
-# pada slide Recruitment). Gambar dashboard, PROBLEM, PERBAIKAN, TARGET PERBAIKAN & TIME LINE diisi manual.
+# Hanya kolom CONDITION (+ nama dealer / koordinator / counter pada cover & slide pembatas, ).
+# Tabel RECRUITMENT dibiarkan kosong sesuai template (tidak diolah app / AI). Gambar dashboard, PROBLEM, PERBAIKAN, TARGET PERBAIKAN & TIME LINE diisi manual.
 # Butuh library `python-pptx` (requirements.txt). Fungsi di blok ini tidak memakai Streamlit.
 # ====================================================================================================
 _TPL_KOOR, _TPL_NON = 'TEMPLATE_PPT_DEALER_DENGAN_KOORDINATOR.pptx', 'TEMPLATE_PPT_DEALER_NON_KOORDINATOR.pptx'   # dealer yang punya Koordinator vs dealer tanpa Koordinator (hanya Counter)
@@ -1166,12 +1170,6 @@ def _ppt_scope(dealer, koor=None):
             pos_s = {x_['n']: i_ for i_, x_ in enumerate(bsg_focus_rows('Salesman_Clean', sn_, lambda n_: get_auto_sales_target(n_), Fn_, Fnl_, Nn_, Dn_, Sn_, Snl_, persen_desimal))}
             sm_rows.sort(key=lambda r_: pos_s.get(r_['name'], 10 ** 6))   # sort stabil: yang di luar daftar notif tetap urutan semula
         except Exception: pass
-    # Kebutuhan salesman baru = (Target dealer / koordinator x 120% - Target STU MP) / 2, dibulatkan ke atas — SAMA dgn badge Ringkasan Perform & tabel Man Power.
-    # Target STU MP = total target semua salesman (MP) yang mengisi database (counter ikut dihitung). Level koordinator memakai target & MP koordinator tsb; COUNTER selalu 0.
-    mp_set_ = {clean_str(v) for v in db_c['Salesman_Clean'].dropna().unique() if clean_str(v) and clean_str(v) not in ['NAN', 'NONE', 'TOTAL']} if (db_c is not None and not db_c.empty and 'Salesman_Clean' in db_c.columns) else set()
-    mp_tg = int(sum(safe_int(get_auto_sales_target(m_)) for m_ in mp_set_))
-    mp_raw = (safe_int(r_p['TARGET']) * 1.20 - mp_tg) / 2.0
-    mp_need = 0 if (koor and str(koor).upper().startswith('COUNTER')) else (int(math.ceil(mp_raw)) if mp_raw > 0 else 0)
 
     is_counter = bool(koor) and str(koor).upper().startswith('COUNTER')   # COUNTER: Walk In 60% | Media Sosial 30% | Event 7% | Service 3%
     ACT = {'WALKIN': 60, 'MEDIASOSIAL': 30, 'EVENT': 7, 'SERVICE': 3} if is_counter else {'EVENT': 30, 'WALKIN': 20, 'MEDIASOSIAL': 25, 'EVENTNONNACS': 10, 'KUNJUNGANRUMAH': 10, 'SERVICE': 5}
@@ -1209,7 +1207,7 @@ def _ppt_scope(dealer, koor=None):
                 tg_ = int(round(safe_int(r_p['TARGET']) * TYPE_TGT.get(r_['TYPE'], 0) / 100.0)); r_['TARGET'] = tg_; r_['ACHIEV'] = (safe_int(r_['STU']) / tg_ * 100.0 if tg_ > 0 else 0.0); typ_rows.append(r_)
     except Exception: pass
     lsg_stu = {l_: _cnt(f_c, 'Leasing_Faktur_Clean', l_) for l_ in ['BAF', 'ADIRA', 'SOF', 'IMFI', 'CASH']}
-    return dict(label=label, koor=koor, dealer=dealer, r_p=r_p, r_pr=r_pr, r_s=r_s, ent_p=ent_p, notif_k=notif_k, notif_c=notif_c, sm=sm_rows, mp_need=mp_need, pt=pt_rows, sub=sub_rows, sub_pt=sub_pt, typ=typ_rows, lsg_stu=lsg_stu)
+    return dict(label=label, koor=koor, dealer=dealer, r_p=r_p, r_pr=r_pr, r_s=r_s, ent_p=ent_p, notif_k=notif_k, notif_c=notif_c, sm=sm_rows, pt=pt_rows, sub=sub_rows, sub_pt=sub_pt, typ=typ_rows, lsg_stu=lsg_stu)
 
 # ---------------------------------------------------------------------------------------------------
 # Teks kolom CONDITION — tiap fungsi mengembalikan list (label, isi condition) sesuai urutan baris tabel template
@@ -1308,7 +1306,7 @@ def _ppt_fill_condition(shape, rows):
 # ---------------------------------------------------------------------------------------------------
 # Gambar slide: dipotret di BROWSER dari panel Dashboard Dealer (dealer → koordinator terlemah → counter terlemah)
 # ---------------------------------------------------------------------------------------------------
-# nomor slide → (jenis, label panel | 'kpi', sumber) — sesuai masing-masing template. Slide Recruitment & Documentation memang ditempel manual.
+# nomor slide → (jenis, label panel | 'kpi', sumber) — sesuai masing-masing template. Slide Recruitment (tabel dibiarkan kosong) & Documentation memang diisi manual.
 _PPT_SLOTS_KOOR = {2: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'dealer'), 3: ('panel', 'Jember_Man_Power_MDS', 'dealer'), 5: ('panel', 'Jember_Proses_Kerja_Dealer', 'dealer'), 7: ('panel', 'Jember_Activity', 'dealer'),   # TEMPLATE_PPT_DEALER_DENGAN_KOORDINATOR.pptx (33 slide)
                    10: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'koor'), 11: ('panel', 'Jember_Man_Power_MDS', 'koor'), 13: ('panel', 'Jember_Proses_Kerja_Dealer', 'koor'), 15: ('panel', 'Jember_Activity', 'koor'), 17: ('kpi', 'kpi', 'koor'),
                    19: ('panel', 'Jember_Penjualan_SIP_SENTRAL', 'counter'), 20: ('panel', 'Jember_Proses_Kerja_Dealer', 'counter'), 21: ('panel', 'Jember_Activity', 'counter'), 23: ('kpi', 'kpi', 'counter'),
@@ -1355,6 +1353,14 @@ def _ppt_stub_slots(prs, S_by, warn, slots_map):
         except Exception as e_: warn.append(f'Slide {n_} (gambar): {type(e_).__name__}: {e_}')
     return slots
 
+def _ppt_is_recruit(sh, slide_texts):
+    """True bila tabel ini tabel RECRUITMENT (judul kolom ITEM / SENIN..JUMAT, atau slide berjudul ...RECRUITMENT). Tabel Recruitment TIDAK diolah app / AI — dibiarkan kosong sesuai template."""
+    try:
+        hdr = [c.text.strip().upper() for c in sh.table.rows[0].cells]
+        if 'SENIN' in hdr or (hdr and hdr[0] == 'ITEM'): return True
+    except Exception: pass
+    return any('RECRUITMENT' in str(t_).upper() for t_ in slide_texts)
+
 def _ppt_build(src, S_d, S_k, S_c, slots_map, koor_tpl=True):
     """src = path / bytes template. koor_tpl=False → TEMPLATE_PPT_DEALER_NON_KOORDINATOR (tabel BSGT|sales_k = Salesman Terburuk level dealer). Return (bytes_pptx, daftar_pesan, daftar_slot_gambar)."""
     import io
@@ -1369,19 +1375,17 @@ def _ppt_build(src, S_d, S_k, S_c, slots_map, koor_tpl=True):
     for i, sl in enumerate(prs.slides, 1):
         shapes = list(_ppt_shapes(sl.shapes)); texts = {id(s_): s_.text_frame.text.strip() for s_ in shapes if s_.has_text_frame}
         try:
-            for sh in shapes:   # cover, slide pembatas, slide Recruitment
+            for sh in shapes:   # cover & slide pembatas
                 t_ = texts.get(id(sh), '')
                 if i == 1 and sh.has_text_frame and sh.text_frame.paragraphs[0].runs and (sh.text_frame.paragraphs[0].runs[0].font.size or 0) >= 600000: _ppt_set_text(sh, dealer, _ppt_title_size(dealer, 66, 6.4))
                 elif sh.has_text_frame and t_ and 'LOW PERFORM COORDINATOR' in texts.values() and t_ != 'LOW PERFORM COORDINATOR': _ppt_set_text(sh, k_name or '-', _ppt_title_size(k_name or '-', 66, 8.0))   # slide pembatas koordinator: teks selain judul = nama koordinator
                 elif sh.has_text_frame and t_.startswith('COUNTER') and not t_.startswith('COUNTER DEALER') and any(v.startswith('COUNTER DEALER') for v in texts.values()): _ppt_set_text(sh, c_name or '-', _ppt_title_size(c_name or '-', 66, 8.0))   # slide pembatas counter
                 elif t_ in samples: _ppt_set_text(sh, dealer)   # nama dealer contoh pada slide pembatas (SPK & Leasing, STU by Type)
                 elif t_.startswith('COUNTER DEALER'): _ppt_set_text(sh, f'COUNTER DEALER {dealer}')
-                elif t_.startswith('PERBAIKAN RECRUITMENT'):
-                    S_ = S_k if any(v == 'RECRUITMENT KOORDINATOR' for v in texts.values()) else S_d
-                    if len(sh.text_frame.paragraphs) > 1: _ppt_set_text(sh, '1. ' + ('-' if S_ is None else (f"Tambah {S_['mp_need']} salesman baru" if S_['mp_need'] > 0 else 'Tidak perlu tambah salesman')), para=1)
         except Exception as e_: warn.append(f'Slide {i}: {type(e_).__name__}: {e_}')
         for sh in shapes:   # tabel Condition (dikenali dari nama shape BSGT|<jenis>)
             if not (sh.has_table and (sh.name or '').startswith('BSGT|')): continue
+            if _ppt_is_recruit(sh, texts.values()): continue   # tabel Recruitment dibiarkan kosong sesuai template (diisi manual)
             kind = sh.name.split('|', 1)[1]
             if kind not in _CX_TABLES: warn.append(f'Slide {i}: jenis tabel "{kind}" tidak dikenal (nama shape {sh.name}).'); continue
             if kind in seen: warn.append(f'Slide {i}: nama tabel "{sh.name}" dipakai dua kali di template — ganti nama shape salah satunya agar isinya sesuai.')
@@ -3220,6 +3224,80 @@ def bsg_chart_grev_daily(names):
     else: note_ = 'Riwayat harian belum cukup — tarik Google Review (menu Upload File) hari ini dan besok.'
     return bsg_chart_rank('Google Review Harian', '', rows_, keep_order=True, fixed_color='#2563EB', parts=True, total=(f'{tot_:+,}' if lasts_ else 'n/a'), total_color=(BSG_GRN if tot_ > 0 else ('#64748B' if not lasts_ or tot_ == 0 else BSG_RED)), note=note_)
 
+_ID_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+_GD_CSS = """.gd-w{max-height:372px;overflow:auto;border:1px solid #C7D3F7;border-radius:10px;background:#fff}
+.gd-t{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;color:#1E3A8A}
+.gd-t th{position:sticky;top:0;z-index:3;background:#EAF0FF;color:#0B2A5B;font-weight:800;padding:6px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid #C7D3F7}
+.gd-t td{padding:4px 8px;text-align:right;border-bottom:1px solid #EEF2FF;white-space:nowrap}
+.gd-t th:first-child,.gd-t td:first-child{position:sticky;left:0;z-index:2;text-align:left;background:#fff;font-weight:800}
+.gd-t th:first-child{z-index:4;background:#EAF0FF}
+.gd-t tr.gd-sum td{position:sticky;bottom:0;z-index:2;background:#EAF0FF;font-weight:900;border-top:2px solid #8FA8F0}
+.gd-t td.gd-bar{text-align:left;min-width:90px}
+.gd-b{display:inline-block;height:9px;border-radius:5px;vertical-align:middle;min-width:2px}
+"""
+
+def grev_daily_month(names, year=None, month=None, hist=None):
+    """Review Google PER TANGGAL (1 s.d akhir bulan) per dealer = review pada tanggal itu − review pada tarikan sebelumnya.
+    Return (ndays, year, month, {nama: [None | (selisih, jarak_hari, review_hari_itu, tgl_pembanding) per tanggal]}). None = tidak ada tarikan / belum terjadi.
+    Jarak > 1 hari = tidak ada tarikan di antaranya → selisih adalah akumulasi beberapa hari (ditandai *). Jarak > 7 hari tidak dihitung."""
+    import calendar as _cal
+    h_ = hist if hist is not None else load_json(GREV_HIST_FILE); now_ = _wib_now()
+    year, month = year or now_.year, month or now_.month
+    nd_ = _cal.monthrange(year, month)[1]; today_ = now_.strftime('%Y-%m-%d'); out = {}
+    for n_ in names or []:
+        k_ = str(n_).strip().upper(); e_ = h_.get(k_)
+        if not e_:
+            try: e_ = next((v_ for kk_, v_ in h_.items() if _nrm_dlr(kk_) == _nrm_dlr(k_)), None)
+            except Exception: e_ = None
+        e_ = e_ or {}; ds_all = sorted(e_); col_ = []
+        for d_ in range(1, nd_ + 1):
+            ds_ = f'{year:04d}-{month:02d}-{d_:02d}'
+            if ds_ > today_ or ds_ not in e_: col_.append(None); continue
+            pv_ = [x_ for x_ in ds_all if x_ < ds_]
+            if not pv_: col_.append(None); continue
+            p_ = pv_[-1]; gap_ = (datetime.datetime.strptime(ds_, '%Y-%m-%d') - datetime.datetime.strptime(p_, '%Y-%m-%d')).days
+            if gap_ > 7: col_.append(None); continue
+            col_.append((safe_int(e_[ds_]) - safe_int(e_[p_]), gap_, safe_int(e_[ds_]), p_))
+        out[n_] = col_
+    return nd_, year, month, out
+
+def bsg_chart_grev_by_date(names):
+    """Tabel Google Review HARIAN per tanggal 1..31 (baris = tanggal, kolom = dealer + TOTAL bila > 1 dealer). Return (inner, css, tinggi) atau None bila belum ada riwayat bulan ini."""
+    nd_, yr_, mo_, data_ = grev_daily_month(names)
+    names = [n_ for n_ in (names or []) if n_ in data_]
+    if not names or not any(v_ is not None for c_ in data_.values() for v_ in c_): return None
+    multi_ = len(names) > 1
+    def _dm2(d_): return _grev_dm(d_)
+    def _sum_day(i_):
+        vs_ = [data_[n_][i_][0] for n_ in names if data_[n_][i_] is not None]
+        return sum(vs_) if vs_ else None
+    tot_day_ = [_sum_day(i_) for i_ in range(nd_)]
+    bar_src_ = tot_day_ if multi_ else [(data_[names[0]][i_][0] if data_[names[0]][i_] is not None else None) for i_ in range(nd_)]
+    mx_ = max([v_ for v_ in bar_src_ if v_ is not None and v_ > 0] or [1])
+    def _cell(v_):
+        if v_ is None: return '<td style="color:#CBD5E1">–</td>'
+        d_, gap_, n_last_, p_ = v_
+        col_ = BSG_GRN if d_ > 0 else (BSG_RED if d_ < 0 else '#64748B')
+        return f'<td style="color:{col_};font-weight:{800 if d_ else 500}">{(f"{d_:+,}" if d_ else "0")}{"*" if gap_ > 1 else ""}</td>'
+    hdr_ = '<tr><th>TGL</th>' + ''.join(f'<th title="{_esc(n_)}">{_esc(n_)}</th>' for n_ in names) + ('<th>TOTAL</th>' if multi_ else '') + '<th style="text-align:left">GRAFIK</th></tr>'
+    rows_ = []
+    for i_ in range(nd_):
+        t_ = tot_day_[i_]; b_ = bar_src_[i_]
+        cells_ = ''.join(_cell(data_[n_][i_]) for n_ in names)
+        if multi_: cells_ += ('<td style="font-weight:900;color:' + (BSG_GRN if t_ and t_ > 0 else (BSG_RED if t_ and t_ < 0 else '#64748B')) + '">' + (f'{t_:+,}' if t_ else '0') + '</td>' if t_ is not None else '<td style="color:#CBD5E1">–</td>')
+        bar_ = f'<div class="gd-b" style="width:{max(0.0, b_) / mx_ * 100.0:.0f}%;background:{BSG_CYN}"></div>' if (b_ is not None and b_ > 0) else ''
+        rows_.append(f'<tr><td>{i_ + 1}</td>{cells_}<td class="gd-bar">{bar_}</td></tr>')
+    def _tot_col(n_): vs_ = [v_[0] for v_ in data_[n_] if v_ is not None]; return sum(vs_) if vs_ else None
+    def _fmt_sum(v_): return '–' if v_ is None else (f'{v_:+,}' if v_ else '0')
+    tots_ = [_tot_col(n_) for n_ in names]
+    grand_ = sum(v_ for v_ in tot_day_ if v_ is not None); n_days_ = sum(1 for v_ in tot_day_ if v_ is not None)
+    sum_row_ = '<tr class="gd-sum"><td>TOTAL</td>' + ''.join(f'<td>{_fmt_sum(v_)}</td>' for v_ in tots_) + (f'<td>{_fmt_sum(grand_ if n_days_ else None)}</td>' if multi_ else '') + '<td></td></tr>'
+    avg_ = (grand_ / n_days_) if n_days_ else 0.0
+    note_ = f'{_ID_BULAN[mo_ - 1]} {yr_} · review pada tanggal tsb − review tarikan sebelumnya · – = belum ada tarikan · * = akumulasi beberapa hari (tidak ada tarikan di antaranya) · rata-rata {avg_:+.1f}/hari ({n_days_} hari tercatat)'
+    hdr_card_ = f'<div class="ttl-r"><div class="ttl">Google Review per Tanggal</div><div class="ttl-tot" style="color:{BSG_GRN if grand_ > 0 else ("#64748B" if grand_ == 0 else BSG_RED)}">{grand_:+,}</div></div>'
+    inner = f'<div class="card">{hdr_card_}<div class="rk-note">{_esc(note_)}</div><div class="gd-w"><table class="gd-t"><thead>{hdr_}</thead><tbody>{"".join(rows_)}{sum_row_}</tbody></table></div></div>'
+    return inner, _RANK_CSS + _GD_CSS, 62 + 40 + 372 + 16
+
 def apify_pull_grev():
     """Tarik jumlah review Google tiap dealer yang kolom URL GOOGLE-nya terisi (MASTER TARGET › KPI Dealer) → simpan ke R. G REV, G RATING & G REV UPDATE (+ riwayat harian)."""
     _all_a = load_json(KPI_SAVED_FILE); _sd_a = _all_a.get('dealer', {}) or {}
@@ -3937,6 +4015,35 @@ def get_join_date_txt(name_val):
         if len(c_) == 1: d_ = c_[0]
     return d_.strftime('%d/%m/%Y') if d_ is not None else '-'
 
+_EMP_NAMES_CACHE = {}
+def load_employee_names_ns(fpath):
+    """Master Employee (kolom C = Nama): himpunan nama alfanumerik. Kosong bila file belum diupload / gagal dibaca → tidak ada penyaringan."""
+    if not fpath or not os.path.exists(fpath): return set()
+    try: key = (fpath, os.path.getmtime(fpath))
+    except Exception: key = (fpath, 0)
+    if key in _EMP_NAMES_CACHE: return _EMP_NAMES_CACHE[key]
+    out = set()
+    try:
+        df_e = xl_any(fpath, header=None)
+        if df_e is not None and df_e.shape[1] >= 3:
+            out = {alnum_str(clean_str(v_)) for v_ in df_e.iloc[:, 2].tolist()} - {'', 'NAMA', 'NAN', 'NONE'}
+    except Exception: out = set()
+    _EMP_NAMES_CACHE.clear(); _EMP_NAMES_CACHE[key] = out
+    return out
+
+_EMP_DROP_LOG = []
+def filter_by_employee(df_x, label):
+    """Salesman yang namanya TIDAK ada di file Master Employee dibuang dari perhitungan (Database). Baris tanpa nama salesman dibiarkan. Tanpa file Employee → data tidak diubah."""
+    if df_x is None or df_x.empty or 'Salesman_Clean' not in df_x.columns: return df_x
+    names_ = load_employee_names_ns(path_employee)
+    if not names_: return df_x
+    an_ = df_x['Salesman_Clean'].map(lambda v_: alnum_str(v_) if (v_ is not None and not pd.isna(v_)) else '')
+    drop_ = (an_ != '') & (~an_.isin(names_))
+    if drop_.any():
+        _EMP_DROP_LOG.append((label, int(drop_.sum()), sorted(df_x.loc[drop_, 'Salesman_Clean'].dropna().astype(str).unique())))
+        return df_x[~drop_].reset_index(drop=True)
+    return df_x
+
 def get_fixed_counter_target(name_val):
     s = clean_str(name_val)
     if s in FIXED_COUNTER_TARGETS: return FIXED_COUNTER_TARGETS[s]
@@ -4308,6 +4415,7 @@ if mapping_point_code and df_database is not None and not df_database.empty and 
 df_database_unfiltered = df_database   # semua dealer (hanya untuk cek pemecahan Point Code)
 if df_database is not None and not df_database.empty and 'Nama_Dealer_Clean' in df_database.columns:
     df_database = df_database[df_database['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)   # analisa: hanya dealer MDS
+df_database = filter_by_employee(df_database, 'Database')   # salesman yang tidak ada di file Employee tidak ikut dihitung (KPI, Benchmark, MP, dll.)
 df_database_alldlr = df_database
 
 # ---- Database BULAN LALU: alur sama dengan Database bulan ini (baca → type lookup → buang baris ganda antar file → salesman/koordinator → dealer via Point Code → hanya dealer MDS) ----
@@ -4330,8 +4438,10 @@ if paths_database_lm:
             _x_lm = assign_koor_and_sales(_c_lm, col_idx_override=(28 if _ac_lm else None), tracker=set())
             _x_lm = _db_apply_pointcode(_x_lm)
             if _x_lm is not None and not _x_lm.empty and 'Nama_Dealer_Clean' in _x_lm.columns:
-                df_database_lm_alldlr = _x_lm[_x_lm['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)
+                df_database_lm_alldlr = filter_by_employee(_x_lm[_x_lm['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True), 'Database bulan lalu')
     except Exception as _e_lm: st.warning(f'Database bulan lalu gagal dibaca: {_e_lm}')
+
+for _lb_, _n_, _nm_ in _EMP_DROP_LOG: st.caption(f'ℹ️ {_lb_}: {_n_:,} baris dibuang dari perhitungan karena nama salesman tidak ada di file Employee — ' + ', '.join(_nm_[:8]) + (f' (+{len(_nm_) - 8} lainnya)' if len(_nm_) > 8 else ''))
 
 def strip_sub_code(v):
     """Buang kode di depan nama sub prospect (mis. '03 - Pameran' / 'EV01: Pameran' -> 'PAMERAN')."""
@@ -6879,15 +6989,15 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 return (css_ + f'<div class="bmk-wrap"><div class="bmk-ttl">🧭 RINGKASAN PERFORM DEALER — {_esc(_dd_grp or _dd_dealer)} (1 s.d {tanggal_akhir})</div>' + _bd_all + '</div>')
             _bm3_html = ''
             if _bm_slot is not None:   # Benchmark KPI: Sub Area atau Dealer / Koor / Salesman terpilih (Dashboard Dealer)
-                def _bm_scope(df_a, dcol, lm=False):   # data dealer / koor / salesman terpilih; lm=True → bulan lalu (periode tanggal sama)
+                def _bm_scope(df_a, dcol, lm=False, tbl=True):   # data dealer / koor / salesman terpilih; lm=True → bulan lalu (periode tanggal sama)
                     if df_a is None or df_a.empty or dcol not in df_a.columns or 'hari' not in df_a.columns: return pd.DataFrame()
                     d_ = df_a[(df_a['bulan'] == (last_month if lm else current_month)) & (df_a['tahun'] == (last_month_year if lm else current_year)) & (df_a['hari'] <= (tanggal_akhir_lm if lm else tanggal_akhir))]
                     d_ = _dd_apply(d_, dcol)
-                    if d_.empty: return d_
+                    if d_.empty or not tbl: return d_   # tbl=False (Database): semua baris dealer / koor / salesman terpilih, TIDAK dibatasi baris tabel → angka DB sama dengan KPI
                     d_ = d_.copy(); d_['_jbk'] = _dd_key(d_, dcol)
                     return d_[d_['_jbk'].isin({str(n_).strip().upper() for n_ in df_jb[kol_nm_jb]})]
                 _bm1_html = bsg_benchmark_kpi_html(_dd_scope.split(' — ')[0], r_tot_jb, nota_metrics(jb_n_c), target_persen_harian, jb_f_c,
-                                                   _bm_scope(df_database_alldlr, 'Nama_Dealer_Clean'), _bm_scope(df_spk_alldlr, 'Nama_Dealer_SPK'), _bm_scope(df_spk_alldlr, 'Nama_Dealer_SPK', lm=True), jb_n_t)
+                                                   _bm_scope(df_database_alldlr, 'Nama_Dealer_Clean', tbl=False), _bm_scope(df_spk_alldlr, 'Nama_Dealer_SPK'), _bm_scope(df_spk_alldlr, 'Nama_Dealer_SPK', lm=True), jb_n_t)
                 _bm2_html = ''
                 try: _bm3_html = _bm_badges_html()
                 except Exception as _e_bd: _bm3_html = ''; st.caption(f'⚠️ Badge ringkasan perform dealer tidak dapat dibuat ({type(_e_bd).__name__}: {_e_bd}).')
