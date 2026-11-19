@@ -388,7 +388,7 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
             tip = r.get('tip') or f"<b>{_esc(r['name'])}</b>"
             gap_h = ''
             if r.get('gap') is not None: gap_h = '<div class="sp-g" style="color:' + (BSG_GRN if r['gap'] >= 0 else BSG_RED) + '">' + format(int(r['gap']), '+,') + '</div>'
-            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}">{_esc(r["name"])}</div>{gap_h}<div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
+            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}"{(' style="flex:0 0 %dpx"' % int(r["n_w"])) if r.get("n_w") else ""}>{_esc(r["name"])}</div>{gap_h}<div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
         hdr = _hdr(title, '')
         if total is not None:
             hdr = f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div><div style="height:6px"></div>'
@@ -935,7 +935,7 @@ def bsg_panel_charts(title, charts, file_label, chart_cols=None):
 # ---------------------------------------------------------------- grafik pendamping tiap tabel ----
 
 
-def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koordinator', max_rows=10, grev=None, mydr=None):
+def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koordinator', max_rows=10, grev=None, mydr=None, rt_c=None):
     """Pie sudah vs belum registrasi rating (KIRI) + grafik My Yamaha Dealer Rating (MYDR) di sebelah KANAN.
     by_col = 'Koor' → ranking per Koordinator/Counter; by_col = '_jb' (atau kolom dealer) → ranking per Dealer."""
     donut = bsg_chart_donut('Status Registrasi Rating (MYDR)', 'Persentase konsumen faktur yang sudah vs belum registrasi', [('Sudah Registrasi', sudah, '#12A150'), ('Belum Registrasi', belum, '#DC2626')], 'Konsumen', parts=True, keep_zero=True)
@@ -947,7 +947,22 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
             tot, sdh = len(g), int((g['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI').sum())
             pc = sdh / tot * 100.0 if tot else 0.0
             rows.append({'name': n, 'val': pc, 'label': f'{pc:.1f}%', 'tip': f"<b>{_esc(n)}</b><br>Sudah registrasi <b>{sdh:,}</b> dari {tot:,} konsumen<br><b>{pc:.1f}%</b>"})
-    rank = bsg_chart_rank(f'My Yamaha Dealer Rating — {by_label} (Registrasi Tertinggi)', f'Persentase konsumen yang sudah registrasi ({max_rows} teratas)', rows, ideal=None, fixed_color='#12A150', max_rows=max_rows, scale_max=100.0, parts=True)
+    rank = bsg_chart_rank('Y On Dealer Rating', f'Persentase konsumen yang sudah registrasi ({max_rows} teratas)', rows, ideal=None, fixed_color='#12A150', max_rows=max_rows, scale_max=100.0, parts=True)
+    if by_col == 'Salesman_Clean' and f_c is not None and not f_c.empty and by_col in f_c.columns and 'Status_Registrasi_Rating' in f_c.columns:
+        # dealer TANPA koordinator → per SALESMAN (yang punya faktur pada periode): capaian (sudah registrasi) di ujung KIRI batang, target di ujung KANAN.
+        # Target MYDR = 40% dari STU salesman tsb (aturan yang sama dengan target MYDR di KPI); STU terlalu sedikit (target 0) → n/a.
+        _sr_ = []
+        for nm, g in f_c.groupby(by_col):
+            n = clean_str(nm)
+            if not n or n in ('NAN', 'NONE', 'LAIN-LAIN'): continue
+            stu_, sdh_ = len(g), int((g['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI').sum()); tg_ = int(round(stu_ * 0.40))
+            pc_ = (sdh_ / tg_ * 100.0) if tg_ > 0 else None
+            tip_ = (f"<b>{_esc(n)}</b><br>Sudah registrasi <b>{sdh_:,}</b> / Target {tg_:,} (40% x {stu_:,} STU)<br>Pencapaian <b>{pc_:.1f}%</b>" if pc_ is not None else f"<b>{_esc(n)}</b><br>Sudah registrasi {sdh_:,} dari {stu_:,} STU<br>Belum ada target (40% x {stu_:,} STU dibulatkan = 0)")
+            _sr_.append({'name': n, 'val': pc_ if pc_ is not None else 0.0, 'a': sdh_, 'b': tg_, 'label': f'{pc_:.0f}%' if pc_ is not None else 'n/a', 'tip': tip_, 'n_w': 200, '_k': (pc_ if pc_ is not None else -1.0, sdh_)})
+        if _sr_:
+            _sr_.sort(key=lambda r_: r_['_k'], reverse=True)
+            _ST_, _SA_ = sum(r_['b'] for r_ in _sr_), sum(r_['a'] for r_ in _sr_ if r_['b'] > 0); _SP_ = _SA_ / _ST_ * 100.0 if _ST_ else 0.0
+            rank = bsg_chart_rank('Y On Dealer Rating', '', _sr_, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(_SA_, _ST_), total=f'{_SP_:.1f}%', total_color=bsg_stat_color(_SP_, 100.0, 85.0), max_rows=max_rows)
     if donut: donut = (donut[0].replace('<svg class="dc"', '<svg class="dc" style="max-width:150px"', 1), donut[1], max(200, donut[2] - 100))   # pie diperkecil
     if mydr:   # mydr: [(nama dealer, target MYDR, result MYDR)] → format sama dgn batang Google Review
         _gd_ = {n_: (t_, r_) for n_, t_, r_ in (grev or [])}
@@ -960,7 +975,7 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
         m_rows = [_mrow(n_) for n_ in _ord_]
         if m_rows:
             MT_, MR_ = sum(x_['b'] for x_ in m_rows), sum(x_['a'] for x_ in m_rows if x_['b'] > 0); MP_ = MR_ / MT_ * 100.0 if MT_ else 0.0
-            rank = bsg_chart_rank('My Yamaha Dealer Rating vs Target', '', m_rows, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(MR_, MT_), total=f'{MP_:.1f}%', total_color=bsg_stat_color(MP_, 100.0, 85.0))
+            rank = bsg_chart_rank('Y On Dealer Rating vs Target', '', m_rows, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(MR_, MT_), total=f'{MP_:.1f}%', total_color=bsg_stat_color(MP_, 100.0, 85.0))
     gr_c = None
     if grev:   # grev: [(nama dealer, target G REV, result G REV)] → batang pencapaian Google Review vs Target
         _gall_ = {n_: (t_, r_) for n_, t_, r_ in grev}
@@ -973,16 +988,15 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
         if g_rows and any(x_['b'] > 0 for x_ in g_rows):
             T_, R_ = sum(x_['b'] for x_ in g_rows), sum(x_['a'] for x_ in g_rows if x_['b'] > 0); P_ = R_ / T_ * 100.0 if T_ else 0.0
             gr_c = bsg_chart_rank('Google Review vs Target', '', g_rows, keep_order=True, ideal=100.0, ideal_label='Target', parts=True, split='target', split_total=(R_, T_), total=f'{P_:.1f}%', total_color=bsg_stat_color(P_, 100.0, 85.0))
-    if gr_c:   # Google Review Harian (hari ini − kemarin) tepat DI BAWAH Google Review vs Target, satu kolom kanan
-        try: dy_c = bsg_chart_grev_daily(_gord_)
+    if gr_c:   # grafik batang Daily Google Review (tgl 1..31) tepat DI BAWAH Google Review vs Target, satu kolom kanan, selebar kolom
+        try: dy_c = bsg_chart_grev_bars(_gord_)
         except Exception: dy_c = None
-        if dy_c: gr_c = (f'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">{gr_c[0]}{dy_c[0]}</div>', '\n'.join(dict.fromkeys([gr_c[1], dy_c[1]])), gr_c[2] + 12 + dy_c[2])
+        if dy_c: gr_c = (f'<div style="display:flex;flex-direction:column;gap:12px;min-width:0;height:100%;box-sizing:border-box">{gr_c[0]}{dy_c[0]}</div>', '\n'.join(dict.fromkeys([gr_c[1], dy_c[1]])), gr_c[2] + 12 + dy_c[2])
+    try: my_c = bsg_chart_mydr_bars(rt_c)   # Y On Daily Rating (tgl 1..31, dari file Rating kolom Tgl Input Rating) di bawah ranking, kolom kiri
+    except Exception: my_c = None
+    if my_c: rank = (f'<div style="display:flex;flex-direction:column;gap:12px;min-width:0;height:100%;box-sizing:border-box">{rank[0]}{my_c[0]}</div>', '\n'.join(dict.fromkeys([rank[1], my_c[1]])), rank[2] + 12 + my_c[2]) if rank else my_c
     if gr_c: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank, gr_c], 'Registrasi_MYDR_' + str(title), chart_cols='repeat(2,minmax(0,1fr))')   # tanpa pie: batang MYDR di kiri, Google Review di kanan
     else: bsg_panel_charts(f'Registrasi Rating MYDR — {title}', [rank], 'Registrasi_MYDR_' + str(title), chart_cols='minmax(0,720px)')
-    if grev:   # Google Review per TANGGAL 1..31 (analisa harian): panel sendiri di bawah grafik Google Review
-        try: dd_c = bsg_chart_grev_by_date(_gord_)
-        except Exception: dd_c = None
-        if dd_c: bsg_panel_charts(f'Google Review Harian per Tanggal — {title}', [dd_c], 'GoogleReview_Harian_' + str(title), chart_cols='minmax(0,1100px)')
 
 
 # ====================================================================================================
@@ -3187,54 +3201,12 @@ def grev_hist_record(vals, day=None, only_missing=False):
         save_json(h_, GREV_HIST_FILE)
     return ch_
 
-def grev_daily(dealer, hist=None):
-    """Review harian dealer = jumlah review pada tanggal tarik TERAKHIR − jumlah pada tanggal tarik SEBELUMNYA (normalnya hari ini − kemarin).
-    Return dict(delta, last, prev, n_last, n_prev) — delta None bila riwayat belum 2 hari."""
-    h_ = hist if hist is not None else load_json(GREV_HIST_FILE); k_ = str(dealer).strip().upper(); e_ = h_.get(k_)
-    if not e_:
-        try: e_ = next((v_ for kk_, v_ in h_.items() if _nrm_dlr(kk_) == _nrm_dlr(k_)), None)
-        except Exception: e_ = None
-    today_ = _wib_now().strftime('%Y-%m-%d')
-    ds_ = sorted(d_ for d_ in (e_ or {}) if d_ <= today_)
-    if not ds_: return None
-    if len(ds_) < 2: return dict(delta=None, last=ds_[-1], prev=None, n_last=safe_int(e_[ds_[-1]]), n_prev=None)
-    l_, p_ = ds_[-1], ds_[-2]
-    return dict(delta=safe_int(e_[l_]) - safe_int(e_[p_]), last=l_, prev=p_, n_last=safe_int(e_[l_]), n_prev=safe_int(e_[p_]))
-
 def _grev_dm(d_):
     try: return datetime.datetime.strptime(d_, '%Y-%m-%d').strftime('%d/%m')
     except Exception: return str(d_ or '-')
 
-def bsg_chart_grev_daily(names):
-    """Diagram batang horizontal: jumlah review Google HARIAN per dealer (review hari ini − review kemarin). Return (inner, css, tinggi) atau None."""
-    h_ = load_json(GREV_HIST_FILE); rows_, lasts_, prevs_, tot_ = [], [], [], 0
-    for n_ in names or []:
-        r_ = grev_daily(n_, h_)
-        if r_ is None or r_['delta'] is None:
-            rows_.append({'name': n_, 'val': 0.0, 'label': 'n/a', '_s': -10 ** 9, 'tip': f'<b>{_esc(n_)}</b><br>' + ('Riwayat baru 1 hari (' + _grev_dm(r_['last']) + f": {r_['n_last']:,} review) — angka harian muncul setelah tarik hari berikutnya" if r_ else 'Belum ada riwayat tarik Google Review')}); continue
-        d_ = r_['delta']; tot_ += d_; lasts_.append(r_['last']); prevs_.append(r_['prev'])
-        gap_ = (datetime.datetime.strptime(r_['last'], '%Y-%m-%d') - datetime.datetime.strptime(r_['prev'], '%Y-%m-%d')).days
-        rows_.append({'name': n_, 'val': float(max(0, d_)), 'label': f'{d_:+,}', '_s': d_,
-                      'tip': f"<b>{_esc(n_)}</b><br>Review per {_grev_dm(r_['last'])}: <b>{r_['n_last']:,}</b><br>Review per {_grev_dm(r_['prev'])}: {r_['n_prev']:,}<br>Tambahan <b>{d_:+,}</b> review" + (f'<br>(akumulasi {gap_} hari — tidak ada tarikan di antaranya)' if gap_ > 1 else '')})
-    if not rows_: return None
-    rows_.sort(key=lambda x_: -x_['_s'])
-    if lasts_:
-        l_ = max(set(lasts_), key=lasts_.count); p_ = max(set(prevs_), key=prevs_.count)
-        note_ = f'Review per {_grev_dm(l_)} − review per {_grev_dm(p_)}' + ('' if l_ == _wib_now().strftime('%Y-%m-%d') else ' · Google Review hari ini belum ditarik')
-    else: note_ = 'Riwayat harian belum cukup — tarik Google Review (menu Upload File) hari ini dan besok.'
-    return bsg_chart_rank('Google Review Harian', '', rows_, keep_order=True, fixed_color='#2563EB', parts=True, total=(f'{tot_:+,}' if lasts_ else 'n/a'), total_color=(BSG_GRN if tot_ > 0 else ('#64748B' if not lasts_ or tot_ == 0 else BSG_RED)), note=note_)
 
 _ID_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-_GD_CSS = """.gd-w{max-height:372px;overflow:auto;border:1px solid #C7D3F7;border-radius:10px;background:#fff}
-.gd-t{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;color:#1E3A8A}
-.gd-t th{position:sticky;top:0;z-index:3;background:#EAF0FF;color:#0B2A5B;font-weight:800;padding:6px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid #C7D3F7}
-.gd-t td{padding:4px 8px;text-align:right;border-bottom:1px solid #EEF2FF;white-space:nowrap}
-.gd-t th:first-child,.gd-t td:first-child{position:sticky;left:0;z-index:2;text-align:left;background:#fff;font-weight:800}
-.gd-t th:first-child{z-index:4;background:#EAF0FF}
-.gd-t tr.gd-sum td{position:sticky;bottom:0;z-index:2;background:#EAF0FF;font-weight:900;border-top:2px solid #8FA8F0}
-.gd-t td.gd-bar{text-align:left;min-width:90px}
-.gd-b{display:inline-block;height:9px;border-radius:5px;vertical-align:middle;min-width:2px}
-"""
 
 def grev_daily_month(names, year=None, month=None, hist=None):
     """Review Google PER TANGGAL (1 s.d akhir bulan) per dealer = review pada tanggal itu − review pada tarikan sebelumnya.
@@ -3261,42 +3233,107 @@ def grev_daily_month(names, year=None, month=None, hist=None):
         out[n_] = col_
     return nd_, year, month, out
 
-def bsg_chart_grev_by_date(names):
-    """Tabel Google Review HARIAN per tanggal 1..31 (baris = tanggal, kolom = dealer + TOTAL bila > 1 dealer). Return (inner, css, tinggi) atau None bila belum ada riwayat bulan ini."""
+_GV_CSS = """.gv-card{display:flex;flex-direction:column;flex:1 1 auto;box-sizing:border-box}
+.gv{position:relative;padding:14px 0 0 26px;flex:1 1 auto;display:flex;flex-direction:column;min-height:calc(var(--gvp,230px) + 34px)}
+.gv-g{position:absolute;left:26px;right:0;top:14px;bottom:20px;pointer-events:none}
+.gv-gl{position:absolute;left:0;right:0;border-top:1px dashed #D5DEF7}
+.gv-gl.z{border-top:1.5px solid #AFC0EE}
+.gv-gl span{position:absolute;left:-26px;top:-8px;width:22px;text-align:right;font-size:10.5px;font-weight:700;color:#64748B}
+.gv-cs{position:relative;display:flex;gap:3px;z-index:1;flex:1 1 auto}
+.gv-c{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:stretch}
+.gv-c:hover .gv-pl{background:rgba(37,99,235,.07);border-radius:6px 6px 0 0}
+.gv-pl{position:relative;flex:1 1 var(--gvp,230px);min-height:var(--gvp,230px)}
+.gv-b{position:absolute;bottom:0;left:0;right:0;margin:0 auto;width:72%;max-width:22px;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#60A5FA 0%,#2563EB 100%);box-shadow:0 2px 6px rgba(37,99,235,.28);transform-origin:bottom;animation:gvup .6s ease-out both}
+.gv-b.g{background:linear-gradient(180deg,#4ADE80 0%,#16A34A 100%);box-shadow:0 2px 6px rgba(22,163,74,.28)}
+.gv-b.t{background:linear-gradient(180deg,#FDBA74 0%,#F97316 100%);box-shadow:0 2px 6px rgba(249,115,22,.35)}
+.gv-b.a{background:repeating-linear-gradient(135deg,#93C5FD 0 4px,#DBEAFE 4px 8px);box-shadow:none}
+.gv-b.z{height:3px!important;background:#CBD5E1;box-shadow:none;border-radius:2px;animation:none}
+.gv-b.n{height:3px!important;background:#F87171;box-shadow:none;border-radius:2px;animation:none}
+.gv-v{position:absolute;left:-2px;right:-2px;text-align:center;font-size:10.5px;font-weight:800;color:#1E3A8A;line-height:1;white-space:nowrap}
+.gv-d{flex:0 0 20px;height:20px;line-height:20px;text-align:center;font-size:10.5px;font-weight:700;color:#475569}
+.gv-d.s{color:#DC2626}.gv-d.t{color:#F97316;font-weight:900}
+.gv-av{position:absolute;left:26px;right:0;border-top:2px dashed #DC2626;z-index:2;pointer-events:none}
+.gv-av span{position:absolute;right:0;top:-17px;background:#FFFFFF;color:#DC2626;font-size:10.5px;font-weight:800;padding:0 5px;border-radius:5px;border:1px solid #FCA5A5}
+.gv-lg{display:flex;flex-wrap:wrap;gap:4px 12px;margin:8px 0 0 26px;font-size:11px;font-weight:600;color:#475569}
+.gv-lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+@keyframes gvup{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+"""
+
+def _bsg_daily_bars(title, yr_, mo_, nd_, days_, note_, today_, none_tip, bar_cls='', leg_main='Review harian', leg_grad='linear-gradient(180deg,#60A5FA,#2563EB)', plus=True, leg_today='Hari ini', leg_acc=True, basis=230):
+    """Renderer grafik batang harian (tgl 1..akhir bulan) — dipakai Google Review & MYDR. days_ = per tanggal: None | (nilai, akumulasi?, tip_html).
+    Lebar mengikuti kolom induk (flex), tinggi tetap. Return (inner, css, tinggi)."""
+    vals_ = [d_[0] for d_ in days_ if d_ is not None]; has_ = bool(vals_)
+    mx_ = max([v_ for v_ in vals_ if v_ > 0] or [0]); mxe_ = max(mx_, 1)
+    stp_ = next((x_ for x_ in (1, 2, 5, 10, 20, 25, 50, 100, 200, 500, 1000) if -(-mxe_ // x_) <= 5), 1000)
+    top_ = stp_ * (-(-mxe_ // stp_))
+    grid_ = ''.join(f'<div class="gv-gl{" z" if k_ == 0 else ""}" style="bottom:{k_ * stp_ / top_ * 100.0:.2f}%"><span>{k_ * stp_}</span></div>' for k_ in range(0, top_ // stp_ + 1))
+    cols_ = []
+    for i_ in range(nd_):
+        dn_ = i_ + 1; wd_ = datetime.date(yr_, mo_, dn_).weekday(); is_today_ = (yr_, mo_, dn_) == tuple(today_)
+        cls_d_ = ' t' if is_today_ else (' s' if wd_ == 6 else '')
+        d_ = days_[i_]
+        if d_ is None:
+            tip_ = f'<b>Tgl {dn_} {_ID_BULAN[mo_ - 1]}</b><br>{none_tip}'
+            cols_.append(f'<div class="gv-c" data-tip="{_esc(tip_)}"><div class="gv-pl"></div><div class="gv-d{cls_d_}">{dn_}</div></div>'); continue
+        tot_, acc_, tip_ = d_
+        cls_b_ = 'n' if tot_ < 0 else ('z' if tot_ == 0 else ('t' if is_today_ else ('a' if acc_ else bar_cls)))
+        pct_ = max(0.0, tot_) / top_ * 100.0
+        lab_ = '' if tot_ == 0 else (f'<div class="gv-v" style="bottom:calc({pct_:.2f}% + 3px)' + (';color:#DC2626' if tot_ < 0 else '') + f'">{tot_:,}' + ('*' if acc_ else '') + '</div>')
+        cols_.append(f'<div class="gv-c" data-tip="{_esc(tip_)}"><div class="gv-pl"><div class="gv-b {cls_b_}" style="height:{pct_:.2f}%;animation-delay:{min(i_, 31) * 14}ms"></div>{lab_}</div><div class="gv-d{cls_d_}">{dn_}</div></div>')
+    n_days_ = len(vals_); grand_ = sum(vals_); avg_ = (grand_ / n_days_) if n_days_ else 0.0
+    av_ = f'<div class="gv-av" style="bottom:calc(20px + (100% - 34px) * {min(max(avg_, 0.0), top_) / top_:.4f})"><span>rata-rata {avg_:.1f}</span></div>' if (has_ and avg_ > 0) else ''
+    tot_txt_ = (f'{grand_:+,}' if plus else f'{grand_:,}') if has_ else 'n/a'
+    tot_col_ = BSG_GRN if grand_ > 0 else ('#64748B' if (not has_ or grand_ == 0) else BSG_RED)
+    leg_ = (f'<div class="gv-lg"><span><i style="background:{leg_grad}"></i>{leg_main}</span><span><i style="background:linear-gradient(180deg,#FDBA74,#F97316)"></i>{leg_today}</span>'
+            + ('<span><i style="background:repeating-linear-gradient(135deg,#93C5FD 0 3px,#DBEAFE 3px 6px)"></i>Akumulasi (*)</span>' if leg_acc else '')
+            + '<span style="color:#DC2626">Tanggal merah = Minggu</span></div>')
+    inner = (f'<div class="card gv-card"><div class="ttl-r"><div class="ttl">{_esc(title)}</div><div class="ttl-tot" style="color:{tot_col_}">{tot_txt_}</div></div>'
+             f'<div class="rk-note">{_esc(note_)}</div><div class="gv" style="--gvp:{int(basis)}px"><div class="gv-g">{grid_}</div><div class="gv-cs">{"".join(cols_)}</div>{av_}</div>{leg_}</div>')
+    return inner, _RANK_CSS + _GV_CSS, 56 + 34 + 14 + int(basis) + 20 + 34 + 16 + 12
+
+def bsg_chart_grev_bars(names):
+    """Grafik batang 'Daily Google Review': tambahan review per tanggal (jumlah semua dealer pada panel). Sumber: riwayat tarikan Google Review."""
     nd_, yr_, mo_, data_ = grev_daily_month(names)
     names = [n_ for n_ in (names or []) if n_ in data_]
-    if not names or not any(v_ is not None for c_ in data_.values() for v_ in c_): return None
-    multi_ = len(names) > 1
-    def _dm2(d_): return _grev_dm(d_)
-    def _sum_day(i_):
-        vs_ = [data_[n_][i_][0] for n_ in names if data_[n_][i_] is not None]
-        return sum(vs_) if vs_ else None
-    tot_day_ = [_sum_day(i_) for i_ in range(nd_)]
-    bar_src_ = tot_day_ if multi_ else [(data_[names[0]][i_][0] if data_[names[0]][i_] is not None else None) for i_ in range(nd_)]
-    mx_ = max([v_ for v_ in bar_src_ if v_ is not None and v_ > 0] or [1])
-    def _cell(v_):
-        if v_ is None: return '<td style="color:#CBD5E1">–</td>'
-        d_, gap_, n_last_, p_ = v_
-        col_ = BSG_GRN if d_ > 0 else (BSG_RED if d_ < 0 else '#64748B')
-        return f'<td style="color:{col_};font-weight:{800 if d_ else 500}">{(f"{d_:+,}" if d_ else "0")}{"*" if gap_ > 1 else ""}</td>'
-    hdr_ = '<tr><th>TGL</th>' + ''.join(f'<th title="{_esc(n_)}">{_esc(n_)}</th>' for n_ in names) + ('<th>TOTAL</th>' if multi_ else '') + '<th style="text-align:left">GRAFIK</th></tr>'
-    rows_ = []
+    if not names: return None
+    now_ = _wib_now(); days_ = []
     for i_ in range(nd_):
-        t_ = tot_day_[i_]; b_ = bar_src_[i_]
-        cells_ = ''.join(_cell(data_[n_][i_]) for n_ in names)
-        if multi_: cells_ += ('<td style="font-weight:900;color:' + (BSG_GRN if t_ and t_ > 0 else (BSG_RED if t_ and t_ < 0 else '#64748B')) + '">' + (f'{t_:+,}' if t_ else '0') + '</td>' if t_ is not None else '<td style="color:#CBD5E1">–</td>')
-        bar_ = f'<div class="gd-b" style="width:{max(0.0, b_) / mx_ * 100.0:.0f}%;background:{BSG_CYN}"></div>' if (b_ is not None and b_ > 0) else ''
-        rows_.append(f'<tr><td>{i_ + 1}</td>{cells_}<td class="gd-bar">{bar_}</td></tr>')
-    def _tot_col(n_): vs_ = [v_[0] for v_ in data_[n_] if v_ is not None]; return sum(vs_) if vs_ else None
-    def _fmt_sum(v_): return '–' if v_ is None else (f'{v_:+,}' if v_ else '0')
-    tots_ = [_tot_col(n_) for n_ in names]
-    grand_ = sum(v_ for v_ in tot_day_ if v_ is not None); n_days_ = sum(1 for v_ in tot_day_ if v_ is not None)
-    sum_row_ = '<tr class="gd-sum"><td>TOTAL</td>' + ''.join(f'<td>{_fmt_sum(v_)}</td>' for v_ in tots_) + (f'<td>{_fmt_sum(grand_ if n_days_ else None)}</td>' if multi_ else '') + '<td></td></tr>'
-    avg_ = (grand_ / n_days_) if n_days_ else 0.0
-    note_ = f'{_ID_BULAN[mo_ - 1]} {yr_} · review pada tanggal tsb − review tarikan sebelumnya · – = belum ada tarikan · * = akumulasi beberapa hari (tidak ada tarikan di antaranya) · rata-rata {avg_:+.1f}/hari ({n_days_} hari tercatat)'
-    hdr_card_ = f'<div class="ttl-r"><div class="ttl">Google Review per Tanggal</div><div class="ttl-tot" style="color:{BSG_GRN if grand_ > 0 else ("#64748B" if grand_ == 0 else BSG_RED)}">{grand_:+,}</div></div>'
-    inner = f'<div class="card">{hdr_card_}<div class="rk-note">{_esc(note_)}</div><div class="gd-w"><table class="gd-t"><thead>{hdr_}</thead><tbody>{"".join(rows_)}{sum_row_}</tbody></table></div></div>'
-    return inner, _RANK_CSS + _GD_CSS, 62 + 40 + 372 + 16
+        parts_ = {n_: data_[n_][i_] for n_ in names if data_[n_][i_] is not None}
+        if not parts_: days_.append(None); continue
+        tot_ = sum(v_[0] for v_ in parts_.values()); acc_ = any(v_[1] > 1 for v_ in parts_.values())
+        tip_ = f'<b>Tgl {i_ + 1} {_ID_BULAN[mo_ - 1]}</b><br>Tambahan review <b>{tot_:+,}</b>' + ('<br>' + '<br>'.join(f'{_esc(n_)}: <b>{v_[0]:+,}</b> (review {v_[2]:,})' for n_, v_ in parts_.items()) if len(parts_) > 1 else f'<br>Review per tanggal itu: {list(parts_.values())[0][2]:,}')
+        if acc_: tip_ += '<br><i>* akumulasi beberapa hari — tidak ada tarikan di antaranya</i>'
+        days_.append((tot_, acc_, tip_))
+    n_ = sum(1 for d_ in days_ if d_ is not None)
+    note_ = (f'{_ID_BULAN[mo_ - 1]} {yr_} · tambahan review per tanggal ({n_} hari tercatat)' if n_ else 'Riwayat harian belum ada — tarik Google Review (menu Upload File) setiap hari agar grafik terisi.')
+    return _bsg_daily_bars('Daily Google Review', yr_, mo_, nd_, days_, note_, (now_.year, now_.month, now_.day), 'Belum ada tarikan Google Review')
+
+def bsg_chart_mydr_bars(rt_c):
+    """Grafik batang 'Y On Daily Rating': jumlah rating yang BERHASIL diinput dealer per tanggal (kolom 'Tgl Input Rating' pada file Rating),
+    bukan tanggal terbit faktur. rt_c = baris file Rating pada scope panel (dealer / koordinator / salesman terpilih)."""
+    if rt_c is None: return None
+    import calendar as _cal
+    yr_, mo_, last_ = int(current_year), int(current_month), int(tanggal_akhir); nd_ = _cal.monthrange(yr_, mo_)[1]
+    ok_col_ = (not rt_c.empty) and ('Tgl_Input_Rating' in rt_c.columns)
+    cnt_, per_ = {}, {}
+    if ok_col_:
+        dt_ = pd.to_datetime(rt_c['Tgl_Input_Rating'], errors='coerce')
+        m_ = (dt_.dt.year == yr_) & (dt_.dt.month == mo_)
+        d0_ = pd.DataFrame({'d': dt_[m_].dt.day, 'dl': (rt_c.loc[m_, 'Nama_Dealer_Clean'].astype(str) if 'Nama_Dealer_Clean' in rt_c.columns else '-')})
+        cnt_ = d0_.groupby('d').size().to_dict()
+        for (d_, dl_), n_ in d0_.groupby(['d', 'dl']).size().items(): per_.setdefault(int(d_), {})[dl_] = int(n_)
+    elif not rt_c.empty:
+        return _bsg_daily_bars('Y On Daily Rating', yr_, mo_, nd_, [None] * nd_, 'Kolom "Tgl Input Rating" tidak ditemukan di file Rating.', (yr_, mo_, last_), 'Kolom Tgl Input Rating tidak ada', bar_cls='g', leg_main='Rating diinput', leg_grad='linear-gradient(180deg,#4ADE80,#16A34A)', plus=False, leg_today='Tgl akhir periode', leg_acc=False, basis=150)
+    days_ = []
+    for i_ in range(nd_):
+        dn_ = i_ + 1
+        if dn_ > last_: days_.append(None); continue
+        n_ = int(cnt_.get(dn_, 0)); pr_ = per_.get(dn_, {})
+        tip_ = f'<b>Tgl {dn_} {_ID_BULAN[mo_ - 1]}</b><br>Rating diinput <b>{n_:,}</b>' + (('<br>' + '<br>'.join(f'{_esc(k_)}: <b>{v_:,}</b>' for k_, v_ in sorted(pr_.items(), key=lambda x_: -x_[1])[:8])) if len(pr_) > 1 else '')
+        days_.append((n_, False, tip_))
+    tot_ = sum(cnt_.get(d_, 0) for d_ in range(1, last_ + 1))
+    note_ = f'{_ID_BULAN[mo_ - 1]} {yr_} · rating diinput dealer per Tgl Input Rating · total {tot_:,}'
+    return _bsg_daily_bars('Y On Daily Rating', yr_, mo_, nd_, days_, note_, (yr_, mo_, last_), 'Belum ada data pada tanggal ini', bar_cls='g', leg_main='Rating diinput', leg_grad='linear-gradient(180deg,#4ADE80,#16A34A)', plus=False, leg_today='Tgl akhir periode', leg_acc=False, basis=150)
 
 def apify_pull_grev():
     """Tarik jumlah review Google tiap dealer yang kolom URL GOOGLE-nya terisi (MASTER TARGET › KPI Dealer) → simpan ke R. G REV, G RATING & G REV UPDATE (+ riwayat harian)."""
@@ -3631,7 +3668,12 @@ def read_single_rating_file_cached(fpath, mtime):
     df = df[s_chk.notna() & ~s_chk.astype(str).str.strip().str.upper().isin(['CUSTOMER NAME', 'NAMA CUSTOMER', 'NAMA KONSUMEN', 'KODE DEALER', 'DEALER CODE', 'POINT CODE', 'NO', 'NO.', 'TOTAL', 'JUMLAH', 'NAN', 'NONE', ''])].reset_index(drop=True)
     fallback_dlr = normalize_dealer_name(os.path.splitext(os.path.basename(fpath))[0])
     df['Nama_Dealer_Clean'] = fallback_dlr if fallback_dlr in daftar_dealer else (fallback_dlr or 'TIDAK DIKETAHUI')
-    return parse_date_cols(df)
+    df = parse_date_cols(df)
+    _ci_ = next((c_ for c_ in df.columns if str(c_).strip().upper().startswith(('TGL', 'TANGGAL')) and 'INPUT' in str(c_).strip().upper() and 'RATING' in str(c_).strip().upper()), None)   # 'Tgl Input Rating' = kapan dealer berhasil merating-kan konsumen (bukan tgl faktur / transaksi)
+    if _ci_ is not None:
+        _s_ci_ = df[_ci_].iloc[:, 0] if isinstance(df[_ci_], pd.DataFrame) else df[_ci_]
+        df['Tgl_Input_Rating'] = smart_parse_datetime(_s_ci_)
+    return df
 
 def read_single_rating_file(fpath):
     return read_single_rating_file_cached(fpath, get_file_mtime(fpath)).copy()
@@ -4441,7 +4483,6 @@ if paths_database_lm:
                 df_database_lm_alldlr = filter_by_employee(_x_lm[_x_lm['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True), 'Database bulan lalu')
     except Exception as _e_lm: st.warning(f'Database bulan lalu gagal dibaca: {_e_lm}')
 
-for _lb_, _n_, _nm_ in _EMP_DROP_LOG: st.caption(f'ℹ️ {_lb_}: {_n_:,} baris dibuang dari perhitungan karena nama salesman tidak ada di file Employee — ' + ', '.join(_nm_[:8]) + (f' (+{len(_nm_) - 8} lainnya)' if len(_nm_) > 8 else ''))
 
 def strip_sub_code(v):
     """Buang kode di depan nama sub prospect (mis. '03 - Pameran' / 'EV01: Pameran' -> 'PAMERAN')."""
@@ -7972,6 +8013,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         st.caption(f'ℹ️ Produk = kolom AF file Faktur (judul "{_pdt_ok["h_produk"]}"), dikelompokkan per type. LM = jumlah faktur bulan lalu pada periode yang sama · STU = jumlah faktur bulan ini (1 s.d {tanggal_akhir}) · NAIK / TURUN = selisih STU − LM (hijau ▲ naik, merah ▼ turun). Klik baris produk untuk melihat warna (kolom F Faktur, judul "{_pdt_ok["h_warna"]}") dengan angka yang sama. Tombol Copy (HD) menyalin gambar sesuai kondisi baris yang sedang dibuka.')
                 except Exception as _e_pdt: st.warning(f'Tabel produk naik / turun gagal ditampilkan: {_e_pdt}')
                 st.caption('ℹ️ STU = jumlah faktur (kredit + cash) periode berjalan. STU OTHERS = semua type di luar AT PREMIUM, AT CLASSY, AT LPM (termasuk MOPED). Grafik diurut terbaik → terburuk; vs LM = STU ÷ STU bulan lalu periode sama. DB per type & DB Quality per type = per dealer / koordinator / salesman vs Database bulan lalu (periode tanggal sama, dari file Database Bulan Lalu di menu UPLOAD FILE); DB Quality = Database HOT PROSPECT (Data Type DEAL PROSPECT) ÷ total Database type tsb. SPK per type = jumlah SPK bulan ini vs SPK bulan lalu (periode tanggal sama). ACC% per type = SPK disetujui ÷ (disetujui + ditolak) dari file SPK, bulan ini vs bulan lalu (selisih dalam poin; ideal 50%). Semua grafik per dealer / koordinator / salesman sesuai pilihan.')
+                for _el_lb, _el_n, _el_nm in _EMP_DROP_LOG: st.caption(f'ℹ️ {_el_lb}: {_el_n:,} baris dibuang dari perhitungan karena nama salesman tidak ada di file Employee — ' + ', '.join(_el_nm[:8]) + (f' (+{len(_el_nm) - 8} lainnya)' if len(_el_nm) > 8 else ''))   # paling bawah sub menu Penjualan (di luar panel → tidak ikut tombol copy)
 
             with jt_mp:
                 # ---- 8. TABEL MAN POWER MDS JEMBER + grafik MP Health / Prod Health + pie grading ----
@@ -8049,9 +8091,8 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 st.caption('ℹ️ Result STU = STU dealer periode berjalan. Productivity = Result STU ÷ Jumlah MP. MP Health = Target STU MP ÷ Target Dealer (ideal 120%). Productivity Health = Productivity ÷ (Target STU MP ÷ Jumlah MP) (ideal 80%). Grading MP dari file Master Employee kolom Posisi (PLATINUM / GOLD / TRAINING); counter tidak dihitung dan MP yang posisinya bukan ketiga grade itu tidak masuk pie.')
             if jt_rt is not None:   # ⭐ DEALER RATING: My Yamaha Dealer Rating (MYDR) — registrasi rating konsumen faktur (dipindah dari tabel Analisa/Detail Salesman)
                 with jt_rt:
-                    st.markdown(f'<div class="section-title">⭐ DEALER RATING — MY YAMAHA DEALER RATING (MYDR) — {_dd_lbl} (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
-                    jdl_rev_unreg = f'TABEL KONSUMEN BELUM REGISTRASI RATING (MYDR) — {_dd_lbl} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
-                    st.markdown(f'<div class="section-title">{jdl_rev_unreg}</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="section-title">⭐ Y ON DEALER RATING &amp; GOOGLE REVIEW DEALER</div>', unsafe_allow_html=True)   # satu judul untuk seluruh sub menu
+                    jdl_rev_unreg = f'TABEL KONSUMEN BELUM REGISTRASI RATING (MYDR) — {_dd_lbl} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'   # tetap dipakai sebagai judul internal tabel
                     if not jb_f_c.empty and 'Status_Registrasi_Rating' in jb_f_c.columns:
                         tot_stu_dlr = len(jb_f_c)
                         df_sudah_reg = jb_f_c[jb_f_c['Status_Registrasi_Rating'] == 'SUDAH REGISTRASI'].copy()
@@ -8063,6 +8104,8 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         <span style="color:#12A150;font-weight:800;">✅ Sudah Registrasi: {jml_sudah} Konsumen ({pct_reg_dlr:.1f}%)</span> &nbsp;|&nbsp;
                         <span style="color:#E0115F;font-weight:800;">⚠️ Belum Registrasi: {jml_belum} Konsumen ({100.0 - pct_reg_dlr:.1f}%)</span>
                     </div>''', unsafe_allow_html=True)
+                        try: _rt_c = _dd_apply(df_rating, 'Nama_Dealer_Clean')   # baris file Rating pada scope yang sama (untuk Y On Daily Rating)
+                        except Exception: _rt_c = None
                         if _dd_lvl == 'dealer':   # Sub Area dipilih → daftar per DEALER + batang Google Review vs Target
                             _gv_ = []
                             for _dn_ in df_jb[kol_nm_jb].astype(str).tolist():
@@ -8077,7 +8120,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                                 _k_ = str(_dn_).strip().upper(); _rw_ = get_dealer_master_row(_dn_)
                                 _t_my = safe_int(_rw_.get('T. MYDR')) or int(round(_sz_.get(_k_, 0) * 0.40))   # target MYDR = 40% STU bila belum ada di MASTER KPI
                                 _my_.append((_dn_, _t_my, int(_sd_.get(_k_, 0))))
-                            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, by_col='_jb', by_label='Dealer', max_rows=max(1, int(jb_f_c['_jb'].nunique())), grev=_gv_, mydr=_my_, label="Grafik registrasi")
+                            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, by_col='_jb', by_label='Dealer', max_rows=max(1, int(jb_f_c['_jb'].nunique())), grev=_gv_, mydr=_my_, rt_c=_rt_c, label="Grafik registrasi")
                         else:   # dealer tertentu dipilih → tambah batang Google Review dealer tsb vs target
                             _dn1_ = str(_dd_dealer or '').strip(); _gv1_ = None
                             if _dn1_ and _dn1_ != 'SEMUA DEALER':
@@ -8086,7 +8129,8 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                                     _mk1_ = next((k_ for k_ in _kpi_dealers() if _nrm_dlr(k_) == _nrm_dlr(_dn1_)), None)
                                     _rw1_ = get_dealer_master_row(_mk1_) if _mk1_ else _rw1_
                                 _gv1_ = [(_dn1_, safe_int(_rw1_.get('T. G REV')), safe_int(_rw1_.get('R. G REV')))]
-                            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, grev=_gv1_, label="Grafik registrasi")
+                            _rk_kw = dict(by_col='Salesman_Clean', by_label='Salesman', max_rows=max(1, min(12, int(jb_f_c['Salesman_Clean'].nunique())))) if (_dd_nokoor and 'Salesman_Clean' in jb_f_c.columns) else {}   # dealer TANPA koordinator → kotak 'Y On Dealer Rating' menampilkan nama-nama salesman
+                            bsg_safe(bsg_render_reg_panel, jml_sudah, jml_belum, jb_f_c, _dd_lbl, grev=_gv1_, rt_c=_rt_c, label="Grafik registrasi", **_rk_kw)
 
                         if not df_belum_reg.empty:
                             _kr_nm = lambda x_: clean_str(x_) or '-'
