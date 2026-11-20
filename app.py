@@ -2909,6 +2909,18 @@ def get_saved_file_path(prefix):
     m = glob.glob(os.path.join(UPLOAD_DIR, f"{prefix}_latest.*"))
     return m[0] if m else None
 
+def data_update_html():
+    """Baris kecil di bawah judul Dashboard Dealer: kapan file Faktur & Nota terakhir diupdate (jam WIB, dicatat sistem saat file masuk).
+    '(otomatis)' = ditarik terjadwal dari RSSM oleh sistem; '(upload manual)' = diupload admin."""
+    meta_ = load_json(RAW_META_FILE); parts_ = []
+    for kp_, lbl_ in (('faktur', 'Faktur'), ('nota', 'Nota')):
+        m_ = meta_.get(kp_) or {}
+        if m_.get('updated_at') and os.path.exists(m_.get('saved_path', '')):
+            src_ = 'otomatis' if '_RSSM_' in str(m_.get('original_name', '')).upper() else 'upload manual'
+            parts_.append(f"<b>{lbl_}</b> {m_['updated_at']} <span style='opacity:.65'>({src_})</span>")
+    if not parts_: return ''
+    return "<div style='font-size:12.5px;color:#3B5BC8;margin:-6px 0 8px 2px;line-height:1.5'>🕒 Data terakhir diupdate: " + ' &nbsp;·&nbsp; '.join(parts_) + "</div>"
+
 # ======================= STOCK CONDITION (file Stok Detail dari admin MD) =======================
 STOCK_SERIES = ['NMAX SERIES', 'FILLANO SERIES', 'FAZZIO SERIES', 'GEAR SERIES', 'AEROX SERIES', 'OTHERS']   # isi drop box 1 (urutan tampil)
 def stock_series_of(nama_barang):
@@ -5447,7 +5459,7 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
 # ===================== DASHBOARD KPI: skema poin (sesuai Excel KPI Report) =====================
 KPI_CODES = ['STU','MAX','CLS','OPR','SAL','APV','INC','MYM','MYD','GRT','GRV','OPS']
 KPI_NAMES = {'STU':'STU Total','MAX':'STU MAXI','CLS':'STU AT Classy','OPR':'Operational Dealer','SAL':'QTY Salesman','APV':'Approval Ratio Total','INC':'Incoming Total','MYM':'My Yamaha Member Point','MYD':'My Yamaha Dealer Rating','GRT':'Google Rating','GRV':'Google Review','OPS':'Operational Supervisor'}
-KPI_MIN_ACV = {'STU':0.95,'MAX':0.95,'CLS':0.95,'OPR':0.90,'SAL':0.85,'APV':0.85,'INC':0.85,'MYM':0.85,'MYD':0.85,'GRT':1.0,'GRV':1.0,'OPS':0.90}   # item kuning: minimal 85% baru dapat poin; Google Review (GRV) wajib 100%
+KPI_MIN_ACV = {'STU':0.95,'MAX':0.95,'CLS':0.95,'OPR':0.90,'SAL':0.85,'APV':0.85,'INC':0.85,'MYM':0.85,'MYD':0.85,'GRT':1.0,'GRV':0.85,'OPS':0.90}   # sesuai Excel KPI (sheet Detail MDS / KPI Cat): QTY Salesman, Approval Ratio, Incoming & Google Review minimal 85% baru dapat poin; OPR/MYM/GRT/OPS tetap dikunci (lihat kpi_score_entity)
 KPI_WEIGHT_MDS = {'STU':20,'MAX':10,'CLS':10,'OPR':5,'SAL':10,'APV':5,'INC':9,'MYM':3,'MYD':8,'GRT':5,'GRV':5,'OPS':10}
 KPI_WEIGHT_DEALER = {'STU':20,'MAX':10,'CLS':10,'OPR':15,'SAL':10,'APV':5,'INC':9,'MYM':3,'MYD':8,'GRT':5,'GRV':5,'OPS':0}
 KPI_SALES_CODES, KPI_PROCESS_CODES = ['STU','MAX','CLS'], ['OPR','SAL','APV','INC','MYM','MYD','GRT','GRV','OPS']
@@ -6761,7 +6773,7 @@ elif menu_pilihan == DEALER_TAB:
     if st.session_state.get('tgl_award_banner', False): bsg_render_award_label()   # label AWARDING tepat di atas running text (hanya Dashboard Dealer) — bisa di-hide lewat toggle di kanan judul
     bsg_render_running_text()
     _tt_c, _tg_c = st.columns([5, 1], vertical_alignment='center')
-    with _tt_c: st.markdown(f'<div class="main-title">DASHBOARD DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>', unsafe_allow_html=True)
+    with _tt_c: st.markdown(f'<div class="main-title">DASHBOARD DEALER (1 s.d {tanggal_akhir} {periode_bulan_tahun})</div>' + data_update_html(), unsafe_allow_html=True)   # + jam update terakhir Faktur / Nota (otomatis oleh sistem)
     with _tg_c: st.toggle('🏅 Banner Awarding', key='tgl_award_banner', help='Default: OFF · ON = tampilkan banner awarding · OFF = sembunyikan')
     _job = st.session_state.get('ppt_job'); _job_on = bool(_job and _job['idx'] < len(_job['stages']))
     if _job_on:   # CREATE PPT berjalan: tampilkan status saja, sisa halaman disembunyikan (tetap dihitung di belakang layar)
