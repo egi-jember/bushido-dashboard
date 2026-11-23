@@ -699,7 +699,8 @@ def bsg_render_master_kpi_cards(tot_d, ideal):
 _BSG_BASE_CSS = _BSG_FRAME.split('<style>')[1].split('__CSS__')[0]
 _BSG_TIPJS = '<script>' + _BSG_FRAME.split('<div id="tip"></div>')[1].split('<script>')[1].split('</script>')[0] + '</script>'
 
-_H2C_JS = """function h2cO(el){var r=el.getBoundingClientRect(),w=Math.ceil(r.width),h=Math.ceil(r.height);var k=Math.max(0.8,Math.min(2,Math.sqrt(14000000/Math.max(1,w*h))));return {backgroundColor:'#FFFFFF',scale:k,useCORS:true,logging:false,windowWidth:Math.max(w,1000),windowHeight:Math.max(h,600),scrollX:0,scrollY:0};}"""   # HP: viewport tangkapan = lebar elemen (bukan lebar layar) + skala dibatasi agar canvas tidak melewati batas memori browser mobile
+_H2C_JS = """function h2cO(el){var r=el.getBoundingClientRect(),w=Math.ceil(r.width),h=Math.ceil(r.height);var k=Math.max(0.8,Math.min(2,Math.sqrt(14000000/Math.max(1,w*h))));return {backgroundColor:'#FFFFFF',scale:k,useCORS:true,logging:false,windowWidth:Math.max(w,1000),windowHeight:Math.max(h,600),scrollX:0,scrollY:0,onclone:h2cFix};}
+function h2cFix(d){try{var v=d.defaultView||window,all=d.querySelectorAll('*');for(var i=0;i<all.length;i++){var e=all[i],cs=v.getComputedStyle(e);if(cs.backgroundImage&&cs.backgroundImage.indexOf('gradient')>-1){var r=e.getBoundingClientRect();if(r.width<1||r.height<1){e.style.setProperty('background-image','none','important');}}}}catch(x){}}"""   # HP: viewport tangkapan = lebar elemen (bukan lebar layar) + skala dibatasi agar canvas tidak melewati batas memori browser mobile
 
 _PN_CSS = """
 .pn-grid{display:grid;gap:12px;align-items:start}
