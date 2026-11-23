@@ -427,7 +427,7 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
 # ---------------------------------------------------------------- 4. donut ----
 BSG_PAL = ['#2563EB', '#12A150', '#DC2626', '#F97316'] * 3   # hanya 4 warna: biru, hijau, merah, orange
 
-def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, keep_zero=False, prev=None, prev_note='bulan lalu (periode sama)', legend_unit=None, center_cmp=None):
+def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, keep_zero=False, prev=None, prev_note='bulan lalu (periode sama)', legend_unit=None, center_cmp=None, share=None):
     """items: list (label, value, color). center_cmp=(persen_sekarang, persen_bulan_lalu) → tengah donut menampilkan panah naik (hijau) / turun (merah). Donut tebal: label, nilai & persen berada DI DALAM potongan (tanpa legenda)."""
     import math
     subtitle = ''   # keterangan di bawah judul grafik dihapus
@@ -446,6 +446,10 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
         if prev is not None:
             pv = float(prev.get(l, 0) or 0); d_ = v - pv
             tip += f'<br>{"▲" if d_ > 0 else ("▼" if d_ < 0 else "▬")} {abs(int(d_)):,} vs {int(pv):,} {_esc(prev_note)}'
+            _tp_ = float(sum(float(x_ or 0) for x_ in prev.values()))
+            if share is not None and _tp_ > 0:
+                _dp_ = pct - pv / _tp_ * 100.0
+                tip += f'<br>Kontribusi {pct:.1f}% vs {pv / _tp_ * 100.0:.1f}% ({"▲" if _dp_ > 0.049 else ("▼" if _dp_ < -0.049 else "▬")} {_dp_:+.1f} poin)'
         if len(its) == 1:
             segs += f'<circle class="sg" cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="{c}" stroke-width="{RO - RI}" data-tip="{_esc(tip)}"/>'
             am = -math.pi / 2.0; arc = 2.0 * math.pi * RM
@@ -466,7 +470,16 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
     def _cmp_ic(d):
         return ('▲', '#12A150') if d > 0 else (('▼', '#DC2626') if d < 0 else ('▬', '#64748B'))
     cmp_html = ''
-    if prev is not None:
+    if prev is not None and share is not None:   # kontribusi `share` (mis. MDS) terhadap total, dibanding kontribusi bulan lalu terhadap total bulan lalu
+        _cur_pct = (sum(v for l, v, _ in its if l == share) / total * 100.0) if total > 0 else 0.0
+        _tp = float(sum(float(x or 0) for x in prev.values()))
+        if _tp > 0:
+            _pv_pct = float(prev.get(share, 0) or 0) / _tp * 100.0; _dp = _cur_pct - _pv_pct
+            _ic, _cl = ('▲', '#12A150') if _dp > 0.049 else (('▼', '#DC2626') if _dp < -0.049 else ('▬', '#64748B'))
+            cmp_html = (f'<div class="dcmp"><span style="color:{_cl};font-weight:800">{_ic} {_dp:+.1f} poin</span> kontribusi {_esc(share)} vs bulan lalu'
+                        f'<br><b>{_cur_pct:.1f}%</b> <span style="opacity:.85">(bulan lalu <b>{_pv_pct:.1f}%</b>, {_esc(prev_note.replace("bulan lalu ", "").strip("()"))})</span></div>')
+        else: cmp_html = f'<div class="dcmp">Kontribusi {_esc(share)}: <b>{_cur_pct:.1f}%</b> · tidak ada pembanding bulan lalu</div>'
+    elif prev is not None:
         tp = float(sum(float(x or 0) for x in prev.values())); dt = total - tp; ic, col = _cmp_ic(dt)
         pc_t = f' ({dt / tp * 100.0:+.1f}%)' if tp > 0 else ''
         cmp_html = f'<div class="dcmp"><span style="color:{col};font-weight:800">{ic} {dt:+,.0f}{pc_t}</span> dibanding {_esc(prev_note)}: {int(tp):,}</div>'
@@ -493,7 +506,7 @@ def bsg_chart_donut(title, subtitle, items, center_label='Total', parts=False, k
     svg = (f'<svg class="dc" width="250" height="250" viewBox="0 0 200 200"><circle cx="{CX}" cy="{CY}" r="{RM}" fill="none" stroke="#E3EAFF" stroke-width="{RO - RI}"/>{segs}{labs}'
            f'{ctr_svg}</svg>')
     inner = f'<div class="card">{_hdr(title, subtitle)}<div class="dw">{svg}</div>{lg_html}{cmp_html}</div>'
-    h = 48 + 250 + (30 if prev is not None else 0) + (22 if zero else 0) + ((len(all_its) * 23 + 16) if legend_unit else 0)
+    h = 48 + 250 + ((54 if share is not None else 30) if prev is not None else 0) + (22 if zero else 0) + ((len(all_its) * 23 + 16) if legend_unit else 0)
     if parts: return inner, css, h
     return _bsg_frame(inner, css=css), h
 
@@ -2628,9 +2641,107 @@ def save_raw_file(up_file, prefix):
         except Exception: pass
     with open(fpath, 'wb') as f: f.write(up_file.getbuffer())
     meta = load_json(RAW_META_FILE)
-    meta[prefix] = {'original_name': up_file.name, 'saved_path': fpath, 'updated_at': _wib_now().strftime('%d %b %Y, %H:%M WIB')}
+    meta[prefix] = {'original_name': up_file.name, 'saved_path': fpath, 'updated_at': _wib_now().strftime('%d %b %Y, %H:%M WIB'), 'ver': _wib_now().strftime('%Y%m%d%H%M%S')}   # ver = penanda versi (dipakai Data Lookup: deteksi file hasil unduhan versi lama)
     save_json(meta, RAW_META_FILE)
     gcs_sync_up()
+
+# ---------------- DATA LOOKUP: diunduh & diperbarui dealer dari menu UPLOAD FILE ----------------
+LOOKUP_BAK_DIR = os.path.join(UPLOAD_DIR, 'bak_lookup')   # versi lama Data Lookup (maks. 5) — folder terpisah agar tidak tersapu save_raw_file
+LOOKUP_BAK_KEEP = 5
+
+def lookup_validate(data_bytes):
+    """Cek ringan sebelum file baru menimpa Data Lookup aktif (menu ini terbuka untuk dealer). Return (ok, pesan)."""
+    try:
+        import io as _io_
+        sh_ = pd.read_excel(_io_.BytesIO(data_bytes), sheet_name=None, header=None)
+    except Exception as e_:
+        return False, f'File tidak dapat dibaca ({type(e_).__name__}). Pastikan format .xls / .xlsx, tidak rusak, dan tidak diberi password.'
+    if not sh_: return False, 'File tidak memiliki sheet.'
+    nm_ = next((n_ for n_ in sh_ if 'LOOKUP' in str(n_).strip().upper()), next(iter(sh_)))
+    d_ = sh_[nm_]
+    has_hdr_ = bool(d_.astype(str).apply(lambda c_: c_.str.strip().str.upper().eq('NAMA DEALER')).values.any()) if not d_.empty else False
+    if d_.shape[1] < 32 or d_.shape[0] < 10 or not (has_hdr_ or 'LOOKUP' in str(nm_).upper()):
+        return False, f'Struktur tidak seperti Data Lookup (sheet "{nm_}": {d_.shape[0]} baris × {d_.shape[1]} kolom). Jangan menghapus / menyisipkan kolom — gunakan file yang diunduh dari menu ini.'
+    return True, f'Sheet "{nm_}" terbaca ({d_.shape[0]:,} baris × {d_.shape[1]} kolom).'
+
+def lookup_list_backups():
+    return sorted(glob.glob(os.path.join(LOOKUP_BAK_DIR, '*')), reverse=True)
+
+def lookup_save_with_backup(up_file):
+    """Simpan Data Lookup baru; versi aktif sebelumnya disalin ke folder backup (maks. LOOKUP_BAK_KEEP versi) agar bisa dikembalikan admin."""
+    import shutil as _sh
+    prev_ = get_saved_file_path('lookup')
+    if prev_ and os.path.exists(prev_):
+        try:
+            os.makedirs(LOOKUP_BAK_DIR, exist_ok=True)
+            orig_ = (load_json(RAW_META_FILE).get('lookup', {}) or {}).get('original_name') or os.path.basename(prev_)
+            _sh.copy2(prev_, os.path.join(LOOKUP_BAK_DIR, f"{_wib_now().strftime('%Y%m%d_%H%M%S')}__{re.sub(r'[^A-Za-z0-9._-]+', '_', orig_)}"))
+            for old_ in lookup_list_backups()[LOOKUP_BAK_KEEP:]:
+                try: os.remove(old_); _GCS_PENDING_DEL.append(os.path.relpath(old_, UPLOAD_DIR).replace(os.sep, '/'))
+                except Exception: pass
+        except Exception: pass
+    save_raw_file(up_file, 'lookup')
+
+class _PathUpload:
+    """Pembungkus file di disk agar bisa dipakai save_raw_file (menyerupai UploadedFile)."""
+    def __init__(self, p_, name_): self.name = name_; self._b = open(p_, 'rb').read()
+    def getbuffer(self): return self._b
+    def getvalue(self): return self._b
+
+def render_lookup_card():
+    """Kartu Data Lookup di menu UPLOAD FILE: unduh versi terbaru → tambah salesman / koordinator baru → unggah kembali."""
+    meta_ = load_json(RAW_META_FILE).get('lookup') or {}; path_ = get_saved_file_path('lookup'); cur_ver_ = str(meta_.get('ver', '') or '')
+    with st.container(border=True):
+        st.markdown('#### 📚 Data Lookup — Salesman, Koordinator, Type & Dealer')
+        st.caption('Dealer dapat mengunduh Data Lookup terbaru, menambahkan salesman baru beserta koordinatornya, lalu mengunggahnya kembali agar sistem selalu mutakhir.')
+        c_dl, c_up = st.columns(2)
+        with c_dl:
+            st.markdown('**1. Unduh versi terbaru**')
+            if path_ and os.path.exists(path_):
+                ext_ = os.path.splitext(path_)[1].lower()
+                with open(path_, 'rb') as f_: data_ = f_.read()
+                st.download_button('⬇️ Unduh Data Lookup terbaru', data=data_, file_name=f"DATA_LOOKUP_v{cur_ver_ or _wib_now().strftime('%Y%m%d%H%M%S')}{ext_}", key='dl_lookup', use_container_width=True,
+                                   mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' if ext_ == '.xlsx' else 'application/vnd.ms-excel')
+                st.markdown(f"<div style='font-size:12px;color:#3B5BC8;line-height:1.5;word-break:break-all;'>📌 <b>Aktif:</b> <code style='font-size:11px;'>{meta_.get('original_name', os.path.basename(path_))}</code><br>🕒 {meta_.get('updated_at', '-')}</div>", unsafe_allow_html=True)
+            else: st.warning('⚠️ Belum ada file Data Lookup. Hubungi admin MD.')
+        with c_up:
+            st.markdown('**2. Unggah file yang sudah diperbarui**')
+            uf_ = st.file_uploader('Data Lookup (.xls / .xlsx)', type=['xls', 'xlsx'], key='lookup_up', label_visibility='collapsed')
+            if uf_ is not None:
+                sig_ = f'{uf_.name}|{uf_.size}'
+                if st.session_state.get('lookup_done') == sig_: st.success(f'✅ Data Lookup diperbarui: **{uf_.name}**')
+                else:
+                    ok_, msg_ = lookup_validate(uf_.getvalue())
+                    if not ok_: st.error('❌ ' + msg_)
+                    else:
+                        st.caption('✔️ ' + msg_)
+                        m_v_ = re.search(r'_v(\d{14})', uf_.name); stale_ = bool(m_v_ and cur_ver_ and m_v_.group(1) != cur_ver_)
+                        force_ = True
+                        if stale_:
+                            st.warning('⚠️ File ini berasal dari versi yang LEBIH LAMA dari Data Lookup aktif — ada perubahan (mis. salesman baru dari dealer lain) setelah file ini diunduh. Menimpa akan menghilangkan perubahan tersebut. Disarankan unduh versi terbaru, lalu masukkan ulang perubahan Anda.')
+                            force_ = st.checkbox('Tetap timpa dengan file ini', key='lookup_force')
+                        if st.button('✅ Terapkan Data Lookup', type='primary', key='lookup_apply', disabled=not force_, use_container_width=True):
+                            lookup_save_with_backup(uf_); st.session_state['lookup_done'] = sig_
+                            bsg_toast_once(f'up_lookup_{uf_.name}_{uf_.size}', f'Data Lookup diperbarui: {uf_.name}'); st.rerun()
+        with st.expander('ℹ️ Petunjuk pengisian', expanded=False):
+            st.markdown('- Tambahkan **salesman baru + koordinatornya** pada tabel Salesman / Koordinator yang sudah ada (ikuti baris contoh di atasnya).\n'
+                        '- **Jangan menghapus, menyisipkan, atau memindahkan KOLOM** — sistem membaca Data Lookup berdasarkan posisi kolom. Kolom yang **disembunyikan (hidden) tetap terbaca** dan tidak masalah.\n'
+                        '- Nama salesman ditulis sama seperti di file Database / Faktur.\n'
+                        '- Unduh versi terbaru **tepat sebelum** mengedit, agar tidak menimpa perubahan dealer lain.\n'
+                        f'- Setiap unggahan menyimpan versi sebelumnya (maks. {LOOKUP_BAK_KEEP}) sehingga admin dapat mengembalikannya bila ada kesalahan.')
+        if IS_ADMIN:
+            baks_ = lookup_list_backups()
+            if baks_:
+                with st.expander(f'↩️ Kembalikan versi sebelumnya (admin) · {len(baks_)} backup', expanded=False):
+                    def _bak_lbl(p_):
+                        b_ = os.path.basename(p_); st_, _, on_ = b_.partition('__')
+                        try: st_ = datetime.datetime.strptime(st_, '%Y%m%d_%H%M%S').strftime('%d %b %Y %H:%M')
+                        except Exception: pass
+                        return f'{st_} — {on_ or b_}'
+                    pick_ = st.selectbox('Versi', baks_, format_func=_bak_lbl, key='lookup_bak_pick')
+                    if st.button('↩️ Kembalikan versi ini', key='lookup_restore'):
+                        lookup_save_with_backup(_PathUpload(pick_, os.path.basename(pick_).partition('__')[2] or os.path.basename(pick_)))
+                        st.session_state.pop('lookup_done', None); st.success('✅ Data Lookup dikembalikan.'); st.rerun()
 
 # ====================================================================================================
 # ============ GENERATE FAKTUR / NOTA / SPK / STOK: tarik langsung dari Online Report RSSM / RM ======
@@ -2936,7 +3047,7 @@ def stock_series_of(nama_barang):
 def _stok_blank(v_):
     return v_ is None or (isinstance(v_, float) and math.isnan(v_)) or str(v_).strip() in ('', 'nan', 'NaT', 'None')
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=3)
 def load_stok_detail(fpath, mtime):
     """Baca file 'STOK DETAIL [ SEPEDA MOTOR ]' (.xls / .xlsx) → (DataFrame stok per unit, teks periode). `mtime` hanya kunci cache (file diunggah ulang = terbaca ulang).
     Kolom file: No · Kode Barang · Nama Barang · Warna (kode) · [nama warna] · No SJ · Tgl SJ · No Rangka · No Mesin · Thn · Usia · Lokasi.
@@ -3159,6 +3270,8 @@ Format JSON:
     raise RuntimeError(last_err or "Gagal menghubungi Gemini API.")
 
 KPI_URL_COL = 'URL GOOGLE'   # hanya tabel Dealer: link Google Maps dealer (teks, bisa diisi lewat Excel)
+GREV_TARGET_ADD = 40   # target TAMBAHAN review Google per bulan (tetap, semua dealer yang memakai Google Review)
+GREV_START_COL, GREV_TOTAL_COL = 'START G REV', 'TOTAL G REV'   # START = jumlah review di awal bulan (isi manual) · TOTAL = jumlah review hasil tarikan terakhir (tersimpan di kunci 'R. G REV')
 
 def apify_token():   # SATU token Apify untuk semua fitur (Trend TikTok & Google Review): input di aplikasi › st.secrets['APIFY_TOKEN'] › environment APIFY_TOKEN (JANGAN ditulis di kode)
     if st.session_state.get('apify_token_input'): return str(st.session_state['apify_token_input']).strip()
@@ -3379,7 +3492,7 @@ TARGET_LAIN_FILE = _ABS('jember_targets_saved.json')
 def dealer_sip_ok(n_x):
     u_x = str(n_x).strip().upper(); return u_x.startswith('SIP') or u_x.startswith('SENTRAL YAMAHA')
 KPI_TAB, UPLOAD_TAB, MASTER_TAB = '📊 DASHBOARD KPI', '📁 UPLOAD FILE', '🎯 MASTER TARGET'
-UPLOAD_MD_TAB = '🗃️ UPLOAD BY MD'   # khusus kode akses (BAMBURUNCING): Faktur, Nota, SPK, Stok, Master Employee, Data Lookup + Generate RSSM
+UPLOAD_MD_TAB = '🗃️ UPLOAD BY MD'   # khusus kode akses (BAMBURUNCING): Faktur, Nota, SPK, Stok, Master Employee + Generate RSSM
 STOCK_TAB = '📦 STOCK CONDITION'   # menu baru tepat di bawah DASHBOARD DEALER (akses umum): cari stok unit per Series › Type › Warna
 MD_TAB, MD_SUB_JUAL, MD_SUB_TYPE = '🏢 DASHBOARD MD', '💰 PENJUALAN', '📊 PENJUALAN BY TYPE'   # menu baru: DASHBOARD MD › sub menu Penjualan
 MD_TARGET_FILE = _ABS('md_targets_saved.json')   # T. MD input manual per dealer: {NAMA DEALER (normal): target}
@@ -3606,7 +3719,7 @@ def _memo_apply(ser, fn):
         except TypeError: return fn(v)
     return ser.map(_f)
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=120)   # dibatasi: file Database ditarik/diganti terus → versi lama (kunci path+mtime) tidak boleh menumpuk di memori
 def read_single_db_file_cached(fpath, mtime):
     df_raw = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
     df_raw = smart_text_to_columns(df_raw)
@@ -3662,7 +3775,7 @@ def _read_table_safe(fpath):
         except Exception: continue
     return pd.DataFrame()
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=120)   # idem (file Rating)
 def read_single_rating_file_cached(fpath, mtime):
     df_raw = _read_table_safe(fpath)
     if df_raw is None or df_raw.empty: return pd.DataFrame()
@@ -3861,7 +3974,7 @@ if menu_pilihan in (UPLOAD_TAB, UPLOAD_MD_TAB):   # UPLOAD FILE = data dari deal
         st.warning('📦 MODE ARSIP aktif — menu Upload dinonaktifkan agar data terkini tidak tertimpa. Klik ↩️ Kembali ke data terkini di sidebar untuk mengunggah file baru.')
         st.stop()
     if menu_pilihan == UPLOAD_MD_TAB: st.markdown('<div class="main-title">UPLOAD BY MD</div><div class="sub-title">Data penjualan &amp; master dari MD — upload manual atau ⚡ Generate langsung dari RSSM (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
-    else: st.markdown('<div class="main-title">UPLOAD FILE</div><div class="sub-title">Database &amp; Rating dari dealer (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
+    else: st.markdown('<div class="main-title">UPLOAD FILE</div><div class="sub-title">Database, Rating &amp; Data Lookup dari dealer (tersimpan otomatis &amp; permanen)</div>', unsafe_allow_html=True)
     meta_info = load_json(RAW_META_FILE)
 
     def _status_line(kp, lbl):
@@ -3879,9 +3992,8 @@ if menu_pilihan in (UPLOAD_TAB, UPLOAD_MD_TAB):   # UPLOAD FILE = data dari deal
                        ('Nota', 'nota', ['xls', 'xlsx'], 'File Nota (.xls / .xlsx).'),
                        ('SPK', 'spk', ['xls', 'xlsx', 'csv'], 'File SPK leasing (.xls / .xlsx / .csv).'),
                        ('Stok Unit', 'stok', ['xls', 'xlsx'], 'File Stok Detail [ SEPEDA MOTOR ] (.xls / .xlsx) — sumber menu STOCK CONDITION.'),
-                       ('Master Employee', 'employee', ['xls', 'xlsx', 'csv'], 'Target otomatis salesman — Kolom C: Nama, Kolom F: Posisi.'),
-                       ('Data Lookup', 'lookup', ['xls', 'xlsx'], 'Mapping type, salesman, koordinator & dealer (.xls / .xlsx).')]
-            # Baris 1: FAKTUR - NOTA - SPK - STOK - MASTER EMPLOYEE - DATA LOOKUP
+                       ('Master Employee', 'employee', ['xls', 'xlsx', 'csv'], 'Target otomatis salesman — Kolom C: Nama, Kolom F: Posisi.')]   # Data Lookup dipindah ke menu UPLOAD FILE (bisa diunduh & diperbarui dealer)
+            # Baris 1: FAKTUR - NOTA - SPK - STOK - MASTER EMPLOYEE
             _up_cols = st.columns(len(up_defs))
             for col_u, (lbl, kp, exts, hlp) in zip(_up_cols, up_defs):
                 with col_u:
@@ -4017,6 +4129,9 @@ if menu_pilihan in (UPLOAD_TAB, UPLOAD_MD_TAB):   # UPLOAD FILE = data dari deal
                             except Exception: pass
                         meta_info.pop('rating_multi', None); save_json(meta_info, RAW_META_FILE); gcs_sync_up(); st.rerun()
                 else: st.warning("⚠️ Belum ada file Rating.")
+
+        # ---------- Grup 3: Data Lookup (diunduh & diperbarui dealer) ----------
+        render_lookup_card()
 
 path_faktur, path_nota, path_lookup = get_saved_file_path('faktur'), get_saved_file_path('nota'), get_saved_file_path('lookup')
 paths_database, paths_rating, path_spk = get_saved_database_paths(), get_saved_rating_paths(), get_saved_file_path('spk')
@@ -5400,9 +5515,11 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
         t_mydr = int(round(r_stu * 0.40))   # target MYDR = 40% dari STU
         r_mydr = len(rt_sub) if (df_rating is not None and not df_rating.empty) else safe_int(ent_saved.get('R. MYDR', 0))
         if filter_mode == 'dealer':
-            t_grev = safe_int(ent_saved.get('T. G REV', 0))
-            r_grev = safe_int(ent_saved.get('R. G REV', 0))
-            extra_cols = {'URL GOOGLE': str(ent_saved.get('URL GOOGLE', '') or '').strip()}   # link Google Maps dealer (untuk tarik jumlah review via Apify)
+            _g_total, _g_start = safe_int(ent_saved.get('R. G REV', 0)), safe_int(ent_saved.get(GREV_START_COL, 0))
+            _g_url = str(ent_saved.get('URL GOOGLE', '') or '').strip()
+            t_grev = GREV_TARGET_ADD if (_g_total > 0 or _g_url) else 0   # target tambahan 40 review / bulan (dealer tanpa data Google tidak punya target)
+            r_grev = max(_g_total - _g_start, 0) if _g_start > 0 else 0   # result = review hasil tarikan terakhir − START (START belum diisi → 0, ditandai di Master Target)
+            extra_cols = {'URL GOOGLE': _g_url, GREV_START_COL: _g_start, GREV_TOTAL_COL: _g_total}   # link Google Maps dealer (untuk tarik jumlah review via Apify) + START & TOTAL review
         else:
             # MYDR & Google Review koordinator / counter: target & result mengikuti dealer induk (baris dealer di MASTER KPI)
             _dm = get_dealer_master_row(kpi_entity_dealer(ent))
@@ -5448,6 +5565,8 @@ def build_kpi_section_df(entity_list, name_col, section_key, filter_mode):
         '_pct_stu': (tot_r_stu / tot_t_stu * 100.0) if tot_t_stu > 0 else 0.0
     }
     if 'URL GOOGLE' in df_items.columns: tot_row['URL GOOGLE'] = ''
+    for _gc in (GREV_START_COL, GREV_TOTAL_COL):
+        if _gc in df_items.columns: tot_row[_gc] = int(df_items[_gc].sum())
     if filter_mode != 'dealer' and '_dealer' in df_items.columns:
         _ud = df_items.drop_duplicates('_dealer')
         for _c in ['T. MYDR', 'R. MYDR', 'T. G REV', 'R. G REV']: tot_row[_c] = int(_ud[_c].sum())
@@ -5967,7 +6086,7 @@ def _bsg_award_find_photo(idx, level, ent, dlr):
         if kd_ == kind and r_ and (r_ == t_ or (len(r_) >= 6 and (t_.startswith(r_) or r_.startswith(t_)))): return p_
     return None
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=12)
 def _bsg_award_img_uri(path_x, mt_x):
     import io
     from PIL import Image
@@ -6082,7 +6201,7 @@ def bsg_admin_running_text_editor():
 
 # ---------------------------------------------------------------- helper CEK DATA (dipakai menu 🔎 CEK DATA) ----
 def _jb_ok(n_x): return is_mds_dealer(n_x)   # hanya dealer berstatus MDS (Data Lookup kolom AM)
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=6)   # dibatasi: Nota diperbarui otomatis → versi lama tidak menumpuk
 def _jb_read_nota(path_x, mt_x, lk_mt_x=0.0):   # lk_mt_x = waktu ubah Data Lookup (cache ikut berubah saat lookup diganti)
     df_r = _nota_base(path_x, mt_x)
     cdn_x = 'Nama Dealer' if 'Nama Dealer' in df_r.columns else ('Dealer' if 'Dealer' in df_r.columns else None)
@@ -6113,17 +6232,17 @@ if menu_pilihan == MASTER_TAB:
     saved_tk = load_json(TARGET_KOOR_FILE)
 
     KPI_METRIC_COLS = ['T. STU', 'R. STU', 'T. MAXI', 'R. MAXI', 'T. CLASSY', 'R. CLASSY', 'T. MP', 'R. MP', 'T. INC', 'R. INC', 'T. ACC%', 'R. ACC%', 'T. MYDR', 'R. MYDR', 'T. G REV', 'R. G REV']
-    KPI_EDITABLE_COLS = ['T. STU', 'T. MAXI', 'T. CLASSY', 'T. MP', 'T. INC', 'T. ACC%', 'T. G REV', 'R. G REV']
+    KPI_EDITABLE_COLS = ['T. STU', 'T. MAXI', 'T. CLASSY', 'T. MP', 'T. INC', 'T. ACC%']   # T. G REV (target tetap 40) & R. G REV (= TOTAL − START) dihitung otomatis; yang diisi manual: START G REV & TOTAL G REV (tabel Dealer)
     KPI_PAIRS_ALL = [('T. STU', 'R. STU'), ('T. MAXI', 'R. MAXI'), ('T. CLASSY', 'R. CLASSY'), ('T. MP', 'R. MP'), ('T. INC', 'R. INC'), ('T. ACC%', 'R. ACC%'), ('T. MYDR', 'R. MYDR'), ('T. G REV', 'R. G REV'), ('T. DB', 'R. DB'), ('T. Walk In', 'R. Walk In')]
 
     def kpi_metric_cols(section_key):
         # Koordinator: + DB | Counter: + DB & Walk In | Dealer: kolom dasar
-        return KPI_METRIC_COLS + {'koor': ['T. DB', 'R. DB'], 'counter': ['T. DB', 'R. DB', 'T. Walk In', 'R. Walk In'], 'dealer': [KPI_URL_COL]}.get(section_key, [])
+        return KPI_METRIC_COLS + {'koor': ['T. DB', 'R. DB'], 'counter': ['T. DB', 'R. DB', 'T. Walk In', 'R. Walk In'], 'dealer': [GREV_START_COL, GREV_TOTAL_COL, KPI_URL_COL]}.get(section_key, [])
 
     def kpi_editable_cols(section_key):
-        if section_key == 'dealer': return list(KPI_EDITABLE_COLS) + [KPI_URL_COL]
+        if section_key == 'dealer': return list(KPI_EDITABLE_COLS) + [GREV_START_COL, GREV_TOTAL_COL, KPI_URL_COL]
         # G REV koordinator/counter mengikuti dealer -> tidak diedit di sini
-        return [c for c in KPI_EDITABLE_COLS if c not in ('T. G REV', 'R. G REV')] + ['T. DB'] + (['T. Walk In'] if section_key == 'counter' else [])
+        return list(KPI_EDITABLE_COLS) + ['T. DB'] + (['T. Walk In'] if section_key == 'counter' else [])
 
     def build_kpi_capture_html(df_full, name_col, title_txt, dom_id, metric_cols=None):
         cols_all = [name_col] + (metric_cols or KPI_METRIC_COLS)
@@ -6164,6 +6283,14 @@ if menu_pilihan == MASTER_TAB:
                 col_cfg[c] = st.column_config.TextColumn(c, width="large", help='Tempel link Google Maps dealer (boleh diisi lewat Excel). Dipakai untuk menarik jumlah review via Apify.')
             elif c in ['T. ACC%', 'R. ACC%']:
                 col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%.1f%%")
+            elif c == GREV_START_COL:
+                col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d", help=f'Jumlah TOTAL review Google dealer di AWAL bulan (isi manual). Result bulan ini = {GREV_TOTAL_COL} − {GREV_START_COL}.')
+            elif c == GREV_TOTAL_COL:
+                col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d", help='Jumlah total review Google hasil tarikan terakhir (otomatis dari Apify; boleh diisi manual).')
+            elif c == 'T. G REV' and section_key == 'dealer':
+                col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d", help=f'Target TAMBAHAN review Google per bulan = {GREV_TARGET_ADD} (tetap).')
+            elif c == 'R. G REV' and section_key == 'dealer':
+                col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d", help=f'Result bulan ini = {GREV_TOTAL_COL} − {GREV_START_COL}.')
             else:
                 col_cfg[c] = st.column_config.NumberColumn(c, width="small", format="%d")
 
@@ -6191,8 +6318,9 @@ if menu_pilihan == MASTER_TAB:
             for _, r in df_rows.iterrows():
                 enm = str(r[name_col])
                 if enm == 'TOTAL': continue
-                if section_key == 'dealer' and 'R. G REV' in edit_cols_sec and safe_int(r['R. G REV']) != safe_int((sec_dict.get(enm, {}) or {}).get('R. G REV', 0)): _grev_chg[enm] = safe_int(r['R. G REV'])
+                if section_key == 'dealer' and GREV_TOTAL_COL in edit_cols_sec and safe_int(r[GREV_TOTAL_COL]) != safe_int((sec_dict.get(enm, {}) or {}).get('R. G REV', 0)): _grev_chg[enm] = safe_int(r[GREV_TOTAL_COL])
                 sec_dict[enm] = {**(sec_dict.get(enm, {}) or {}), **{k_ed: (str(r[k_ed] if not pd.isna(r[k_ed]) else '').strip() if k_ed == KPI_URL_COL else (safe_float(r[k_ed]) if 'ACC%' in k_ed else safe_int(r[k_ed]))) for k_ed in edit_cols_sec}}   # kolom lain (mis. waktu tarik Apify) dipertahankan
+                if section_key == 'dealer' and GREV_TOTAL_COL in sec_dict[enm]: sec_dict[enm]['R. G REV'] = sec_dict[enm].pop(GREV_TOTAL_COL)   # TOTAL G REV disimpan di kunci lama 'R. G REV' (dipakai tarikan Apify & riwayat harian)
                 if section_key == 'dealer' and enm not in daftar_dealer:
                     for k_old in [k_ for k_ in tj_sync if _nrm_dlr(k_) == _nrm_dlr(enm)]: tj_sync.pop(k_old, None)
                     tj_sync[enm] = safe_int(r['T. STU'])
@@ -6211,6 +6339,10 @@ if menu_pilihan == MASTER_TAB:
         with c_b1:
             if st.button(btn_label, type='primary', key=f'btn_save_kpi_{section_key}'): _save_rows(ed_df)
         if section_key == 'dealer': st.caption('ℹ️ Penarikan Google Review hari ini (Apify) ada di menu 🗃️ UPLOAD BY MD (baris ke-2). Kolom URL GOOGLE tetap diisi di tabel ini.')
+        if section_key == 'dealer' and GREV_START_COL in df_items.columns:
+            _no_start = [str(r_[name_col]) for _, r_ in df_items.iterrows() if safe_int(r_[GREV_TOTAL_COL]) > 0 and safe_int(r_[GREV_START_COL]) <= 0]
+            st.caption(f'ℹ️ Google Review: target tambahan **{GREV_TARGET_ADD} review / bulan** · Result = {GREV_TOTAL_COL} (tarikan terakhir) − {GREV_START_COL} (isi manual di awal bulan).')
+            if _no_start: st.warning(f'⚠️ {GREV_START_COL} belum diisi untuk: ' + ', '.join(_no_start) + ' — result Google Review dihitung 0 sampai START diisi.')
         if _can_del:
             _sel_del = [str(r_[name_col]) for _, r_ in ed_df.iterrows() if bool(r_.get('✖')) and str(r_[name_col]) != 'TOTAL']
             _pk = f'kpi_del_pending_{section_key}'
@@ -7102,7 +7234,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         n_m = int((df_x[COL_STATUS] == 'MDS').sum()); n_o = int(len(df_x)) - n_m
                         p_m = int((df_p[COL_STATUS] == 'MDS').sum()) if (df_p is not None and COL_STATUS in df_p.columns) else 0
                         p_o = (int(len(df_p)) - p_m) if (df_p is not None and COL_STATUS in df_p.columns) else 0
-                        return bsg_chart_donut(ttl, sub, [('MDS', n_m, '#2563EB'), ('DEALER', n_o, '#12A150')], ctr, parts=True, prev={'MDS': p_m, 'DEALER': p_o}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})')
+                        return bsg_chart_donut(ttl, sub, [('MDS', n_m, '#2563EB'), ('DEALER', n_o, '#12A150')], ctr, parts=True, prev={'MDS': p_m, 'DEALER': p_o}, prev_note=f'bulan lalu (1 s.d {tanggal_akhir_lm})', share='MDS')
                     pies_ = [_pie(fa_, fl_, 'MDS vs Total Penjualan', 'Kontribusi STU MDS terhadap seluruh penjualan', 'Total STU')]
                     for kt_ in ['JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI']:
                         pies_.append(_pie(fa_[fa_[COL_KOTA] == kt_], (fl_[fl_[COL_KOTA] == kt_] if COL_KOTA in fl_.columns else None), f'MDS — Kota {kt_.title()}', f'Kontribusi MDS terhadap total {kt_.title()}', 'STU'))
