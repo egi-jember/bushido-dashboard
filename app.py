@@ -1225,7 +1225,7 @@ def _ppt_scope(dealer, koor=None):
     TYPE_TGT = {'AT PREMIUM': 60, 'AT CLASSY': 25, 'AT LPM': 10, 'MOPED': 3, 'OTHERS': 2}
     def _grp(d_x):
         if d_x is None or d_x.empty or 'Type_Clean' not in d_x.columns: return d_x
-        d_x = d_x.copy(); d_x['Type_Grp'] = d_x['Type_Clean'].where(d_x['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'MOPED']), 'OTHERS'); return d_x
+        d_x = d_x.copy(); _tc_ = merge_classy(d_x['Type_Clean']); d_x['Type_Grp'] = _tc_.where(_tc_.isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'MOPED']), 'OTHERS'); return d_x
     typ_rows = []
     try:
         _, df_tf, _t = build_type_table(_grp(f_c), _grp(f_l), _grp(db_c), _grp(s_c), [(k, 'Type_Grp', 'Type_Grp', 'Type_Grp') for k in TYPE_TGT], 'TYPE', tot_label='TOTAL', sort_by_growth=True)
@@ -1567,7 +1567,12 @@ IDEAL_STU_PCT, IDEAL_ACC_PCT, MAX_NARRATIVE_WORDS = 10.0, 50.0, 35
 SUBTOTAL_ROW_LABELS = {'SUB SITUBONDO', 'SUB BANYUWANGI', 'JEMBER', 'BONDOWOSO', 'SITUBONDO', 'BANYUWANGI', 'SUB DEALER / LAINNYA'}
 tabel_target_harian = {1:0.0, 2:1.0, 3:2.0, 4:5.0, 5:8.0, 6:12.0, 7:18.0, 8:21.0, 9:24.0, 10:29.0, 11:34.0, 12:36.0, 13:40.0, 14:44.0, 15:48.0, 16:51.0, 17:54.0, 18:57.0, 19:60.0, 20:63.0, 21:67.0, 22:70.0, 23:73.0, 24:77.0, 25:79.0, 26:82.0, 27:84.0, 28:88.0, 29:92.0, 30:100.0, 31:100.0}
 FIXED_COUNTER_TARGETS = {'IIN BARIROH': 25, 'SITI NURJANAH': 25, 'TRIA DAMAYANTI': 25, 'MUHAMMAD HAMDAN WAHDI': 15, 'DESVIN NURUL PRISTANTINI': 15, 'RIKA DWI ASTUTI': 15, 'NURUL FADILAH': 15}
-FOKUS_KATEGORI_TYPE = ['AT PREMIUM', 'AT CLASSY', 'AT LPM']
+FOKUS_KATEGORI_TYPE = ['AT PREMIUM', 'AT CLASSY', 'AT LPM']   # analisa & PPT: CLASSY ENTRY + MID digabung kembali menjadi 'AT CLASSY'
+FOKUS_TYPE_4 = [('AT PREMIUM', 'AT PREM'), ('AT CLASSY ENTRY', 'CLASSY ENTRY'), ('AT CLASSY MID', 'CLASSY MID'), ('AT LPM', 'AT LPM')]   # Penjualan by Type: 4 fokus (AT CLASSY dipecah jadi ENTRY & MID di Data Lookup)
+CLASSY_ALL = ('AT CLASSY', 'AT CLASSY ENTRY', 'AT CLASSY MID')
+def merge_classy(ser_):
+    """Gabungkan AT CLASSY ENTRY & AT CLASSY MID menjadi 'AT CLASSY' (untuk tabel yang masih memakai 1 kelompok Classy: PPT, analisa)."""
+    return ser_.replace({'AT CLASSY ENTRY': 'AT CLASSY', 'AT CLASSY MID': 'AT CLASSY'})
 daftar_dealer = ['SIP PANJI', 'SIP BESUKI', 'SIP A. YANI', 'SIP SRONO', 'SIP SIAGA', 'SIP SOBO', 'SIP GIRI']   # hanya daftar tampilan menu KPI lama; TIDAK lagi dipakai menyaring data
 LOOKUP_DEALERS = set()   # seluruh nama dealer yang terbaca dari Data Lookup (diisi saat Data Lookup dibaca)
 def is_dealer_name(n_):
@@ -4885,9 +4890,9 @@ _PDT_CSS = """
 body{margin:0;background:transparent;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif}
 .pn-banner{background:linear-gradient(90deg,#4318FF 0%,#3B6BFF 100%);color:#fff;font-size:16px;font-weight:800;padding:10px 14px;border-radius:8px;margin-bottom:12px;letter-spacing:.3px}
 .cap-only{display:none}.capA .cap-all{display:block}.capC .cap-one{display:block}
-.pdt3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.pdt3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
 @media (max-width:900px){.pdt3{grid-template-columns:minmax(0,1fr)}}
-.cap .pdt3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cap .pdt3{grid-template-columns:repeat(2,minmax(0,1fr))}
 .cap .nocap{display:none}
 .pdt{border:1px solid #8FA8F0;border-radius:12px;background:#FFFFFF;overflow:hidden;min-width:0}
 .pdt-t{color:#FFFFFF;font-size:15px;font-weight:900;padding:7px 12px;letter-spacing:.3px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -4980,7 +4985,7 @@ def bsg_produk_panel(groups, title, file_label):
     doc = (_PDT_DOC.replace('__CSS__', _PDT_CSS).replace('__TITLE__', _esc(title)).replace('__CARDS__', ''.join(h_ for h_, _ in cards))
            .replace('__H2C__', _H2C_JS).replace('__FNAME__', re.sub(r'[^a-zA-Z0-9_-]', '_', file_label))
            .replace('__TYPES__', json.dumps([re.sub(r'[^a-zA-Z0-9_-]', '_', t_) for t_, _, _ in groups])))
-    return doc, int(128 + min(520, mx_ * 33 + 32) + 54)
+    return doc, int(128 + max(1, -(-len(groups) // 2)) * (min(520, mx_ * 33 + 32) + 12) + 54)   # grid 2 kolom → 4 type = 2 baris kartu
 
 # ---- Penentuan Fokus Koordinator / Salesman / Counter: urutan cek (yang terendah di cek pertama = fokus; bila sama persis, lanjut ke cek berikutnya) ----
 FOKUS_URUTAN = ['STU vs Target', 'NOTA vs Target', 'NOTA vs STU LM', 'SPK vs SPK LM', 'ACC% vs ACC% LM', 'DB Quality', 'Jumlah Database', 'Jumlah Salesman']
@@ -5404,7 +5409,7 @@ def compute_auto_kpi_results(df_f_sub, df_db_sub, df_spk_sub):
     r_stu = len(df_f_sub) if df_f_sub is not None else 0
     if df_f_sub is not None and not df_f_sub.empty and 'Type_Clean' in df_f_sub.columns:
         r_maxi = int(df_f_sub['Type_Clean'].isin(['AT PREMIUM', 'MAXI', 'AT MAXI']).sum())
-        r_classy = int((df_f_sub['Type_Clean'] == 'AT CLASSY').sum())
+        r_classy = int(df_f_sub['Type_Clean'].isin(CLASSY_ALL).sum())
     else:
         r_maxi, r_classy = 0, 0
 
@@ -6833,8 +6838,10 @@ elif menu_pilihan == MD_TAB:
                 _g = lambda d_, g_: d_[d_[_ty_grp] == g_] if (_ty_grp and not d_.empty) else d_.iloc[0:0]
                 _nm = lambda d_: d_[d_['_ser'] == 'NMAX SERIES']
                 parts_ = [_ty_block('KATEGORI', '#9DC3E6', _TY_ORDER, '_ser', _ty_cur, _ty_lm, 'GRAND TOTAL', '#F4C7C3'),
+                          _ty_block('AT PREMIUM', '#B4C7E7', ['AEROX SERIES', 'NMAX SERIES', 'LEXI SERIES', 'XMAX'], '_ser', _g(_ty_cur, 'AT PREMIUM'), _g(_ty_lm, 'AT PREMIUM'), 'TOTAL', '#FFFF00'),
+                          _ty_block('AT CLASSY ENTRY', '#A9D18E', ['FAZZIO SERIES', 'FINO SERIES'], '_ser', _g(_ty_cur, 'AT CLASSY ENTRY'), _g(_ty_lm, 'AT CLASSY ENTRY'), 'TOTAL', '#FFFF00'),
+                          _ty_block('AT CLASSY MID', '#9DC3E6', ['GRAND FILANO', 'FAZZIO SERIES'], '_ser', _g(_ty_cur, 'AT CLASSY MID'), _g(_ty_lm, 'AT CLASSY MID'), 'TOTAL', '#FFFF00'),
                           _ty_block('AT LPM', '#FFC000', ['MIO SERIES', 'GEAR SERIES'], '_ser', _g(_ty_cur, 'AT LPM'), _g(_ty_lm, 'AT LPM'), 'TOTAL', '#FFFF00'),
-                          _ty_block('AT CLASSY', '#9DC3E6', ['FAZZIO SERIES', 'GRAND FILANO'], '_ser', _g(_ty_cur, 'AT CLASSY'), _g(_ty_lm, 'AT CLASSY'), 'TOTAL', '#FFFF00'),
                           _ty_block('NMAX SERIES', '#F8CBAD', ['NMAX NEO', 'NMAX NEO S', 'NMAX TURBO', 'NMAX TURBO TECH MAX'], '_det', _nm(_ty_cur), _nm(_ty_lm), 'TOTAL', '#FFFF00')]
                 _wr, _sfx = (' style="width:1400px;"', '_cap') if cap_ else ('', '')
                 return (f'<div id="cap_md_by_type{_sfx}" class="compact-table-wrap"{_wr}><div class="cap-title-banner">🐺 PENJUALAN BY TYPE — {_esc(_ty_scope)} · LM vs STU 1 s.d {tanggal_akhir} {periode_bulan_tahun}</div>'
@@ -6843,8 +6850,8 @@ elif menu_pilihan == MD_TAB:
             render_table_image_buttons('cap_md_by_type', f'Dashboard_MD_Penjualan_By_Type_Tgl_{tanggal_akhir}', standalone_html=_ty_all(True))
             _ty_unm = sorted({v_ for v_, s_ in _ty_map.items() if s_ == 'LAINNYA'})
             if _ty_unm: st.caption('⚠️ Type di file Faktur yang belum masuk series mana pun (tampil di baris LAINNYA): ' + ', '.join(_ty_unm[:12]) + (' …' if len(_ty_unm) > 12 else '') + '. Beri tahu saya bila ada yang perlu dimasukkan ke series tertentu.')
-            if not _ty_grp: st.caption('ℹ️ Kelompok type (AT LPM / AT CLASSY) tidak tersedia di Data Lookup, sehingga tabel AT LPM dan AT CLASSY kosong.')
-            st.caption('LM = STU bulan lalu pada rentang tanggal yang sama · STU = penjualan bulan ini · ACV % = STU ÷ LM · GRAND TOTAL = jumlah 4 kota (Jember, Bondowoso, Situbondo, Banyuwangi) · AT LPM / AT CLASSY mengikuti kelompok type di Data Lookup · series dikenali dari nama type pada file Faktur.')
+            if not _ty_grp: st.caption('ℹ️ Kelompok type (AT PREMIUM / AT CLASSY ENTRY / AT CLASSY MID / AT LPM) tidak tersedia di Data Lookup, sehingga tabel AT PREMIUM, AT CLASSY ENTRY, AT CLASSY MID dan AT LPM kosong.')
+            st.caption('LM = STU bulan lalu pada rentang tanggal yang sama · STU = penjualan bulan ini · ACV % = STU ÷ LM · GRAND TOTAL = jumlah 4 kota (Jember, Bondowoso, Situbondo, Banyuwangi) · 4 fokus (AT PREMIUM / AT CLASSY ENTRY / AT CLASSY MID / AT LPM) mengikuti kelompok type di Data Lookup · series dikenali dari nama type pada file Faktur.')
 
 elif menu_pilihan == STOCK_TAB:
     st.markdown('<div class="main-title">STOCK CONDITION</div><div class="sub-title">Cari unit yang tersedia di dealer beserta umur stoknya (hari)</div>', unsafe_allow_html=True)
@@ -7976,11 +7983,11 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         if int(cc_.get('TANPA DP', 0)) > 0: its_.append(('TANPA DP', int(cc_['TANPA DP']), '#CBD5E1'))
                         out_.append(bsg_chart_donut(f'ACC by DP — {_dd_totname}' if lb_ == 'TOTAL AREA' else f'ACC by DP — {lb_}', 'Porsi SPK disetujui per cluster DP pricelist', its_, 'ACC', parts=True, keep_zero=True))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
-                _TYPE_PAL = {'AT PREMIUM': '#2563EB', 'AT CLASSY': '#12A150', 'AT LPM': '#F97316', 'MOPED': '#DC2626', 'OTHERS': '#94A3B8'}
+                _TYPE_PAL = {'AT PREMIUM': '#2563EB', 'AT CLASSY ENTRY': '#12A150', 'AT CLASSY MID': '#0891B2', 'AT LPM': '#F97316', 'MOPED': '#DC2626', 'OTHERS': '#94A3B8'}
                 def _jb_type_grp(d_):
                     if d_ is None or d_.empty: return pd.Series(dtype='object')
                     if 'Type_Clean' not in d_.columns: return pd.Series(['OTHERS'] * len(d_), index=d_.index)
-                    return d_['Type_Clean'].where(d_['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'MOPED']), 'OTHERS')
+                    return d_['Type_Clean'].where(d_['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY ENTRY', 'AT CLASSY MID', 'AT LPM', 'MOPED']), 'OTHERS')
                 def _jb_type_pies():
                     out_ = []
                     for lb_, up_ in _jb_sl_grp:
@@ -8016,9 +8023,9 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 # ---- 7. TABEL PENJUALAN BY TYPE (STU per dealer per kelompok type) ----
                 jdl_jb_ty = f'7. PENJUALAN BY TYPE — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})'
                 _jb_sep(jdl_jb_ty)
-                _JB_TY = ['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'OTHERS']   # MOPED dan type lain masuk OTHERS agar jumlah baris = total STU dealer
+                _JB_TY = ['AT PREMIUM', 'AT CLASSY ENTRY', 'AT CLASSY MID', 'AT LPM', 'OTHERS']   # MOPED dan type lain masuk OTHERS agar jumlah baris = total STU dealer
                 def _jb_ty_row(label, f_x):
-                    if f_x is not None and not f_x.empty and 'Type_Clean' in f_x.columns: tg_ = f_x['Type_Clean'].where(f_x['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM']), 'OTHERS')
+                    if f_x is not None and not f_x.empty and 'Type_Clean' in f_x.columns: tg_ = f_x['Type_Clean'].where(f_x['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY ENTRY', 'AT CLASSY MID', 'AT LPM']), 'OTHERS')
                     else: tg_ = pd.Series(['OTHERS'] * (0 if (f_x is None or f_x.empty) else len(f_x)), dtype='object')
                     r_ = {_NM_COL: label}
                     for t_ in _JB_TY: r_[f'STU {t_}'] = int((tg_ == t_).sum())
@@ -8028,14 +8035,14 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                 df_ty_jb_i = pd.DataFrame([_jb_ty_row(n_, _jb_fk(n_)) for n_ in _jb_names])
                 _jb_fk_t = jb_f_c[jb_f_c['_jb'].isin(_jb_up)] if (jb_f_c is not None and not jb_f_c.empty and '_jb' in jb_f_c.columns) else pd.DataFrame()
                 df_ty_jb_f = pd.concat([df_ty_jb_i, pd.DataFrame([_jb_ty_row(_dd_tot, _jb_fk_t)])], ignore_index=True)
-                kol_ty_jb = [_NM_COL, 'STU AT PREMIUM', 'STU AT CLASSY', 'STU AT LPM', 'STU OTHERS']
+                kol_ty_jb = [_NM_COL] + [f'STU {t_}' for t_ in _JB_TY]
                 _jb_fl_ty = lambda n_x: jb_f_l[jb_f_l['_jb'] == n_x.strip().upper()] if (jb_f_l is not None and not jb_f_l.empty and '_jb' in jb_f_l.columns) else pd.DataFrame()
                 df_ty_lm_jb = pd.DataFrame([_jb_ty_row(n_, _jb_fl_ty(n_)) for n_ in _jb_names])   # STU bulan lalu (periode sama) per dealer per type
                 _ty_tot_lm = _jb_ty_row(_dd_tot, jb_f_l[jb_f_l['_jb'].isin(_jb_up)] if (jb_f_l is not None and not jb_f_l.empty and '_jb' in jb_f_l.columns) else pd.DataFrame())
                 def _jb_ty_charts():
                     """3 grafik (STU AT PREM | STU CLASSY | STU AT LPM): batang terbelah LM : STU per koordinator / counter. Diurut terbaik → terburuk."""
                     out_ = []
-                    for t_, nm_t in [('AT PREMIUM', 'AT PREM'), ('AT CLASSY', 'CLASSY'), ('AT LPM', 'AT LPM')]:
+                    for t_, nm_t in FOKUS_TYPE_4:
                         k_ = f'STU {t_}'
                         r_lm = []
                         for i_ in range(len(df_ty_jb_i)):
@@ -8054,7 +8061,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     _jb_db_lm = _dd_apply(_jb_db_lm, 'Nama_Dealer_Clean')
                     if _jb_db_lm is not None and not _jb_db_lm.empty: _jb_db_lm['_jbk'] = _dd_key(_jb_db_lm, 'Nama_Dealer_Clean')
                     else: _jb_db_lm = pd.DataFrame()
-                _JB_TY3 = [('AT PREMIUM', 'AT PREM'), ('AT CLASSY', 'CLASSY'), ('AT LPM', 'AT LPM')]   # sama dengan grafik STU per type
+                _JB_TY3 = list(FOKUS_TYPE_4)   # sama dengan grafik STU per type (4 fokus)
                 def _ty_dbsub(d_, keys_):   # database milik dealer / koor / salesman (keys_ = set kunci huruf besar)
                     return d_[d_['_jbk'].isin(keys_)] if (d_ is not None and not d_.empty and '_jbk' in d_.columns) else pd.DataFrame()
                 def _ty_dbcnt(d_, t_):   # (jumlah DB, jumlah HOT) untuk type t_
@@ -8139,17 +8146,17 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                                                    total=(f'{t_c - t_l:+.1f} pt' if both_ else _fx(t_c)), total_color=((BSG_GRN if t_c >= t_l else BSG_RED) if both_ else '#64748B')))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 3}
                 def _jb_ty_grid():
-                    """Susunan per type: baris 1 = AT PREMIUM, baris 2 = AT CLASSY, baris 3 = AT LPM; tiap baris urut dari kiri: STU vs LM | DB vs LM | DB Q vs LM | SPK vs LM | ACC% vs LM."""
+                    """Susunan per type: baris 1 = AT PREMIUM, baris 2 = AT CLASSY ENTRY, baris 3 = AT CLASSY MID, baris 4 = AT LPM; tiap baris urut dari kiri: STU vs LM | DB vs LM | DB Q vs LM | SPK vs LM | ACC% vs LM."""
                     cols_ = [_jb_ty_charts(), _jb_ty_db_bars()['group'], _jb_ty_dbq_bars()['group'], _jb_ty_spk_charts()['group'], _jb_ty_acc_charts()['group']]
                     cols_ = [[c_ for c_ in col_ if c_] for col_ in cols_]
                     n_ = max([len(c_) for c_ in cols_] + [0])
                     if n_ == 0 or any(len(c_) != n_ for c_ in cols_): return {'group': [c_ for col_ in cols_ for c_ in col_], 'cols': 5, 'fixed': True}   # jaga-jaga bila ada grafik kosong
                     return {'group': [cols_[k_][r_] for r_ in range(n_) for k_ in range(5)], 'cols': 5, 'fixed': True}
-                bsg_panel_table(df_ty_jb_i, df_ty_jb_f, kol_ty_jb, _NM_COL, '_tot', 'Jember_Penjualan_By_Type', jdl_jb_ty, None, (), layout='stackm', bottom_fn=lambda: [_jb_ty_grid()], bottom_cols='minmax(0,1fr)', no_table=True)   # tabel dihapus; 3 baris type (AT PREMIUM, AT CLASSY, AT LPM) x 5 kolom (STU, DB, DB Q, SPK, ACC% — semuanya vs bulan lalu)
+                bsg_panel_table(df_ty_jb_i, df_ty_jb_f, kol_ty_jb, _NM_COL, '_tot', 'Jember_Penjualan_By_Type', jdl_jb_ty, None, (), layout='stackm', bottom_fn=lambda: [_jb_ty_grid()], bottom_cols='minmax(0,1fr)', no_table=True)   # tabel dihapus; 4 baris type (AT PREMIUM, AT CLASSY ENTRY, AT CLASSY MID, AT LPM) x 5 kolom (STU, DB, DB Q, SPK, ACC% — semuanya vs bulan lalu)
                 _jb_sep(f'PRODUK NAIK / TURUN vs BULAN LALU — {_dd_scope} (1 s.d {tanggal_akhir} {periode_bulan_tahun})')
                 try:
                     _pdt_sel = lambda d_, t_: d_[d_['Type_Clean'] == t_] if (d_ is not None and not d_.empty and 'Type_Clean' in d_.columns) else pd.DataFrame()
-                    _pdt_g = [(t_, c_, produk_naik_turun(_pdt_sel(jb_f_c, t_), _pdt_sel(jb_f_l, t_), df_faktur_all)) for t_, c_ in (('AT PREMIUM', '#2563EB'), ('AT CLASSY', '#12A150'), ('AT LPM', '#F97316'))]
+                    _pdt_g = [(t_, c_, produk_naik_turun(_pdt_sel(jb_f_c, t_), _pdt_sel(jb_f_l, t_), df_faktur_all)) for t_, c_ in (('AT PREMIUM', '#2563EB'), ('AT CLASSY ENTRY', '#12A150'), ('AT CLASSY MID', '#0891B2'), ('AT LPM', '#F97316'))]
                     _pdt_ok = next((r_ for _, _, r_ in _pdt_g if r_ is not None), None)
                     if _pdt_ok is None: st.info('ℹ️ File Faktur tidak punya kolom AF (produk), sehingga perbandingan per produk tidak bisa dibuat.')
                     else:
@@ -8157,7 +8164,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         components.html(_pdt_doc, height=_pdt_h, scrolling=False)
                         st.caption(f'ℹ️ Produk = kolom AF file Faktur (judul "{_pdt_ok["h_produk"]}"), dikelompokkan per type. LM = jumlah faktur bulan lalu pada periode yang sama · STU = jumlah faktur bulan ini (1 s.d {tanggal_akhir}) · NAIK / TURUN = selisih STU − LM (hijau ▲ naik, merah ▼ turun). Klik baris produk untuk melihat warna (kolom F Faktur, judul "{_pdt_ok["h_warna"]}") dengan angka yang sama. Tombol Copy (HD) menyalin gambar sesuai kondisi baris yang sedang dibuka.')
                 except Exception as _e_pdt: st.warning(f'Tabel produk naik / turun gagal ditampilkan: {_e_pdt}')
-                st.caption('ℹ️ STU = jumlah faktur (kredit + cash) periode berjalan. STU OTHERS = semua type di luar AT PREMIUM, AT CLASSY, AT LPM (termasuk MOPED). Grafik diurut terbaik → terburuk; vs LM = STU ÷ STU bulan lalu periode sama. DB per type & DB Quality per type = per dealer / koordinator / salesman vs Database bulan lalu (periode tanggal sama, dari file Database Bulan Lalu di menu UPLOAD FILE); DB Quality = Database HOT PROSPECT (Data Type DEAL PROSPECT) ÷ total Database type tsb. SPK per type = jumlah SPK bulan ini vs SPK bulan lalu (periode tanggal sama). ACC% per type = SPK disetujui ÷ (disetujui + ditolak) dari file SPK, bulan ini vs bulan lalu (selisih dalam poin; ideal 50%). Semua grafik per dealer / koordinator / salesman sesuai pilihan.')
+                st.caption('ℹ️ STU = jumlah faktur (kredit + cash) periode berjalan. STU OTHERS = semua type di luar AT PREMIUM, AT CLASSY ENTRY, AT CLASSY MID, AT LPM (termasuk MOPED). Grafik diurut terbaik → terburuk; vs LM = STU ÷ STU bulan lalu periode sama. DB per type & DB Quality per type = per dealer / koordinator / salesman vs Database bulan lalu (periode tanggal sama, dari file Database Bulan Lalu di menu UPLOAD FILE); DB Quality = Database HOT PROSPECT (Data Type DEAL PROSPECT) ÷ total Database type tsb. SPK per type = jumlah SPK bulan ini vs SPK bulan lalu (periode tanggal sama). ACC% per type = SPK disetujui ÷ (disetujui + ditolak) dari file SPK, bulan ini vs bulan lalu (selisih dalam poin; ideal 50%). Semua grafik per dealer / koordinator / salesman sesuai pilihan.')
                 for _el_lb, _el_n, _el_nm in _EMP_DROP_LOG: st.caption(f'ℹ️ {_el_lb}: {_el_n:,} baris dibuang dari perhitungan karena nama salesman tidak ada di file Employee — ' + ', '.join(_el_nm[:8]) + (f' (+{len(_el_nm) - 8} lainnya)' if len(_el_nm) > 8 else ''))   # paling bawah sub menu Penjualan (di luar panel → tidak ikut tombol copy)
 
             with jt_mp:
@@ -8448,7 +8455,7 @@ if _an_inline:   # Analisa Problem & Perbaikan (kode akses SPV); pilihan diambil
     TYPE_TGT_PCT = {'AT PREMIUM': 60, 'AT CLASSY': 25, 'AT LPM': 10, 'MOPED': 3, 'OTHERS': 2}
     def _grp_type(d_x):
         if d_x is None or d_x.empty or 'Type_Clean' not in d_x.columns: return d_x
-        d_x = d_x.copy(); d_x['Type_Grp'] = d_x['Type_Clean'].where(d_x['Type_Clean'].isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'MOPED']), 'OTHERS')
+        d_x = d_x.copy(); _tc_ = merge_classy(d_x['Type_Clean']); d_x['Type_Grp'] = _tc_.where(_tc_.isin(['AT PREMIUM', 'AT CLASSY', 'AT LPM', 'MOPED']), 'OTHERS')
         return d_x
     df_td_i, _, _ = build_type_table(_grp_type(f_c), _grp_type(f_l), _grp_type(db_c), _grp_type(s_c), [(k, 'Type_Grp', 'Type_Grp', 'Type_Grp') for k in TYPE_TGT_PCT], 'TYPE', tot_label=lbl_tot, sort_by_growth=True)
     if df_td_i is not None and not df_td_i.empty:
