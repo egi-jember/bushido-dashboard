@@ -3759,7 +3759,7 @@ def _memo_apply(ser, fn):
         except TypeError: return fn(v)
     return ser.map(_f)
 
-@st.cache_data(show_spinner=False, max_entries=120)   # dibatasi: file Database ditarik/diganti terus → versi lama (kunci path+mtime) tidak boleh menumpuk di memori
+@st.cache_data(show_spinner=False, max_entries=15)   # dibatasi: file Database ditarik/diganti terus → versi lama (kunci path+mtime) tidak boleh menumpuk di memori
 def read_single_db_file_cached(fpath, mtime):
     df_raw = pd.read_csv(fpath, header=None) if fpath.lower().endswith('.csv') else pd.read_excel(fpath, header=None)
     df_raw = smart_text_to_columns(df_raw)
@@ -3815,7 +3815,7 @@ def _read_table_safe(fpath):
         except Exception: continue
     return pd.DataFrame()
 
-@st.cache_data(show_spinner=False, max_entries=120)   # idem (file Rating)
+@st.cache_data(show_spinner=False, max_entries=15)   # idem (file Rating)
 def read_single_rating_file_cached(fpath, mtime):
     df_raw = _read_table_safe(fpath)
     if df_raw is None or df_raw.empty: return pd.DataFrame()
