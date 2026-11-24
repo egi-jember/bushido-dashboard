@@ -1,8 +1,9 @@
 Area,Group Dealer,Kode Dealer,Nama Dealer,Tipe Dealer,Tgl Transaksi,Order No,Nama Konsumen,Tgl Input Rating,Salesman/Teknisi,Score,Kebersihan Area Luar Dealer,Kebersihan Area Dalam (Showroom),Ketersediaan Unit Display,Sikap Salesman,Penjelasan Salesman,Respon Dealer,Comment
+MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05003,SIP SUMBERSARI,3S,13/11/2026,EA05003-26110009,FIRLY DWI ANGGRAINI LESTARI SUDARTO,23/11/2026,ARJUNA SETYA WIBAWA,5,1,1,1,1,1,1,
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05003,SIP SUMBERSARI,3S,17/11/2026,EA05003-26110012,DINOL FAHROSI,20/11/2026,KOESMIATI,5,0,0,0,1,0,0,
 ,,,,,,,,,,,,
-,,,,,,,,,,Qty Puas,="0",="0",="0",="1",="0",="0",
+,,,,,,,,,,Qty Puas,="1",="1",="1",="2",="1",="1",
 ,,,,,,,,,,Qty Tidak Puas,="0",="0",="0",="0",="0",="0",
-,,,,,,,,,,Total Respondent,="1",="1",="1",="1",="1",="1",
-,,,,,,,,,,% Puas,="0",="0",="0",="100.0",="0",="0",
+,,,,,,,,,,Total Respondent,="2",="2",="2",="2",="2",="2",
+,,,,,,,,,,% Puas,="50.0",="50.0",="50.0",="100.0",="50.0",="50.0",
 ,,,,,,,,,,% Tidak Puas,="0",="0",="0",="0",="0",="0",
