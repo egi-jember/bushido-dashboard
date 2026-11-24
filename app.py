@@ -996,9 +996,22 @@ def bsg_render_reg_panel(sudah, belum, f_c, title, by_col='Koor', by_label='Koor
     if grev:   # grev: [(nama dealer, target G REV, result G REV)] → batang pencapaian Google Review vs Target
         _gall_ = {n_: (t_, r_) for n_, t_, r_ in grev}
         _gord_ = sorted(_gall_, key=lambda n_: -((_gall_[n_][1] / _gall_[n_][0] * 100.0) if _gall_[n_][0] > 0 else -1.0))
+        try: _sv_dl_ = (saved_kpi.get('dealer', {}) or {})
+        except Exception: _sv_dl_ = {}
+        def _gstart(n_):   # PATCH: START G REV dealer (isi manual di MASTER TARGET › KPI Dealer)
+            e_ = _sv_dl_.get(n_)
+            if e_ is None:
+                try: e_ = next((v_ for k_, v_ in _sv_dl_.items() if _nrm_dlr(k_) == _nrm_dlr(n_)), None)
+                except Exception: e_ = None
+            return safe_int((e_ or {}).get(GREV_START_COL, 0))
         def _grow(n_):
-            t_, r_ = _gall_[n_]
-            if t_ > 0: return {'name': n_, 'val': r_ / t_ * 100.0, 'a': int(r_), 'b': int(t_), 'label': f'{r_ / t_ * 100.0:.0f}%', 'gap': int(r_) - int(t_), 'tip': f'<b>{_esc(n_)}</b><br>Google Review <b>{int(r_):,}</b> / Target {int(t_):,}<br>Gap <b>{int(r_) - int(t_):+,}</b><br>Pencapaian <b>{r_ / t_ * 100.0:.1f}%</b>'}
+            t_, r_ = _gall_[n_]; st_ = _gstart(n_)
+            if t_ > 0:
+                row_ = {'name': n_, 'val': r_ / t_ * 100.0, 'a': int(r_), 'b': int(t_), 'label': f'{r_ / t_ * 100.0:.0f}%', 'gap': int(r_) - int(t_), 'tip': f'<b>{_esc(n_)}</b><br>Google Review <b>{int(r_):,}</b> / Target {int(t_):,}<br>Gap <b>{int(r_) - int(t_):+,}</b><br>Pencapaian <b>{r_ / t_ * 100.0:.1f}%</b>'}
+                if st_ > 0:   # kiri: START → total sekarang (START + result) · kanan: target = START + target tambahan
+                    row_['a_txt'] = f'{st_:,} → {st_ + int(r_):,}'; row_['b_txt'] = f'{st_ + int(t_):,}'
+                    row_['tip'] += f'<br>Start <b>{st_:,}</b> → total sekarang <b>{st_ + int(r_):,}</b><br>Target total <b>{st_ + int(t_):,}</b> (start + {int(t_):,})'
+                return row_
             return {'name': n_, 'val': 0.0, 'a': int(r_), 'b': 0, 'label': 'n/a', 'tip': f'<b>{_esc(n_)}</b><br>Google Review {int(r_):,} · belum ada target'}
         g_rows = [_grow(n_) for n_ in _gord_]
         if g_rows and any(x_['b'] > 0 for x_ in g_rows):
@@ -3341,6 +3354,8 @@ def _grev_dm(d_):
 
 _ID_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
+GREV_JUMP_MAX = 50   # PATCH: tambahan review > 50 per dealer per tarikan dianggap lonjakan tidak wajar (listing digabung / URL berubah) → tidak ikut dijumlah di grafik harian & rata-rata
+
 def grev_daily_month(names, year=None, month=None, hist=None):
     """Review Google PER TANGGAL (1 s.d akhir bulan) per dealer = review pada tanggal itu − review pada tarikan sebelumnya.
     Return (ndays, year, month, {nama: [None | (selisih, jarak_hari, review_hari_itu, tgl_pembanding) per tanggal]}). None = tidak ada tarikan / belum terjadi.
@@ -3362,7 +3377,8 @@ def grev_daily_month(names, year=None, month=None, hist=None):
             if not pv_: col_.append(None); continue
             p_ = pv_[-1]; gap_ = (datetime.datetime.strptime(ds_, '%Y-%m-%d') - datetime.datetime.strptime(p_, '%Y-%m-%d')).days
             if gap_ > 7: col_.append(None); continue
-            col_.append((safe_int(e_[ds_]) - safe_int(e_[p_]), gap_, safe_int(e_[ds_]), p_))
+            _df_ = safe_int(e_[ds_]) - safe_int(e_[p_])
+            col_.append((_df_, gap_, safe_int(e_[ds_]), p_, abs(_df_) > GREV_JUMP_MAX * max(gap_, 1)))   # elemen ke-5 = lonjakan tidak wajar
         out[n_] = col_
     return nd_, year, month, out
 
@@ -3433,8 +3449,10 @@ def bsg_chart_grev_bars(names):
     for i_ in range(nd_):
         parts_ = {n_: data_[n_][i_] for n_ in names if data_[n_][i_] is not None}
         if not parts_: days_.append(None); continue
-        tot_ = sum(v_[0] for v_ in parts_.values()); acc_ = any(v_[1] > 1 for v_ in parts_.values())
-        tip_ = f'<b>Tgl {i_ + 1} {_ID_BULAN[mo_ - 1]}</b><br>Tambahan review <b>{tot_:+,}</b>' + ('<br>' + '<br>'.join(f'{_esc(n_)}: <b>{v_[0]:+,}</b> (review {v_[2]:,})' for n_, v_ in parts_.items()) if len(parts_) > 1 else f'<br>Review per tanggal itu: {list(parts_.values())[0][2]:,}')
+        tot_ = sum(v_[0] for v_ in parts_.values() if not v_[4]); acc_ = any(v_[1] > 1 for v_ in parts_.values())
+        _out_ = {n_: v_ for n_, v_ in parts_.items() if v_[4]}
+        tip_ = f'<b>Tgl {i_ + 1} {_ID_BULAN[mo_ - 1]}</b><br>Tambahan review <b>{tot_:+,}</b>' + ('<br>' + '<br>'.join(f'{_esc(n_)}: <b>{v_[0]:+,}</b> (review {v_[2]:,})' + (' ⚠️ lonjakan, tidak dijumlah' if v_[4] else '') for n_, v_ in parts_.items()) if len(parts_) > 1 else f'<br>Review per tanggal itu: {list(parts_.values())[0][2]:,}')
+        if _out_ and len(parts_) <= 1: tip_ += f'<br>⚠️ lonjakan {list(_out_.values())[0][0]:+,} dianggap tidak wajar, tidak dijumlah'
         if acc_: tip_ += '<br><i>* akumulasi beberapa hari — tidak ada tarikan di antaranya</i>'
         days_.append((tot_, acc_, tip_))
     n_ = sum(1 for d_ in days_ if d_ is not None)
@@ -3477,21 +3495,35 @@ def apify_pull_grev():
         except Exception: pass
     _tok = apify_token(); _okn, _errs, _new = 0, [], {}
     _pb = st.progress(0.0, text='Menarik data Google Maps…')
-    for _i, (_dn, _un) in enumerate(_urls.items()):
-        _pb.progress(_i / len(_urls), text=f'{_dn} ({_i + 1}/{len(_urls)})')
-        try:
-            _rc, _sc, _ttl = apify_google_reviews(_un, _tok)
-            _e_a = _sd_a.get(_dn, {}) or {}
-            _e_a['R. G REV'] = int(_rc); _e_a['G RATING'] = round(float(_sc), 2); _e_a['G REV UPDATE'] = _wib_now().strftime('%d/%m/%Y %H:%M')   # jam WIB (server online memakai UTC)
-            _sd_a[_dn] = _e_a; _okn += 1; _new[_dn] = int(_rc)
-        except Exception as _ex: _errs.append(f'{_dn}: {str(_ex)[:90]}')
-    _pb.progress(1.0, text='Selesai')
-    _all_a['dealer'] = _sd_a; save_json(_all_a, KPI_SAVED_FILE)
-    if _new:
-        grev_hist_record(_new)
-        try: gcs_sync_up()   # riwayat harian ikut tersimpan ke cloud
+    _h_before = load_json(GREV_HIST_FILE)   # riwayat SEBELUM tarikan ini (untuk deteksi data basi)
+    try:
+        for _i, (_dn, _un) in enumerate(_urls.items()):
+            _pb.progress(_i / len(_urls), text=f'{_dn} ({_i + 1}/{len(_urls)})')
+            try:
+                _rc, _sc, _ttl = apify_google_reviews(_un, _tok)
+                _e_a = _sd_a.get(_dn, {}) or {}
+                _e_a['R. G REV'] = int(_rc); _e_a['G RATING'] = round(float(_sc), 2); _e_a['G REV UPDATE'] = _wib_now().strftime('%d/%m/%Y %H:%M')   # jam WIB (server online memakai UTC)
+                _sd_a[_dn] = _e_a; _okn += 1; _new[_dn] = int(_rc)
+            except Exception as _ex: _errs.append(f'{_dn}: {str(_ex)[:90]}')
+    finally:   # PATCH: hasil dealer yang SUDAH berhasil ditarik tetap disimpan walau proses terputus (rerun / tab ditutup / timeout) — Apify sudah menagih biayanya
+        try: _pb.progress(1.0, text='Selesai')
         except Exception: pass
-    st.session_state['apify_grev_msg'] = (('⚠️ ' + str(len(_errs)) + ' dealer gagal: ' + ' | '.join(_errs)) if _errs else '')   # sukses → cukup baris 'SELESAI UPDATE …'
+        if _new:
+            _all_a['dealer'] = _sd_a; save_json(_all_a, KPI_SAVED_FILE)
+            grev_hist_record(_new)
+            try: gcs_sync_up()   # riwayat harian ikut tersimpan ke cloud
+            except Exception: pass
+    _msgs = []
+    if _errs: _msgs.append('⚠️ ' + str(len(_errs)) + ' dealer gagal: ' + ' | '.join(_errs))
+    if _new and len(_new) < len(_urls): _msgs.append(f'⚠️ Hanya {len(_new)} dari {len(_urls)} dealer yang tersimpan — tarik ulang untuk melengkapi.')
+    try:   # PATCH: SEMUA dealer persis sama dengan tarikan sebelumnya → kemungkinan data Apify basi / tidak berubah
+        _today_s = _wib_now().strftime('%Y-%m-%d'); _same, _cmp = 0, 0
+        for _dn, _v in _new.items():
+            _hh = _h_before.get(str(_dn).strip().upper(), {}) or {}; _pd = [d_ for d_ in sorted(_hh) if d_ < _today_s]
+            if _pd: _cmp += 1; _same += int(safe_int(_hh[_pd[-1]]) == int(_v))
+        if _cmp >= 5 and _same == _cmp: _msgs.append(f'⚠️ Semua {_cmp} dealer sama persis dengan tarikan sebelumnya — kemungkinan data Apify basi / belum berubah. Cek run di Apify Console.')
+    except Exception: pass
+    st.session_state['apify_grev_msg'] = ' '.join(_msgs)   # sukses penuh → cukup baris 'SELESAI UPDATE …'
 
 
 DEALER_TAB = '🧑‍💼 DASHBOARD DEALER'
