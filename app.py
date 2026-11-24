@@ -1774,6 +1774,25 @@ def _gh_remote_files():
     if s_ != 200: raise RuntimeError(f'daftar file cloud gagal (HTTP {s_})')
     return {t_['path']: t_ for t_ in tr.get('tree', []) if t_.get('type') == 'blob' and t_['path'].startswith(_GCS_PREFIX)}
 
+def _gh_blob_to_file(repo, sha, lp, timeout=300):
+    """Unduh isi blob langsung ke file (stream per 1 MB, format raw) — hemat memori dibanding JSON base64. Mengembalikan kode HTTP."""
+    import tempfile, shutil
+    cfg = _gh_cfg()
+    req = urllib.request.Request(f'https://api.github.com/repos/{repo}/git/blobs/{sha}', headers={'Authorization': f'Bearer {cfg[0]}', 'Accept': 'application/vnd.github.raw+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'bushido-dashboard'})
+    fd_, tmp_ = tempfile.mkstemp(suffix='.dl'); os.close(fd_)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r_, open(tmp_, 'wb') as f_:
+            while True:
+                ch_ = r_.read(1024 * 1024)
+                if not ch_: break
+                f_.write(ch_)
+        _mkparent(lp); shutil.move(tmp_, lp); return 200
+    except urllib.error.HTTPError as e_: return e_.code
+    finally:
+        try:
+            if os.path.exists(tmp_): os.remove(tmp_)
+        except Exception: pass
+
 def _gh_down():
     _, repo, br = _gh_cfg(); n = 0; remote = _gh_remote_files()
     for path, t_ in remote.items():
@@ -1782,10 +1801,9 @@ def _gh_down():
         if os.path.exists(lp):
             with open(lp, 'rb') as f_: same = _gh_blob_sha(f_.read()) == t_['sha']
             if same: continue
-        s_, bl = _gh_req('GET', f"/repos/{repo}/git/blobs/{t_['sha']}", timeout=300)
+        s_ = _gh_blob_to_file(repo, t_['sha'], lp)
         if s_ != 200: raise RuntimeError(f'unduh {rel} gagal (HTTP {s_})')
-        _mkparent(lp)
-        with open(lp, 'wb') as f_: f_.write(base64.b64decode(bl['content'])); n += 1
+        n += 1
     for n_ in _STATE_FILES:   # file pengaturan yang ada di lokal tapi belum pernah ada di cloud → kirim sekali (migrasi otomatis)
         if os.path.isfile(n_) and (_GCS_PREFIX + _STATE_SUB + n_) not in remote: cloud_push_file(n_)
     return n
@@ -1838,10 +1856,14 @@ def gcs_sync_down(force=False):
     kind = _cloud_kind(); st.session_state['gcs_down_off'] = kind not in ('github', 'gcs')
     if kind == 'github':
         _stt = _gh_sync_state()
+        if time.time() - _stt.get('busy', 0.0) < 900:   # sesi lain sedang mengunduh → jangan unduh dobel (penyebab memori penuh); pakai data lokal dulu
+            st.session_state['gcs_msg'] = '☁️ GitHub sedang disinkronkan oleh sesi lain — memakai data lokal'; return
         if not force and (time.time() - _stt['t']) < 600:   # sesi lain baru saja sinkron → lewati; tombol 'Muat ulang dari cloud' tetap memaksa
             st.session_state['gcs_msg'] = '☁️ GitHub tersinkron (sinkron terakhir < 10 menit lalu)'; st.session_state['gcs_down_done'] = True; return
+        _stt['busy'] = time.time()
         try: st.session_state['gcs_msg'] = f'☁️ GitHub tersinkron ({_gh_down()} file diperbarui)'; _stt['t'] = time.time()
-        except Exception as e_: st.session_state['gcs_msg'] = f'☁️ GitHub gagal dibaca: {str(e_)[:60]}'
+        except Exception as e_: st.session_state['gcs_msg'] = f'☁️ GitHub gagal dibaca: {str(e_)[:60]}'; _stt['t'] = time.time() - 540   # gagal → coba lagi ±1 menit kemudian, bukan oleh semua sesi sekaligus
+        finally: _stt['busy'] = 0.0
         st.session_state['gcs_down_done'] = True
     elif kind == 'gcs': _gcs_down(force)
     else: st.session_state['gcs_msg'] = '☁️ Cloud nonaktif — ' + _gh_diag(); st.session_state['gcs_down_done'] = True
