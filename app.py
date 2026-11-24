@@ -340,6 +340,7 @@ _RANK_CSS = """.rk{display:flex;align-items:center;gap:8px;height:28px}
 .sp-n{flex:0 0 92px;font-size:12.5px;font-weight:700;color:#1E3A8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-g{flex:0 0 auto;min-width:36px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap}
 .sp-b{flex:1;min-width:0}.sp-b .sp{height:26px;font-size:11.5px;border-radius:8px}.sp-b .sp .j{font-size:10.5px;line-height:14px}
+.sp-o{flex:0 0 auto;min-width:22px;text-align:center;font-size:12px;font-weight:800;color:#F97316;white-space:nowrap}
 .sp-p{flex:0 0 54px;text-align:right;font-size:13.5px;font-weight:800}
 .rk-note{font-size:11px;font-weight:600;color:#3B5BC8;background:#EAF0FF;border-radius:6px;padding:4px 7px;margin:0 0 6px 0;line-height:1.3}
 .rk-x{flex:0 0 auto;min-width:26px;text-align:right;font-size:11.5px;font-weight:700;color:#475569;white-space:nowrap}
@@ -386,9 +387,10 @@ def bsg_chart_rank(title, subtitle, rows, ideal=None, ideal_label='Ideal', unit=
             a_, b_ = r.get('a', 0), r.get('b', 0); p_ = (a_ / b_ * 100.0) if b_ else None
             c = ('#64748B' if p_ is None else (BSG_GRN if p_ >= (ideal if (split == 'target' and ideal) else 100.0) else (BSG_YEL if (split == 'target' and ideal and p_ >= 0.85 * ideal) else BSG_RED)))
             tip = r.get('tip') or f"<b>{_esc(r['name'])}</b>"
+            open_h = ('<div class="sp-o" title="SPK terbuka">' + format(int(r['open']), ',') + '</div>') if r.get('open') is not None else ''   # angka SPK terbuka (setelah nama, sebelum grafik)
             gap_h = ''
             if r.get('gap') is not None: gap_h = '<div class="sp-g" style="color:' + (BSG_GRN if r['gap'] >= 0 else BSG_RED) + '">' + format(int(r['gap']), '+,') + '</div>'
-            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}"{(' style="flex:0 0 %dpx"' % int(r["n_w"])) if r.get("n_w") else ""}>{_esc(r["name"])}</div>{gap_h}<div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
+            sb += (f'<div class="sp-row" data-tip="{_esc(tip)}"><div class="sp-n" title="{_esc(r["name"])}"{(' style="flex:0 0 %dpx"' % int(r["n_w"])) if r.get("n_w") else ""}>{_esc(r["name"])}</div>{gap_h}{open_h}<div class="sp-b">{_split_bar(a_, b_, split, p_, c, r.get("a_txt"), r.get("b_txt"))}</div></div>')
         hdr = _hdr(title, '')
         if total is not None:
             hdr = f'<div class="ttl-r"><div class="ttl">{_esc(_ttl(title))}</div><div class="ttl-tot" style="color:{total_color or "#1E3A8A"}">{_esc(total)}</div></div><div style="height:6px"></div>'
@@ -7903,9 +7905,11 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                             u_ = n_.strip().upper()
                             p_c, a_c, r_c = _jb_sl_acc_pct(_jb_sl_sub(_jb_sp, u_, '_jbk'), lg_); p_l, a_l, r_l = _jb_sl_acc_pct(_jb_sl_sub(_jb_sl_l, u_, '_jbk'), lg_)
                             has_l = (a_l + r_l) > 0
-                            r_lm.append({'name': n_, 'val': (p_c / p_l * 100.0) if p_l > 0 else (-1.0 if not has_l else 0.0), 'a': p_c, 'b': p_l, 'a_txt': f'{p_c:.1f}%', 'b_txt': f'{p_l:.1f}%',
+                            _d_o = _jb_sl_sub(_jb_sp, u_, '_jbk'); _d_o = _d_o if (lg_ is None or _d_o.empty or 'Leasing_SPK_Clean' not in _d_o.columns) else _d_o[_d_o['Leasing_SPK_Clean'] == lg_]
+                            open_n_ = int((_d_o['Status_SPK_Clean'] == 'TERBUKA').sum()) if (not _d_o.empty and 'Status_SPK_Clean' in _d_o.columns) else 0
+                            r_lm.append({'name': n_, 'open': open_n_, 'val': (p_c / p_l * 100.0) if p_l > 0 else (-1.0 if not has_l else 0.0), 'a': p_c, 'b': p_l, 'a_txt': f'{p_c:.1f}%', 'b_txt': f'{p_l:.1f}%',
                                          'label': (f'{p_c - p_l:+.1f} pt' if has_l else 'n/a'), 'extra': f'{p_l:.1f}%→{p_c:.1f}%',
-                                         'tip': f"<b>{_esc(n_)}</b> — {ttl_}<br>Bulan ini <b>{p_c:.2f}%</b> (Disetujui {a_c:,} · Ditolak {r_c:,})<br>Bulan lalu <b>{p_l:.2f}%</b> (Disetujui {a_l:,} · Ditolak {r_l:,})<br>Selisih <b>{p_c - p_l:+.1f} pt</b>"})
+                                         'tip': f"<b>{_esc(n_)}</b> — {ttl_}<br>Bulan ini <b>{p_c:.2f}%</b> (Disetujui {a_c:,} · Ditolak {r_c:,})<br>Bulan lalu <b>{p_l:.2f}%</b> (Disetujui {a_l:,} · Ditolak {r_l:,})<br>Terbuka <b>{open_n_:,}</b><br>Selisih <b>{p_c - p_l:+.1f} pt</b>"})
                         t_c, _a, _r = _jb_sl_acc_pct(sc_all, lg_); t_l, _a2, _r2 = _jb_sl_acc_pct(sl_all, lg_)
                         out_.append(bsg_chart_rank(ttl_, '', r_lm, ideal=100.0, ideal_label='Sama dgn bln lalu', parts=True, split='lm', split_total=(t_c, t_l), split_a_txt=f'{t_c:.1f}%', split_b_txt=f'{t_l:.1f}%', scale_max=max([r_['val'] for r_ in r_lm] + [115.0]), total=f'{t_c - t_l:+.1f} pt', total_color=(BSG_GRN if t_c >= t_l else BSG_RED)))
                     return {'group': [c_ for c_ in out_ if c_], 'cols': 5}
