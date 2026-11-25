@@ -7435,7 +7435,7 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                         return IDEAL_DB_SM, max(1, int(mp_n_))
                     def _eval(dbq_, stup_, db_n_, stu_n_, tg_n_, avg_db_, per_day_):
                         lr_, rr_ = lv_res(stu_n_, tg_n_); c_r = GRY_ if lr_ < 0 else col_lv(lr_)
-                        v_r = f'{int(stu_n_):,} | {int(math.ceil(tg_n_ * idl_ / 100.0 - 1e-9)):,}' if tg_n_ > 0 else '-'   # STU IDEAL = STU hari ini | STU ideal (target x ideal% hari ini, dibulatkan ke atas)
+                        v_r = f'{int(stu_n_):,} | {int(math.ceil(tg_n_ * idl_ / 100.0 - 1e-9)):,}' if tg_n_ > 0 else f'{int(stu_n_):,} | 0'   # (tanpa target/jabatan: tampil STU | 0, treatment CEK TARGET) STU IDEAL = STU hari ini | STU ideal (target x ideal% hari ini, dibulatkan ke atas)
                         vr_ = (avg_db_ / per_day_) if per_day_ > 0 else 0.0; lvv_ = lv_vol(vr_)
                         c_v = col_lv(lvv_); v_v = f'{avg_db_:.2f}'   # tampil angka saja; warna mengikuti % terhadap ideal (3 salesman / 5 counter)
                         if db_n_ > 0: c_s, c_d, v_s, v_d = col_lv(lv_stu(stup_)), col_lv(lv_dbq(dbq_)), f'{stup_:.1f}%', f'{dbq_:.1f}%'
