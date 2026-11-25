@@ -4837,6 +4837,10 @@ if paths_rating:
     l_rt = [d for d in l_rt if not d.empty]
     if l_rt:
         df_rating = pd.concat(l_rt, ignore_index=True)
+        _oc_ = next((c_ for c_ in df_rating.columns if str(c_).strip().upper().replace('_', ' ') == 'ORDER NO'), None)
+        if _oc_ is not None:   # file Rating dealer yang sama bisa terbaca >1 kali (mis. nama file berbeda) → satu Order No dihitung sekali
+            _ov_ = df_rating[_oc_].astype(str).str.strip()
+            df_rating = df_rating[~(_ov_.duplicated(keep='last') & _ov_.ne('') & ~_ov_.str.upper().isin(['NAN', 'NONE']))].reset_index(drop=True)
         df_rating = apply_koor_dealer_lock(df_rating, 'Nama_Dealer_Clean', 'Koor')
         if 'Nama_Dealer_Clean' in df_rating.columns: df_rating = df_rating[df_rating['Nama_Dealer_Clean'].map(is_mds_dealer)].reset_index(drop=True)   # hanya dealer MDS
 
