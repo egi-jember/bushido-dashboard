@@ -1,6 +1,7 @@
 import hmac, hashlib, time
 import json, os, glob, datetime, re, base64, random, math, calendar as pycal, urllib.request, urllib.error, urllib.parse
 import pandas as pd
+import warnings; warnings.filterwarnings('ignore', message=r"The default engine for reading")   # peringatan pandas (ribuan baris per hari) memenuhi log sehingga error asli sulit terlihat
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -3808,7 +3809,8 @@ def read_single_db_file_cached(fpath, mtime):
     return df
 
 def read_single_db_file(fpath):   # PERBAIKAN: tanpa @st.cache_data di sini (cache hanya di read_single_db_file_cached yang kuncinya fpath + mtime), agar file bernama sama yang di-upload ulang terbaca ulang
-    return read_single_db_file_cached(fpath, get_file_mtime(fpath)).copy()
+    try: return read_single_db_file_cached(fpath, get_file_mtime(fpath)).copy()
+    except FileNotFoundError: return pd.DataFrame()   # file diganti/dihapus sesi lain saat dibaca → lewati (muncul lagi di refresh berikutnya)
 
 def smart_text_to_columns(df):
     if df is not None and df.shape[1] == 1 and len(df) > 0:
@@ -3863,7 +3865,8 @@ def read_single_rating_file_cached(fpath, mtime):
     return df
 
 def read_single_rating_file(fpath):
-    return read_single_rating_file_cached(fpath, get_file_mtime(fpath)).copy()
+    try: return read_single_rating_file_cached(fpath, get_file_mtime(fpath)).copy()
+    except FileNotFoundError: return pd.DataFrame()   # file diganti/dihapus sesi lain saat dibaca → lewati
 
 def assign_rating_dealer_and_koor(df, map_dlr_code):
     if df is None or df.empty:
@@ -7554,14 +7557,16 @@ al();setInterval(al,600);}catch(e){}})();</script>""", height=0)   # tombol CREA
                     _im_c = (next((c_ for c_ in _hot_all.columns if alnum_str(c_) == 'INTERESTMOTOR'), (_hot_all.columns[11] if _hot_all.shape[1] > 11 else None))) if not _hot_all.empty else None
                     _subc = [c_ for c_ in _hot_all.columns if alnum_str(c_).startswith('SUBPROSPECT')] or ([_hot_all.columns[7]] if _hot_all.shape[1] > 7 else [])
                     def _hot_recs(df_h):
-                        out_ = []
+                        out_ = []; seen_ = set()   # baris kembar (data sama persis) dilewati: tidak dobel di tabel/pie dan kunci widget tidak bentrok
                         for _, r_ in df_h.sort_values(['Salesman_Clean', 'hari']).iterrows():
                             tp_ = r_['Tanggal_Parsed'] if 'Tanggal_Parsed' in df_h.columns else None
                             tg_ = tp_.strftime('%d/%m/%Y') if (tp_ is not None and not pd.isna(tp_)) else f"{int(r_['hari']):02d}/{current_month:02d}/{current_year}"
                             nm_ = (clean_str(r_[_cn_c]) if _cn_c else '') or '-'; mn_ = (clean_str(r_[_im_c]) if _im_c else '') or '-'
                             k_ = '|'.join([str(_dd_dealer), clean_str(r_['Salesman_Clean']), nm_, tg_, mn_])
+                            if k_ in seen_: continue
+                            seen_.add(k_)
                             sb_ = re.sub(r'\s+', ' ', clean_str(r_[_subc[0]])).strip() if (_subc and _subc[0] in df_h.columns) else ''
-                            out_.append({'sm': clean_str(r_['Salesman_Clean']) or '-', 'inv': ((clean_str(r_['STU']) == 'STU') if 'STU' in df_h.columns else False), 'key': k_, 'wid': 'hot_res_' + hashlib.md5(k_.encode('utf-8')).hexdigest()[:14], 'nm': nm_, 'sub': sb_ or '(KOSONG)', 'tg': tg_, 'mn': mn_})
+                            out_.append({'sm': clean_str(r_['Salesman_Clean']) or '-', 'inv': ((clean_str(r_['STU']) == 'STU') if 'STU' in df_h.columns else False), 'key': k_, 'wid': 'hot_res_' + hashlib.md5((str(_mp_sales) + '#' + k_).encode('utf-8')).hexdigest()[:14], 'nm': nm_, 'sub': sb_ or '(KOSONG)', 'tg': tg_, 'mn': mn_})
                         return out_
                     _store = load_json(HOT_HASIL_FILE)
                     _st_of = lambda k_: _store.get(k_) if _store.get(k_) in HOT_HASIL_OPTS else 'FU'
