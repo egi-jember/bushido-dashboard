@@ -8960,3 +8960,27 @@ function printAnalisaTbl() {{
     st.divider()
     bsg_render_stu_per_leasing_faktur()
 if _an_inline: _an_cm.__exit__(None, None, None)
+
+# ══ Pemantau memori + pelepasan memori bekas pakai (akhir setiap run halaman) ══
+# Tiap run mengolah DataFrame besar; Python/pandas sering tidak mengembalikan memori bekas ke sistem sehingga RSS naik pelan-pelan sampai
+# "app has gone over its resource limits". gc.collect() + malloc_trim(0) membantu mengembalikannya, dan baris "[MEM]" di log (Manage app)
+# menunjukkan menu mana yang paling berat. Seluruh blok dibungkus try agar tidak pernah mengganggu aplikasi.
+try:
+    import gc as _gc_, ctypes as _ct_, logging as _lg_
+    @st.cache_resource(show_spinner=False)
+    def _mem_state(): return {'t': 0.0, 'peak': 0.0}
+    def _rss_mb():
+        with open('/proc/self/status') as f_:
+            for ln_ in f_:
+                if ln_.startswith('VmRSS:'): return int(ln_.split()[1]) / 1024.0
+        return -1.0
+    _ms_ = _mem_state(); _r0_ = _rss_mb()
+    if time.time() - _ms_['t'] > 20:   # paling sering tiap 20 detik agar tidak membebani
+        _ms_['t'] = time.time(); _gc_.collect()
+        try: _ct_.CDLL('libc.so.6').malloc_trim(0)
+        except Exception: pass
+    _r1_ = _rss_mb(); _ms_['peak'] = max(_ms_['peak'], _r0_)
+    print(f"[MEM] menu={globals().get('menu_pilihan', '?')} rss_akhir_run={_r0_:.0f}MB setelah_bersih={_r1_:.0f}MB puncak_sejak_start={_ms_['peak']:.0f}MB", flush=True)
+    for _n_ in list(_lg_.root.manager.loggerDict):   # peringatan deprecation st.components (ribuan baris/hari) memenuhi log 10.000 baris → log krisis ikut terpotong
+        if _n_.startswith('streamlit') and 'deprecat' in _n_.lower(): _lg_.getLogger(_n_).setLevel(_lg_.ERROR)
+except Exception: pass
