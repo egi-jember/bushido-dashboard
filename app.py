@@ -5986,6 +5986,7 @@ def render_entity_kpi_dashboard(kind, entities, title_txt, sel_key, date_lbl, da
     if not entities:
         st.info(f'ℹ️ Belum ada {lbl} dari 7 dealer fokus. Pastikan file Data Lookup & Database sudah diupload.')
         return
+    if st.session_state.get(sel_key) not in entities: st.session_state.pop(sel_key, None)   # daftar berubah (mis. ganti pilihan MDS) → mulai dari pilihan pertama
     sel = st.selectbox(f'👤 Pilih {lbl}:', entities, index=0, key=sel_key, format_func=lambda e: f'{e}  —  {kpi_entity_dealer(e)}')
     ctype = 'ADMIN'
     if kind == 'counter':
@@ -6520,6 +6521,7 @@ elif menu_pilihan == KPI_TAB:
     with col_d1: sel_dash = st.selectbox('🏢 Pilih Dealer:', _kpi_opts, index=0, key='sel_dash_kpi')   # default: belum ada dealer dipilih · total per kelompok kota di paling bawah
     # Bobot otomatis: total kelompok kota -> bobot MDS (sesuai gambar) | pilih dealer -> bobot Dealer (sesuai Excel R-MDS)
     scheme_dash = 'MDS' if sel_dash in (KPI_TOT_JB, KPI_TOT_BS) else 'DEALER'
+    _grp_dash = set(_kpi_subset_dealers(sel_dash)) if sel_dash in (KPI_TOT_JB, KPI_TOT_BS) else None   # pilih MDS → tabel ranking Dealer/Koordinator/Counter hanya berisi dealer kelompok itu; pilihan lain → semua
     with col_d2:
         st.write('')
         if sel_dash != KPI_PICK: st.caption('⚖️ Bobot poin otomatis: **' + ('MDS (sesuai gambar)' if scheme_dash == 'MDS' else 'Dealer (sesuai Excel R-MDS)') + '**')
@@ -6534,6 +6536,7 @@ elif menu_pilihan == KPI_TAB:
         rows_sel, s_sel, p_sel, t_sel = kpi_score_entity(inputs_dash[sel_dash], scheme_dash)
         dealer_tbl = []
         for d_k in _kpi_dealers():
+            if _grp_dash is not None and d_k not in _grp_dash: continue
             r_k, s_k, p_k, t_k = kpi_score_entity(inputs_dash[d_k], scheme_dash)
             dealer_tbl.append({'name': d_k, 'code': KPI_DEALER_CODES.get(d_k, '-'), 'point': t_k, 'grade': kpi_grade(t_k), 'sales': s_k, 'process': p_k, 'achv': {c: r_k[c]['achv'] for c in KPI_CODES}, 'note': kpi_note(p_k)})
         dealer_tbl.sort(key=lambda x_d: (-x_d['point'], -x_d['process']))
@@ -6545,6 +6548,9 @@ elif menu_pilihan == KPI_TAB:
         render_table_image_buttons('cap_dashboard_kpi', f'Dashboard_KPI_{sel_dash}_Tgl_{tanggal_akhir}', standalone_html=cap_dash)
 
     koor_focus, cnt_focus = get_focus_entities()
+    if _grp_dash is not None:   # hanya koordinator & counter dari dealer kelompok MDS terpilih (pilihan & tabel ranking)
+        koor_focus = [e_ for e_ in koor_focus if kpi_entity_dealer(e_) in _grp_dash]; cnt_focus = [e_ for e_ in cnt_focus if kpi_entity_dealer(e_) in _grp_dash]
+        st.caption(f'📌 Ranking Dealer, Koordinator & Counter di bawah hanya menampilkan dealer {sel_dash}. Pilih dealer lain / kosongkan pilihan untuk melihat semua.')
     st.divider()
     render_entity_kpi_dashboard('koor', koor_focus, f'DASHBOARD KPI KOORDINATOR (1 s.d {tanggal_akhir} {periode_bulan_tahun})', 'sel_dash_kpi_koor', date_lbl_dash, date_short_dash)
     st.divider()
