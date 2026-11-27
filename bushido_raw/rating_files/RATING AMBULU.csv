@@ -1,4 +1,5 @@
 Area,Group Dealer,Kode Dealer,Nama Dealer,Tipe Dealer,Tgl Transaksi,Order No,Nama Konsumen,Tgl Input Rating,Salesman/Teknisi,Score,Kebersihan Area Luar Dealer,Kebersihan Area Dalam (Showroom),Ketersediaan Unit Display,Sikap Salesman,Penjelasan Salesman,Respon Dealer,Comment
+MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,05/11/2026,EA05005-26110004,SHERLY FEBRIANTI,26/11/2026,AHMAD DANU,5,0,1,1,0,0,1,
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,06/11/2026,EA05005-26110009,UMAIYAH,14/11/2026,MARFEL ADI PUTRA,5,1,1,1,1,1,1,Pelayanan dealer sangat memuaskan. Area dealer dan showroom bersih serta nyaman. Pilihan model motor cukup lengkap. Staf penjualan ramah. sopan. responsif. dan memberikan penjelasan dengan jelas sehingga proses pembelian berjalan lancar. Terima kasih atas pelayanan yang baik.😁🙏
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,07/11/2026,EA05005-26110005,MOCH HARITS MABRUROH,18/11/2026,ACHMAD EFENDI,5,1,1,1,1,1,1,pelayanan cepat dan ramah. dealer bersih dan rapi
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,10/11/2026,EA05005-26110012,AYU AGUSTYA,21/11/2026,NICKY LINTANG PERTIWI,5,1,1,1,1,1,1,semoga terus maju 
@@ -12,10 +13,11 @@ MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,14/11/2026,EA05005-2611
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,17/11/2026,EA05005-26110025,ERWIN LESTARI,25/11/2026,M.PRAYOGI,5,1,1,1,1,1,1,Sangat bagus
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,17/11/2026,EA05005-26110026,SUWOTO,23/11/2026,KUSNO SUJARWADI,5,1,1,1,1,1,1,Terimakasih
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,20/11/2026,EA05005-26110028,DWI RIWAYANTI,24/11/2026,NICKY LINTANG PERTIWI,5,1,1,1,1,1,1,pelayanan ramah dan bagus. pengiriman kendaraan juga cepet
+MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,21/11/2026,EA05005-26110032,MOHAMMAD ALMIL HISNULLAH,26/11/2026,ACHMAD EFENDI,1,0,0,0,-1,0,-1,Tidak melakukan evaluasi sebelum pengiriman dan malah menyalahkan kustomer atas kesalahan dari pihak dealer
 MD JEMBER,RODASAKTI SURYAMEGAH PT.,EA05005,SIP AMBULU,3S,21/11/2026,EA05005-26110020,MARUFAH DEVIANA AGUSTIN,25/11/2026,NICKY LINTANG PERTIWI,5,0,1,1,1,0,0,
 ,,,,,,,,,,,,
-,,,,,,,,,,Qty Puas,="9",="13",="13",="10",="11",="12",
-,,,,,,,,,,Qty Tidak Puas,="0",="0",="0",="0",="0",="0",
-,,,,,,,,,,Total Respondent,="14",="14",="14",="14",="14",="14",
-,,,,,,,,,,% Puas,="64.3",="92.9",="92.9",="71.4",="78.6",="85.7",
-,,,,,,,,,,% Tidak Puas,="0",="0",="0",="0",="0",="0",
+,,,,,,,,,,Qty Puas,="9",="14",="14",="10",="11",="13",
+,,,,,,,,,,Qty Tidak Puas,="0",="0",="0",="1",="0",="1",
+,,,,,,,,,,Total Respondent,="16",="16",="16",="16",="16",="16",
+,,,,,,,,,,% Puas,="56.3",="87.5",="87.5",="62.5",="68.8",="81.3",
+,,,,,,,,,,% Tidak Puas,="0",="0",="0",="6.3",="0",="6.3",
